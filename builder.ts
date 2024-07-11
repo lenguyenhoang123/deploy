@@ -46,6 +46,7 @@ console.time("Built time");
 		process.exit(1);
 	});
 
+/**************************************************************************************/
 function getTSConfig(_tsConfigFile = "tsconfig.json") {
 	const tsConfigFile = findConfigFile(cwd, sys.fileExists, _tsConfigFile);
 	if (!tsConfigFile) throw new Error(`tsconfig.json not found in the current directory! ${cwd}`);

@@ -131,3 +131,4 @@ dist
 # user generated
 storage/
 src/templates/swagger/swagger-output.json
+pnpm-lock.yaml

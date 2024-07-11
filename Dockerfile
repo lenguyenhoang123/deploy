@@ -18,4 +18,5 @@ ENV TZ="Asia/Bangkok"
 RUN ["apk", "update"]
 COPY --from=run-deps /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
+COPY ["package.json", "./"]
 CMD ["node", "dist/index.js"]
