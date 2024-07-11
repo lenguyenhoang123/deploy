@@ -1,0 +1,15 @@
+services:
+  app:
+    container_name: templatebackend
+    environment:
+      - NODE_ENV=staging
+    build:
+      context: .
+      args:
+        NODE_ENV: staging
+    volumes:
+      - /usr/src/app/storage
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    pull_policy: always

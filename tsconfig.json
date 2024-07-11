@@ -1,0 +1,46 @@
+{
+    "compilerOptions": {
+        "module": "NodeNext",
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "moduleResolution": "NodeNext",
+        "skipLibCheck": true,
+        "target": "ESNext",
+        "sourceMap": false,
+        "outDir": "dist",
+        "baseUrl": "./src",
+        "paths": {
+            "#dto/*": [
+                "dto/*"
+            ],
+            "#providers/*": [
+                "providers/*"
+            ],
+            "#services/*": [
+                "services/*"
+            ],
+            "#middlewares/*": [
+                "middlewares/*"
+            ],
+            "#models/*": [
+                "models/*"
+            ],
+            "#templates/*": [
+                "templates/*"
+            ],
+            "#constants/*": [
+                "constants/*"
+            ],
+            "#": [
+                "*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules/**/*",
+        "storage/**/*",
+    ]
+}

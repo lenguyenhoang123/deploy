@@ -1,0 +1,61 @@
+{
+	"JWT": {
+		"Secret": "Local_Secret_1",
+		"refreshTokenSecret": "Local_Refresh_5",
+		"tokenLife": 100000000,
+		"refreshTokenLife": 100000000
+	},
+	"Port": 3000,
+	"Storage": "",
+	"Database": {
+		"DB_DIALECT": "postgres",
+		"DB_DATABASE": "saigon_business_staging_v2",
+		"DB_USER": "postgres",
+		"DB_PASS": "meu@sds12@!#gh",
+		"DB_HOST": "27.74.255.96",
+		"DB_PORT": 5430
+	},
+	"LoggingService": {
+		"IsEnabled": true,
+		"Mode": "file",
+		"Timeout": 3000,
+		"Url": ""
+	},
+	"smtpOptions": {
+		"host": "smtp-relay.sendinblue.com",
+		"port": 587,
+		"auth": {
+			"user": "intranet@meu-solutions.com",
+			"pass": "rY94xnIGBZm2MdgT"
+		}
+	},
+	"PaymentPortal": {
+		"VNPay": {
+			"vnpTmnCode": "TJLZC12S",
+			"vnpHashSecret": "LKTFQWMXCDSXYCBQSBVUSLIIDXPQLVYA",
+			"vnpUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+			"vnpApi": "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction"
+		},
+		"ZaloPay": {
+			"app_id": "2554",
+			"key1": "sdngKKJmqEMzvh5QQcdD2A9XBSKUNaYn",
+			"key2": "trMrHtvjo6myautxDUiAcYsVtaeQ8nhf",
+			"endpoint": "https://sb-openapi.zalopay.vn/v2"
+		}
+	},
+	"GoogleServices": {
+		"Firebase": {
+			"apiKey": "AIzaSyAh-BdLzxJ79fZPLHvW1Q8CabdRMELREEQ",
+			"authDomain": "saigon-business.firebaseapp.com",
+			"projectId": "saigon-business",
+			"storageBucket": "saigon-business.appspot.com",
+			"messagingSenderId": "845988748888",
+			"appId": "1:845988748888:web:c383cc6f44af809fff342d",
+			"measurementId": "G-CQW9XHYWBC"
+		}
+	},
+	"frontEndHost": "http://localhost:3000",
+	"backEndHost": "localhost:3000",
+	"MailHomeAddress": "",
+	"DefaultIMG": ""
+}
