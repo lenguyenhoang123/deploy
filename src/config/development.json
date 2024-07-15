@@ -8,8 +8,8 @@
 		"DB_DIALECT": "mongodb",
 		"DB_DATABASE": "shtt_online_exam",
 		"DB_AUTHDB": "admin",
-		"DB_USER": "admin",
-		"DB_PASS": "1234",
+		"DB_USER": "statistic_service_user",
+		"DB_PASS": "Tlqcmn125125",
 		"DB_HOST": "127.0.0.1",
 		"DB_PORT": 27017
 	},
