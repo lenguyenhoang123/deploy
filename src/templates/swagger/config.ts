@@ -7,7 +7,7 @@ export default {
 		openapi: "3.1.0",
 		info: {
 			version: "1.0.0",
-			title: "Saigon Business",
+			title: "SHTT",
 			description: "Coded by Meu TEAM",
 		},
 		consumes: ["application/json", "application/x-www-form-urlencoded"],
@@ -62,6 +62,7 @@ export default {
 				},
 			},
 			schemas: {
+				// RESPONSE SECTION
 				Response: {
 					type: "object",
 					properties: {
@@ -116,6 +117,52 @@ export default {
 										},
 									},
 								},
+							},
+						},
+					],
+				},
+				// END RESPONSE SECTION
+
+				// USER SECTION
+				userMutate: {
+					type: "object",
+					properties: {
+						first_name: { type: "string" },
+						middle_name: { type: "string" },
+						last_name: { type: "string" },
+						email: { type: "string" },
+						phone: { type: "string" },
+						unit: {
+							type: "object",
+							properties: {
+								district: { type: "string" },
+								ward: { type: "string" },
+							},
+						},
+					},
+				},
+				userRegister: {
+					allOf: [
+						{
+							$ref: "#/components/schemas/userMutate",
+						},
+						{ type: "object", properties: { password: { type: "string" } } },
+					],
+				},
+				User: {
+					allOf: [
+						{
+							$ref: "#/components/schemas/userMutate",
+						},
+						{
+							type: "object",
+							properties: {
+								is_admin: { type: "boolean" },
+								is_active: { type: "boolean" },
+								created_at: { type: "string" },
+								created_by: { type: "string" },
+								updated_at: { type: "string" },
+								updated_by: { type: "string" },
 							},
 						},
 					],

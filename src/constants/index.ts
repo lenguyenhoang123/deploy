@@ -1,3 +1,7 @@
+import { readFileSync } from "fs";
+import { resolve } from "path";
+import { root } from "../root";
+
 export default {
 	// Default consts
 	DEFAULT_ERROR_CODE: -999,
@@ -48,6 +52,15 @@ export default {
 		},
 	},
 
-	// UUID Check
-	uuidv4: /^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i,
+	EMAIL: {
+		register: (email: string, otp: string) => {
+			const // Result
+				subject = `Phòng ban Sở hữu Trí tuệ - Mã xác minh đăng ký`,
+				html = readFileSync(resolve(root, "src/templates/email", "registerOTP.html"), "utf-8")
+					.replace("{{ email }}", email)
+					.replace("{{ otp }}", otp);
+
+			return { subject, html };
+		},
+	},
 };

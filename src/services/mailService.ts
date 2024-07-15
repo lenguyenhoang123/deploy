@@ -21,5 +21,5 @@ class MailService {
 		return this.transporter.sendMail(mailOptions, callback);
 	}
 }
-
+export { MailService };
 export default MailService;

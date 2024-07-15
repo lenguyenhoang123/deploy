@@ -1,6 +1,6 @@
 import nconf from "nconf";
-import { JwtPayload, verify } from "jsonwebtoken";
-import { Req, Res } from "#services/interfaces/iapi";
+import { verify } from "jsonwebtoken";
+import { AuthPayload, Req, Res } from "#services/interfaces/iapi";
 import { NextFunction } from "express";
 import { MeUError } from "../dto/MeUErrorDTO";
 
@@ -11,8 +11,7 @@ export default function (req: Req, res: Res, next: NextFunction) {
 		const [_bearer, token] = bearerHeader.split(" ");
 		if (!token) return res.sendError({ err: new Error("Not authorization") });
 
-		const verified: JwtPayload = <JwtPayload>verify(token, nconf.get("JWT:Secret"));
-		req.user = verified;
+		req.user = <AuthPayload>verify(token, nconf.get("JWT:Secret"));
 		next();
 	} catch (err) {
 		return res.sendErrorStatus({
@@ -29,7 +28,7 @@ export const verifyToken = async (req: Req) => {
 		const bearerHeader = req.header("Authorization");
 		const [_bearer, token] = bearerHeader.split(" ");
 		if (!token) throw new Error("Not authorization");
-		const verified: JwtPayload = <JwtPayload>verify(token, nconf.get("JWT:Secret"));
+		const verified = <AuthPayload>verify(token, nconf.get("JWT:Secret"));
 		req.user = verified;
 		return;
 	} catch (error) {
