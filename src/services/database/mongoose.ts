@@ -21,8 +21,8 @@ const connectMongo = async () => {
     const connectionString = `mongodb://${db.DB_USER}:${db.DB_PASS}@${db.DB_HOST}:${db.DB_PORT}/${db.DB_AUTHDB}`;
     serverLog(`Connecting to MongoDB at ${connectionString}`);
     await mongoose.connect(connectionString, { dbName: db.DB_DATABASE });
-    logger.logDBAsync("Successfully connected");
-    serverLog("Successfully connected");
+    // logger.logDBAsync("Successfully connected");
+    // serverLog("Successfully connected");
     return mongoose;
   } catch (err) {
     serverLog(err);
