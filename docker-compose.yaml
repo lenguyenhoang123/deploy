@@ -4,6 +4,8 @@ services:
   app:
     container_name: ENVIRONMENT-NAME-PROJECT-NAME
     image: IMAGE-NAME:IMAGE-TAG
+    environment:
+      - NODE_ENV=NODE_ENV_VALUE
     volumes:
       - MOUNT-DATA-FOLDER/PROJECT-NAME:/usr/src/app/storage
     ports:
