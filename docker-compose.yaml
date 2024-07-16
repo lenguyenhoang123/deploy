@@ -1,0 +1,12 @@
+version: '3.5'
+
+services:
+  app:
+    container_name: ENVIRONMENT-NAME-PROJECT-NAME
+    image: IMAGE-NAME:IMAGE-TAG
+    volumes:
+      - MOUNT-DATA-FOLDER/PROJECT-NAME:/usr/src/app/storage
+    ports:
+      - P-MAPPING:3000
+    restart: unless-stopped
+    pull_policy: always

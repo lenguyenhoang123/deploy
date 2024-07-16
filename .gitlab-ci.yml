@@ -1,0 +1,50 @@
+stages:
+    - build
+    - deploy
+build:
+    stage: build
+    before_script:
+        - source ./env-param.sh
+        - export docker_path=$(pwd)
+        - tag=$(echo $CI_COMMIT_MESSAGE | sed -r 's/.*(\[tag\])//') 
+        - export tag=$tag
+        - check=$(echo $CI_COMMIT_MESSAGE | sed -r 's/^.*(\[tag\]).*/\1/')
+        - echo "To release new docker image, tagname should be 'staging', your tag is:$tag "
+        - cicd_path=$(pwd)/cicd
+    script:
+        - |
+            if [ "$check" == "[tag]" ]; then
+                bash $cicd_path/build.sh
+            fi
+    only:
+        - release/staging
+    tags:
+        - runner-builder
+
+deploy:
+    stage: deploy
+    before_script:
+        - source ./env-param.sh
+        - export CI_REGISTRY_PW=$CI_REGISTRY_PW
+        - export CI_REGISTRY_USER=$CI_REGISTRY_USER
+        - tag=$(echo $CI_COMMIT_MESSAGE | sed -r 's/.*(\[tag\])//') 
+        - export tag=staging
+        - cicd_path=$(pwd)/cicd
+        - |
+            if [ ! -d $mount_data_folder ]; then
+                sudo mkdir $mount_data_folder
+                sudo chown -R gitlab-runner.gitlab-runner $mount_data_folder
+            fi
+        - |
+            if [ ! -d $mount_data_folder/$project_name ]; then
+                sudo mkdir $mount_data_folder/$project_name
+                sudo chown -R gitlab-runner.gitlab-runner $mount_data_folder/$project_name
+            fi
+    script:
+        - bash $cicd_path/deploy.sh
+        - bash $cicd_path/clean.sh
+
+    only:
+        - release/staging
+    tags:
+        - runner-242
