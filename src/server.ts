@@ -23,7 +23,7 @@ import swaggerJSDoc from "swagger-jsdoc";
 import { mkdirSync, writeFileSync } from "fs";
 import { promisify } from "util";
 import mv from "mv";
-const moveAsync = promisify(mv);
+const moveAsync = promisify<string, string, mv.Options>(mv);
 
 const // Swagger functions
 	// Serve Swagger to web
@@ -144,6 +144,7 @@ const // Server functions
 			await moveAsync(
 				resolve(root, "dist/templates/swagger/swagger-output.json"),
 				resolve(storagePath, "swagger/swagger-output.json"),
+				{ mkdirp: true },
 			);
 
 			for (let i = 0; i < cores; i++) cluster.fork();
