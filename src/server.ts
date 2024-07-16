@@ -11,7 +11,7 @@ import { cpus } from "os";
 import { resolve } from "path";
 // Environments & Constansts
 import { Environment } from "./services/interfaces/ienv";
-import { configPath } from "./root";
+import { configPath, root } from "./root";
 import nconf from "nconf";
 import constants from "./constants";
 // Middlewares & Schedulers
@@ -20,17 +20,20 @@ import response from "./middlewares/response";
 // Swagger
 import swaggerUI from "swagger-ui-express";
 import swaggerJSDoc from "swagger-jsdoc";
-import swaggerConfig from "./templates/swagger/config";
 import { mkdirSync, writeFileSync } from "fs";
+import { promisify } from "util";
+import mv from "mv";
+const moveAsync = promisify(mv);
 
 const // Swagger functions
 	// Serve Swagger to web
-	generateSwaggerModels = (config: typeof swaggerConfig) => {
+	generateSwaggerModels = (config: unknown) => {
 		return config;
 	},
 	// Generate swagger output
 	generateSwagger = async (storagePath: string) => {
 		try {
+			const swaggerConfig = require("./templates/swagger/config");
 			const spec = swaggerJSDoc(generateSwaggerModels(swaggerConfig));
 			const swaggerServePath = `${storagePath}/swagger/`;
 			mkdirSync(swaggerServePath, { recursive: true });
@@ -98,8 +101,6 @@ const // Server functions
 			serverHost: string = (env == "development" ? "http://" : "https://") + serverPath,
 			storagePath: string = resolve(global.__baseDir, "storage");
 		// Generate swagger output
-		await generateSwagger(storagePath);
-		// Generate swagger output
 		switch (env.toLowerCase()) {
 			case "development":
 				return await startDevServer(storagePath, serverPath, serverHost, port);
@@ -115,7 +116,8 @@ const // Server functions
 	},
 	startDevServer = async (storagePath: string, serverPath: string, serverHost: string, port: number) => {
 		const app = await initServer(storagePath, "development");
-		// Create swagger for development and staging
+		// Generate swagger output
+		await generateSwagger(storagePath);
 		serveSwagger(app, storagePath);
 
 		serverLog(`Serving static files from ${clc.blueBright(storagePath)}`);
@@ -138,6 +140,11 @@ const // Server functions
 
 			console.log(`Total cores: ${clc.greenBright(cores)}`);
 			console.log(`Primary process ${clc.bgGreenBright(process.pid)} is running`);
+
+			await moveAsync(
+				resolve(root, "dist/templates/swagger/swagger-output.json"),
+				resolve(storagePath, "swagger/swagger-output.json"),
+			);
 
 			for (let i = 0; i < cores; i++) cluster.fork();
 

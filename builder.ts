@@ -5,9 +5,11 @@ import { sys, readConfigFile, findConfigFile, parseJsonConfigFileContent } from 
 // Prebuild reqs
 import constants from "./src/constants";
 import { resolve } from "path";
-import { mkdir, rm, cp } from "fs/promises";
+import { mkdir, rm, cp, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { root } from "./src/root";
+import swaggerConfig from "./src/templates/swagger/config";
+import swaggerJSDoc from "swagger-jsdoc";
 
 const cwd = process.cwd();
 console.time("Built time");
@@ -20,6 +22,8 @@ console.time("Built time");
 	//  Pre build functions here
 	if (existsSync(buildPath)) await rm(buildPath, { recursive: true });
 	await mkdir(buildPath);
+	// Generate Swagger
+	const spec = swaggerJSDoc(swaggerConfig);
 
 	// Builder
 	await build({
@@ -31,7 +35,8 @@ console.time("Built time");
 
 	// Post build functions here
 	// Remove unecessary codes
-	// if (existsSync(resolve(templatePath, "swagger/config.js"))) await rm(resolve(templatePath, "swagger/config.js"));
+	if (existsSync(resolve(templatePath, "swagger/config.js"))) await rm(resolve(templatePath, "swagger/config.js"));
+	await writeFile(resolve(templatePath, "swagger/swagger-output.json"), JSON.stringify(spec));
 
 	// Copy config path
 	await mkdir(buildConfigPath);
