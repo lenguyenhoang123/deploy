@@ -11,9 +11,9 @@
 		"DB_DIALECT": "mongodb",
 		"DB_DATABASE": "shtt_online_exam",
 		"DB_AUTHDB": "admin",
-		"DB_USER": "statistic_service_user",
-		"DB_PASS": "Tlqcmn125125",
-		"DB_HOST": "192.168.0.248",
+		"DB_USER": "tlrintranet",
+		"DB_PASS": "RAPRAPtor1234",
+		"DB_HOST": "27.74.255.96",
 		"DB_PORT": 27017
 	},
 	"LoggingService": {
