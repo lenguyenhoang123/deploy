@@ -7,7 +7,7 @@
 	"Database": {
 		"DB_DIALECT": "mongodb",
 		"DB_DATABASE": "shtt_online_exam",
-		"DB_AUTHDB": "admin",
+		"DB_AUTHDB": "tlrintranetdbtest",
 		"DB_USER": "tlrintranet",
 		"DB_PASS": "RAPRAPtor1234",
 		"DB_HOST": "27.74.255.96",

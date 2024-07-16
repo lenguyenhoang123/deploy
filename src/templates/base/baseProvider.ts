@@ -32,14 +32,19 @@ class BaseProvider<ModelInterface, ModelMethods> {
 		}
 		if (!collectionInit) throw new Error("Provider must either include init attr or a collection");
 		const { collectionName, schema } = collectionInit;
-		connectMongo().then(
-			(db) =>
-				(this.collection = db.model<ModelInterface, Model<ModelInterface, {}, ModelMethods>>(
-					collectionName,
-					schema,
-					collectionName,
-				)),
-		);
+		connectMongo()
+			.then(
+				(db) =>
+					(this.collection = db.model<ModelInterface, Model<ModelInterface, {}, ModelMethods>>(
+						collectionName,
+						schema,
+						collectionName,
+					)),
+			)
+			.catch((err) => {
+				this.logger.logDBAsync("Cannot connect to database");
+				console.log(err);
+			});
 		return;
 	}
 
