@@ -1,8 +1,8 @@
 import type { Environment } from "./services/interfaces/ienv";
 import { startServer } from "./server";
-import { root } from "./root";
+
 import moduleAlias from "module-alias";
-global.__baseDir = root;
+Error.stackTraceLimit = Infinity;
 
 moduleAlias.addAliases({
 	"#providers": __dirname + "/providers",
@@ -15,4 +15,6 @@ moduleAlias.addAliases({
 	"#": __dirname,
 });
 moduleAlias();
-startServer(<Environment>process.env.NODE_ENV);
+startServer(<Environment>process.env.NODE_ENV).catch((err) => {
+	console.log(err);
+});

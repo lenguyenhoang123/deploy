@@ -12,7 +12,7 @@ import { resolve } from "path";
 // Environments & Constansts
 import { Environment } from "./services/interfaces/ienv";
 import { configPath, root } from "./root";
-import nconf from "nconf";
+import nconf, { Provider } from "nconf";
 import constants from "./constants";
 // Middlewares & Schedulers
 import verify from "./middlewares/auth";
@@ -26,22 +26,14 @@ import mv from "mv";
 const moveAsync = promisify<string, string, mv.Options>(mv);
 
 const // Swagger functions
-	// Serve Swagger to web
-	generateSwaggerModels = (config: unknown) => {
-		return config;
-	},
 	// Generate swagger output
 	generateSwagger = async (storagePath: string) => {
-		try {
-			const swaggerConfig = require("./templates/swagger/config");
-			const spec = swaggerJSDoc(generateSwaggerModels(swaggerConfig));
-			const swaggerServePath = `${storagePath}/swagger/`;
-			mkdirSync(swaggerServePath, { recursive: true });
-			writeFileSync(`${swaggerServePath}/swagger-output.json`, JSON.stringify(spec));
-			return;
-		} catch (error) {
-			throw Error;
-		}
+		const swaggerConfig = require("./templates/swagger/config").default;
+		const spec = swaggerJSDoc(swaggerConfig);
+		const swaggerServePath = `${storagePath}/swagger/`;
+		mkdirSync(swaggerServePath, { recursive: true });
+		writeFileSync(`${swaggerServePath}/swagger-output.json`, JSON.stringify(spec));
+		return;
 	}, // Serve Swagger to web
 	serveSwagger = async (app: Application, storagePath: string) => {
 		const doc = require(`${storagePath}/swagger/swagger-output.json`);
@@ -51,26 +43,17 @@ const // Swagger functions
 
 const // Server functions
 	serverLog = (content: string) => console.log(`${clc.magenta("⚡️[server]:")} ${content}`),
-	initServer = async (storagePath: string, env: "development" | "staging" | "production") => {
+	initServer = async (storagePath: string, env: "development" | "staging" | "production", nconf: Provider) => {
 		const // Setup constant
 			app: Application = express(),
-			corsOptions = (
-				env == "development"
-					? undefined
-					: {
-							origin(origin, callback) {
-								const whitelist =
-									env == "production"
-										? ["https://9mb.vn"]
-										: [
-												"http://localhost:3000",
-												"http://localhost:3001",
-												"https://saigon-business.erp.meu-solutions.com",
-										  ];
-								callback(null, whitelist.indexOf(origin) !== -1);
-							},
-					  }
-			) satisfies CorsOptions;
+			corsOptions = (function (env: "development" | "staging" | "production", nconf: Provider) {
+				if (env === "development") return undefined;
+				return {
+					origin(origin, callback) {
+						callback(null, nconf.get("Domains:Frontend").indexOf(origin) !== -1);
+					},
+				};
+			})(env, nconf) satisfies CorsOptions;
 		// Basic server requirements
 		app.use(compression());
 		app.use(bodyParser.json({ type: "application/json" }));
@@ -95,28 +78,29 @@ const // Server functions
 		nconf.argv().env().file({
 			file: configPath,
 		});
+
 		const // Path
 			port: number = nconf.get("Port"),
-			serverPath: string = nconf.get("backEndHost"),
-			serverHost: string = (env == "development" ? "http://" : "https://") + serverPath,
-			storagePath: string = resolve(global.__baseDir, "storage");
+			serverHost: string = nconf.get("Domains:Backend")[0],
+			storagePath: string = resolve(root, "storage");
 		// Generate swagger output
 		switch (env.toLowerCase()) {
 			case "development":
-				return await startDevServer(storagePath, serverPath, serverHost, port);
+				return await startDevServer(storagePath, nconf, serverHost, port);
 			default:
 				return await startProductionServer(
 					storagePath,
-					serverPath,
+					nconf,
 					serverHost,
 					port,
 					env.toLowerCase() as "staging" | "production",
 				);
 		}
 	},
-	startDevServer = async (storagePath: string, serverPath: string, serverHost: string, port: number) => {
-		const app = await initServer(storagePath, "development");
+	startDevServer = async (storagePath: string, nconf: Provider, serverHost: string, port: number) => {
+		const app = await initServer(storagePath, "development", nconf);
 		// Generate swagger output
+
 		await generateSwagger(storagePath);
 		serveSwagger(app, storagePath);
 
@@ -130,7 +114,7 @@ const // Server functions
 	},
 	startProductionServer = async (
 		storagePath: string,
-		serverPath: string,
+		nconf: Provider,
 		serverHost: string,
 		port: number,
 		env: "staging" | "production",
@@ -159,7 +143,7 @@ const // Server functions
 			serverLog(`App will be served at ${clc.blueBright(serverHost)}\n`);
 			return;
 		}
-		const app = await initServer(storagePath, env);
+		const app = await initServer(storagePath, env, nconf);
 		app.listen(port, () => {
 			serverLog(`Server started with worker ${clc.bgCyanBright(process.pid)}`);
 		});
