@@ -1,6 +1,7 @@
 import { Model, ObjectId, Schema } from "mongoose";
 import { compareSync, genSaltSync, hashSync } from "bcryptjs";
 import { collectionName as userCollection, UserModel } from "./user";
+import dayjs from "dayjs";
 export interface IUserAuth {
 	user: ObjectId | UserModel;
 	auth_key: string;
@@ -49,6 +50,21 @@ export const schema = (function () {
 		});
 		return Promise.resolve();
 	});
+
+	newSchema.pre("updateOne", async function () {
+		const getUpdate = this.getUpdate() as any;
+		if (getUpdate && getUpdate.auth_key) {
+			const docToUpdate = await this.model.findOne(this.getQuery());
+			if (docToUpdate) {
+				const salt = genSaltSync();
+				docToUpdate.auth_key = hashSync(getUpdate.auth_key, salt);
+				docToUpdate.updated_at = dayjs();
+				this.setUpdate(docToUpdate);
+			}
+		}
+		return Promise.resolve();
+	});
+
 	newSchema.pre("save", function () {
 		this.auth_key = this.hashKey(this.auth_key);
 	});

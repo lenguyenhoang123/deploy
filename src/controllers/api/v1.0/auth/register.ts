@@ -2,7 +2,7 @@ import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { UserProvider } from "#providers/userProvider";
 import { Req, Res } from "#services/interfaces/iapi";
-import { validateEmailEntry } from "#middlewares/validator";
+import { validateRegister } from "#middlewares/validator";
 import { MailService } from "#services/mailService";
 import { LoggingService } from "#services/file-system-handlers/logService";
 import { UserAuthProvider } from "#providers/authProvider";
@@ -27,7 +27,7 @@ export default (_express: Application) => {
 
 	return <Resource>{
 		post: {
-			middleware: validateEmailEntry,
+			middleware: validateRegister,
 			handler: async (req: Req<IUser, UserRegister>, res: Res) => {
 				/**
 				 * @openapi
@@ -59,6 +59,11 @@ export default (_express: Application) => {
 	async function register(req: Req<IUser, UserRegister>, res: Res): Promise<void> {
 		try {
 			const { password, ...userValues } = req.body;
+			if (await userProvider.getOne({ where: { email: req.body.email } }))
+				throw new Error("Email đã được đăng ký trước đó");
+			if (await userProvider.getOne({ where: { phone: req.body.phone } }))
+				throw new Error("Số điện thoại đã được đăng ký trước đó");
+
 			const user = await userProvider.post({ ...userValues, is_active: false });
 			const otp = otpGen.generate(6, {
 				lowerCaseAlphabets: false,
@@ -91,7 +96,7 @@ export default (_express: Application) => {
 			);
 
 			if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
-			return res.sendOk({ data: { message: "Thành công" } });
+			return res.sendOk({ data: { message: "Đăng ký tài khoản thành công" } });
 		} catch (error) {
 			return res.sendError({ err: error });
 		}
