@@ -28,7 +28,7 @@ export default (_express: Application) => {
 				 * /auth/otp/resend:
 				 *   post:
 				 *     tags: [Auth]
-				 *     description: Register new user
+				 *     description: Resend OTP
 				 *     requestBody:
 				 *      description: Resend Fields
 				 *      required: true
@@ -81,7 +81,7 @@ export default (_express: Application) => {
 			);
 
 			if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
-			return res.sendOk({ data: { message: "Thành công" } });
+			return res.sendOk({ data: { message: "Gửi mã xác minh thành công" } });
 		} catch (error) {
 			return res.sendError({ err: error });
 		}

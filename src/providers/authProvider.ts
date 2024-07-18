@@ -43,12 +43,12 @@ export class UserAuthProvider extends BaseProvider<IUserAuth, IUserAuthMethods> 
 		// Get password
 		const auth = await this.getOne({
 			where: { user: user.id, auth_method: AuthMethods.OTP },
-			attributes: ["auth_key"],
+			attributes: ["auth_key", "updated_at"],
 		});
-		if (!auth) throw new Error("Chưa tạo mã OTP");
-		if (!auth.compareKey(otp)) throw new Error("OTP không hợp lệ");
-		/* Set expiration time to 3 min */
-		if (dayjs().diff(dayjs(auth.created_at), "minute") > 3) throw new Error("OTP hết hạn");
+		if (!auth) throw new Error("Chưa tạo mã xác minh");
+		if (!auth.compareKey(otp)) throw new Error("Mã xác minh không chính xác");
+		/* Set expiration time to 1 min */
+		if (dayjs().diff(dayjs(auth.updated_at), "minute") > 1) throw new Error("Mã xác minh đã hết hạn");
 		// Remove OTP from db and update is actvie to true
 		await Promise.all([this.delete(auth.id), user.updateOne({ is_active: true })]);
 

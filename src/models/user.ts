@@ -35,6 +35,10 @@ export const schema = (function () {
 				trim: true,
 				required: [true, "Vui lòng nhập tên"],
 			},
+			middle_name: {
+				type: String,
+				trim: true,
+			},
 			last_name: {
 				type: String,
 				trim: true,
