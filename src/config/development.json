@@ -29,6 +29,6 @@
 	},
 	"Domains": {
 		"Frontend": ["http://shtt.erp.meu-solutions.com", "http://192.168.0.242:3031"],
-		"Backend": ["https://gateway.dev.meu-solutions.com/shtt", "http://192.168.0.242:3031"]
+		"Backend": ["http://localhost:3000"]
 	}
 }
