@@ -1,7 +1,6 @@
 import type { Options } from "swagger-jsdoc";
 import { resolve } from "path";
 import { root } from "../../root";
-import nconf from "nconf";
 
 export default {
 	definition: {
@@ -12,7 +11,10 @@ export default {
 			description: "Coded by Meu TEAM",
 		},
 		consumes: ["application/json", "application/x-www-form-urlencoded"],
-		servers: (<string[]>nconf.get("Domains:Backend")).map((domain) => ({ url: `${domain}/api/v1.0` })),
+		servers: [
+			{ url: "https://gateway.dev.meu-solutions.com/shtt/api/v1.0" },
+			{ url: "http://localhost:3000/api/v1.0" },
+		],
 		components: {
 			securitySchemes: {
 				Bearer: {
