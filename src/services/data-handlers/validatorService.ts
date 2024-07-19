@@ -1,13 +1,7 @@
 import { check, body } from "express-validator";
 
 export const validateLogin = () => {
-	return [
-		check("email", "Email không được để trống").not().isEmpty(),
-		check("email", "Email không hợp lệ").isEmail(),
-
-		check("password", "Mật khẩu ít nhất 6 ký tự").isLength({ min: 6 }),
-		check("password", "Mật khẩu tối đa 19 ký tự").isLength({ max: 19 }),
-	];
+	return [...validateEmail(), ...validatePassword()];
 };
 
 export const validateForgetPassword = () => {

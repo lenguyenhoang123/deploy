@@ -59,10 +59,18 @@ export default (_express: Application) => {
 	async function register(req: Req<IUser, UserRegister>, res: Res): Promise<void> {
 		try {
 			const { password, ...userValues } = req.body;
-			if (await userProvider.getOne({ where: { email: req.body.email } }))
-				throw new Error("Email đã được đăng ký trước đó");
-			if (await userProvider.getOne({ where: { phone: req.body.phone } }))
-				throw new Error("Số điện thoại đã được đăng ký trước đó");
+
+			const existingUser = await userProvider.getOne({
+				where: { $or: [{ email: userValues.email }, { phone: userValues.phone }] },
+			});
+			if (existingUser) {
+				if (existingUser.email === userValues.email) {
+					throw new Error("Email đã được đăng ký trước đó");
+				}
+				if (existingUser.phone === userValues.phone) {
+					throw new Error("Số điện thoại đã được đăng ký trước đó");
+				}
+			}
 
 			const user = await userProvider.post({ ...userValues, is_active: false });
 			const otp = otpGen.generate(6, {
