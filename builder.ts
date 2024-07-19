@@ -10,6 +10,9 @@ import { existsSync } from "fs";
 import { root } from "./src/root";
 import swaggerConfig from "./src/templates/swagger/config";
 import swaggerJSDoc from "swagger-jsdoc";
+import { promisify } from "util";
+import mv from "mv";
+const moveAsync = promisify<string, string, mv.Options>(mv);
 
 const cwd = process.cwd();
 console.time("Built time");
@@ -41,6 +44,9 @@ console.time("Built time");
 	// Copy config path
 	await mkdir(buildConfigPath);
 	await cp(resolve(root, "src/config"), buildConfigPath, { recursive: true });
+
+	// mv templates email
+	await moveAsync(resolve(root, "src/templates/email"), resolve(root, "dist/templates/email"), { mkdirp: true });
 })()
 	.then(() => {
 		console.timeEnd("Built time");
