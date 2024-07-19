@@ -31,7 +31,7 @@ export default (_express: Application) => {
 				 *           example: admin@meu-solutions.com
 				 *          password:
 				 *           type: string
-				 *           example: 123456
+				 *           example: 12345678
 				 *     responses:
 				 *       200:
 				 *         description: Success
