@@ -16,15 +16,15 @@ export class UserAuthProvider extends BaseProvider<IUserAuth, IUserAuthMethods> 
 	async login(email: string, password: string) {
 		// Get User
 		const user = await this.userProvider.getOne({ where: { email }, attributes: ["id", "is_active"] });
-		if (!user) throw new Error("Không tìm thấy người dùng");
-		if (!user.is_active) throw new Error("Người dùng chưa được kích hoạt");
+		if (!user) throw new Error("Tài khoản không tồn tại");
+		if (!user.is_active) throw new Error("Tài khoản chưa được kích hoạt");
 		// Get password
 		const auth = await this.getOne({
 			where: { user: user.id, auth_method: AuthMethods.PASSWORD },
 			attributes: ["auth_key"],
 		});
 		if (!auth) throw new Error("Chưa tạo mật khẩu");
-		if (!auth.compareKey(password)) throw new Error("Mật khẩu không hợp lệ");
+		if (!auth.compareKey(password)) throw new Error("Mật khẩu không chính xác");
 		const // Set token
 			tokenLife = dayjs().endOf("day").valueOf() - dayjs().valueOf(),
 			tokenPayload = { id: user.id, isAdmin: user.is_admin },

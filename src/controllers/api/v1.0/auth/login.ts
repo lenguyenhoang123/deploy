@@ -4,11 +4,13 @@ import { Req, Res } from "#services/interfaces/iapi";
 import { IUser } from "#models/user";
 import { IUserAuth } from "#models/userAuth";
 import { UserAuthProvider } from "#providers/authProvider";
+import { validateLoginEntry } from "#middlewares/validator";
 
 export default (_express: Application) => {
 	const provider = new UserAuthProvider();
 	return <Resource>{
 		post: {
+			middleware: validateLoginEntry,
 			handler: async (req: Req<IUser & IUserAuth, { email: string; password: string }>, res: Res) => {
 				/**
 				 * @openapi
@@ -49,7 +51,7 @@ export default (_express: Application) => {
 
 				try {
 					const { email, password } = req.body;
-					return res.sendOk({ data: await provider.login(email, password) });
+					return res.sendOk({ data: await provider.login(email, password), message: "Đăng nhập thành công" });
 				} catch (error) {
 					return res.sendError({ err: error });
 				}
