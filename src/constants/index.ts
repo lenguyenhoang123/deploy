@@ -56,7 +56,10 @@ export default {
 		register: (email: string, otp: string) => {
 			const // Result
 				subject = `Phòng ban Sở hữu Trí tuệ - Mã xác minh đăng ký`,
-				html = readFileSync(resolve(root, "src/templates/email", "registerOTP.html"), "utf-8")
+				html = readFileSync(
+					resolve(root, process.env.NODE_ENV == "development" ? "src" : "dist", "templates/email", "registerOTP.html"),
+					"utf-8",
+				)
 					.replace("{{ email }}", email)
 					.replace("{{ otp }}", otp);
 
