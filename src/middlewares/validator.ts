@@ -1,7 +1,7 @@
 import { Req, Res } from "#services/interfaces/iapi";
 import { NextFunction } from "express";
 import { MeUError } from "../dto/MeUErrorDTO";
-import { validateRegisterUser, validateEmail } from "#services/data-handlers/validatorService";
+import { validateRegisterUser, validateEmail, validateLogin } from "#services/data-handlers/validatorService";
 import { validationResult, ContextRunner } from "express-validator";
 
 export const validate = (validations: ContextRunner[]) => async (req: Req, res: Res, next: NextFunction) => {
@@ -24,6 +24,7 @@ export const validate = (validations: ContextRunner[]) => async (req: Req, res: 
 
 export const validateEmailEntry = validate(validateEmail());
 export const validateRegister = validate(validateRegisterUser());
+export const validateLoginEntry = validate(validateLogin());
 
 export default validate;
 
