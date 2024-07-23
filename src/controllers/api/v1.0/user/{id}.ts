@@ -4,16 +4,19 @@ import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { UserProvider } from "#providers/userProvider";
 import mongoose from "mongoose";
+import { UserAuthProvider } from "#providers/authProvider";
 
 export default (_express: Application) => {
 	const provider = new UserProvider();
+	const userAuthProvider = new UserAuthProvider();
+
 	return <Resource>{
 		delete: {
-			// middleware: verify,
+			middleware: verify,
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /user/delete:
+				 * /user/{id}:
 				 *   delete:
 				 *     tags: [User]
 				 *     description: Delete user by ID.
@@ -21,11 +24,12 @@ export default (_express: Application) => {
 				 *       - Bearer: []
 				 *     parameters:
 				 *       - name: id
-				 *         in: query
-				 *         description: User ID to delete
-				 *         required: true
+				 *         in: path
 				 *         schema:
 				 *           type: string
+				 *           example: 6699f4391c7ab023b0a77b5b
+				 *         description: User ID to delete
+				 *         required: true
 				 *     responses:
 				 *       200:
 				 *         description: Success
@@ -36,7 +40,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					const deleteId = req.query.id as string;
+					const deleteId = req.params.id as string;
 
 					if (!deleteId) throw new Error("ID không được để trống");
 
@@ -44,6 +48,9 @@ export default (_express: Application) => {
 
 					const existingUser = await provider.getById(deleteId);
 					if (!existingUser) throw new Error("Người dùng không tồn tại");
+
+					const userAuthToDelete = await userAuthProvider.getAll({ where: { user: deleteId } });
+					if (userAuthToDelete) await userAuthProvider.bulkDelete({ user: deleteId });
 
 					return res.sendOk({
 						data: await provider.delete(deleteId),
