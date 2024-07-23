@@ -65,5 +65,22 @@ export default {
 
 			return { subject, html };
 		},
+
+		forgotPassword: (email: string, otp: string) => {
+			const subject = `Phòng ban Sở hữu Trí tuệ - Đặt lại mật khẩu`,
+				html = readFileSync(
+					resolve(
+						root,
+						process.env.NODE_ENV == "development" ? "src" : "dist",
+						"templates/email",
+						"resetPassword.html",
+					),
+					"utf-8",
+				)
+					.replace("{{ email }}", email)
+					.replace("{{ otp }}", otp);
+
+			return { subject, html };
+		},
 	},
 };
