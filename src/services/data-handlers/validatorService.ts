@@ -4,15 +4,6 @@ export const validateLogin = () => {
 	return [...validateEmail(), ...validatePassword()];
 };
 
-export const validateForgetPassword = () => {
-	return [
-		check("email", "Email không được để trống").not().isEmpty(),
-		check("email", "Email không hợp lệ").isEmail(),
-		check("email", "Email ít nhất 3 ký tự").isLength({ min: 3 }),
-		check("email", "Email tối đa 50 ký tự").isLength({ max: 50 }),
-	];
-};
-
 export const validateRegisterUser = () => [
 	...validateEmail(),
 	...validateFirstName(),
@@ -60,5 +51,5 @@ export default {
 	validateEmail,
 	validateRegisterUser,
 	validateLogin,
-	validateForgetPassword,
+	validatePassword,
 };

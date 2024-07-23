@@ -3,12 +3,13 @@ import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { UserProvider } from "#providers/userProvider";
+import { queryFilter, requiredFilters } from "#middlewares/query-filter";
 
 export default (_express: Application) => {
 	const provider = new UserProvider();
 	return <Resource>{
 		get: {
-			// middleware: verify,
+			middleware: [verify, queryFilter, requiredFilters(["currentPage", "pageSize"])],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
@@ -19,10 +20,10 @@ export default (_express: Application) => {
 				 *     security:
 				 *       - Bearer: []
 				 *     parameters:
-				 *       - name: where
+				 *       - name: filters
 				 *         in: query
 				 *         schema:
-				 *           type: object
+				 *           type: string
 				 *         description: Optional filter criteria for the users.
 				 *       - name: pageSize
 				 *         in: query
@@ -60,12 +61,12 @@ export default (_express: Application) => {
 
 				try {
 					const queryOptions = {
-						where: req.query.where ? JSON.parse(req.query.where as string) : {},
-						pageSize: parseInt(req.query.pageSize as string, 10),
-						currentPage: parseInt(req.query.currentPage as string, 10),
-						sortField: req.query.sortField as string,
-						sortOrder: req.query.sortOrder as string,
-						attributes: req.query.attributes ? JSON.parse(req.query.attributes as string) : [],
+						filters: req.payload.filters,
+						pageSize: req.payload.pageSize,
+						currentPage: req.payload.currentPage,
+						sortField: req.payload.sortField,
+						sortOrder: req.payload.sortOrder,
+						attributes: req.payload.attributes,
 					};
 
 					return res.sendOk({

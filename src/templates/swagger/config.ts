@@ -22,6 +22,7 @@ export default {
 					name: "Authorization",
 					in: "header",
 					type: "apiKey",
+					description: "Usage: Bearer $token",
 				},
 			},
 			parameters: {
