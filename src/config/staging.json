@@ -32,6 +32,7 @@
 	},
 	"Domains": {
 		"Frontend": [
+			"https://shtt.erp.meu-solutions.com",
 			"http://shtt.erp.meu-solutions.com",
 			"http://192.168.0.242:3031",
 			"http://localhost:3000",
