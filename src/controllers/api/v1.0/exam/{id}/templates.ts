@@ -29,20 +29,20 @@ export default (_express: Application) => {
 				 *           example: 6699f4391c7ab023b0a77b5b
 				 *         description: Exam ID to add template
 				 *         required: true
-				 *       - name: name
-				 *         in: query
-				 *         schema:
-				 *           type: string
-				 *           example: Đề 1
-				 *         description: Name of template.
-				 *         required: true
-				 *       - name: quantity
-				 *         in: query
-				 *         schema:
-				 *           type: integer
-				 *           example: 20
-				 *         description: Number of quetions.
-				 *         required: true
+				 *     requestBody:
+				 *       description: Add Tepmlate Fields
+				 *       required: true
+				 *       content:
+				 *         application/json:
+				 *           schema:
+				 *             type: object
+				 *             properties:
+				 *               name:
+				 *                 type: string
+				 *                 example: Đề 1
+				 *               quantity:
+				 *                 type: integer
+				 *                 example: 20
 				 *     responses:
 				 *       200:
 				 *         description: Success
@@ -62,7 +62,7 @@ export default (_express: Application) => {
 					const exam = await examProvider.getById(examId);
 					if (!exam) throw new Error("Kỳ thi không tồn tại");
 
-					const { name, quantity } = req.query;
+					const { name, quantity } = req.body;
 
 					const quantityNumber = parseInt(quantity as string, 10);
 					if (isNaN(quantityNumber) || quantityNumber <= 0) {
