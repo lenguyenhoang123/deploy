@@ -9,7 +9,7 @@ build:
         - tag=$(echo $CI_COMMIT_MESSAGE | sed -r 's/.*(\[tag\])//') 
         - export tag=$tag
         - check=$(echo $CI_COMMIT_MESSAGE | sed -r 's/^.*(\[tag\]).*/\1/')
-        - echo "To release new docker image, tagname should be 'dev', your tag is:$tag "
+        - echo "To release new docker image, tagname should be 'staging', your tag is:$tag "
         - cicd_path=$(pwd)/cicd
     script:
         - |
@@ -28,7 +28,7 @@ deploy:
         - export CI_REGISTRY_PW=$CI_REGISTRY_PW
         - export CI_REGISTRY_USER=$CI_REGISTRY_USER
         - tag=$(echo $CI_COMMIT_MESSAGE | sed -r 's/.*(\[tag\])//') 
-        - export tag=dev
+        - export tag=staging
         - cicd_path=$(pwd)/cicd
         - |
             if [ ! -d $mount_data_folder ]; then
