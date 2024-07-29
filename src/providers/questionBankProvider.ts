@@ -1,0 +1,102 @@
+import BaseProvider from "#templates/base/baseProvider";
+import { IQuestionBank, IQuestionBankMethods, collectionName, schema } from "#models/questionBank";
+
+export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionBankMethods> {
+	constructor() {
+		super({ collectionName, schema });
+	}
+
+	async getAllQuestions() {
+		const queryOptions = {
+			pageSize: 100,
+			currentPage: 1,
+			sortField: "name",
+			sortOrder: "asc",
+		};
+		try {
+			const questions = await this.getAll(queryOptions);
+			return questions;
+		} catch (error) {
+			throw new Error("Lấy tất cả câu hỏi thất bại");
+		}
+	}
+
+	async getRandomQuestions(quantity: number): Promise<IQuestionBank[]> {
+		try {
+			if (quantity <= 0) throw new Error("Số lượng câu hỏi phải lớn hơn 0");
+
+			const result = await this.getAllQuestions();
+			if (result.count === 0) throw new Error("Không có câu hỏi nào trong ngân hàng câu hỏi");
+			if (result.count < quantity)
+				throw new Error(`Số lượng câu hỏi trong ngân hàng là: ${result.count}. Không đủ số câu cần tạo.`);
+
+			const questions = result.rows;
+			const groupedQuestions = this.groupQuestionsByLevel(questions);
+
+			const numQuestionsPerLevel = Math.floor(quantity / 3);
+			const easyQuestions = this.shuffleAndSlice(groupedQuestions["EASY"], numQuestionsPerLevel);
+			const normalQuestions = this.shuffleAndSlice(groupedQuestions["NORMAL"], numQuestionsPerLevel);
+			const hardQuestions = this.shuffleAndSlice(groupedQuestions["HARD"], numQuestionsPerLevel);
+
+			let combinedQuestions = [...easyQuestions, ...normalQuestions, ...hardQuestions] as any[];
+			if (combinedQuestions.length < quantity) {
+				combinedQuestions = await this.fillRemainingQuestions(questions, combinedQuestions, quantity);
+			}
+
+			let sortedQuestions = combinedQuestions.sort((a, b) => a._id - b._id);
+			sortedQuestions.forEach((q) => {
+				q.answers.sort((a, b) => a - b);
+			});
+
+			// console.log("Quantity:", sortedQuestions.length);
+			// console.log("Id - Level - Priority");
+			// sortedQuestions.forEach((q) => {
+			// 	console.log(`${q._id} - ${q.level} - ${q.priority}`);
+			// 	// console.log("Answers:", q.answers);
+			// });
+
+			return sortedQuestions;
+		} catch (error) {
+			throw new Error(`Lấy câu hỏi ngẫu nhiên thất bại: ${error.message}`);
+		}
+	}
+
+	private async fillRemainingQuestions(
+		questions: IQuestionBank[],
+		selectedQuestions: IQuestionBank[],
+		quantity: number,
+	): Promise<IQuestionBank[]> {
+		const remainingQuestions = questions.filter((q) => !selectedQuestions.includes(q));
+		const priorityGroups = this.groupQuestionsByPriority(remainingQuestions);
+		for (let priority = 1; selectedQuestions.length < quantity; priority++) {
+			const questionsAtPriority = priorityGroups[priority] || [];
+			const shuffledQuestions = this.shuffleAndSlice(questionsAtPriority, quantity - selectedQuestions.length);
+			selectedQuestions.push(...shuffledQuestions);
+		}
+		return selectedQuestions.slice(0, quantity);
+	}
+
+	private shuffleAndSlice(questions: IQuestionBank[], quantity: number): IQuestionBank[] {
+		return questions.sort(() => 0.5 - Math.random()).slice(0, quantity);
+	}
+
+	private groupQuestionsByLevel(questions: IQuestionBank[]): Record<string, IQuestionBank[]> {
+		return questions.reduce((groups, question) => {
+			if (!groups[question.level]) {
+				groups[question.level] = [];
+			}
+			groups[question.level].push(question);
+			return groups;
+		}, {} as Record<string, IQuestionBank[]>);
+	}
+
+	private groupQuestionsByPriority(questions: IQuestionBank[]): Record<number, IQuestionBank[]> {
+		return questions.reduce((groups, question) => {
+			if (!groups[question.priority]) {
+				groups[question.priority] = [];
+			}
+			groups[question.priority].push(question);
+			return groups;
+		}, {} as Record<number, IQuestionBank[]>);
+	}
+}
