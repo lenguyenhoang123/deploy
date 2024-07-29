@@ -4,11 +4,12 @@ services:
   app:
     container_name: ENVIRONMENT-NAME-PROJECT-NAME
     image: IMAGE-NAME:IMAGE-TAG
-    environment:
-      - NODE_ENV=NODE_ENV_VALUE
     volumes:
       - MOUNT-DATA-FOLDER/PROJECT-NAME:/usr/src/app/storage
     ports:
       - P-MAPPING:3000
+    env_file:
+      - .env
     restart: unless-stopped
     pull_policy: always
+
