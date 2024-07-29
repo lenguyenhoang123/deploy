@@ -49,7 +49,6 @@ export default (_express: Application) => {
 		try {
 			const { password } = req.body;
 			const user = req.user;
-
 			if (!user || !user.id) throw new Error("Lấy thông tin tài khoản thất bại!");
 
 			const auth = await userAuthProvider.getOne({
