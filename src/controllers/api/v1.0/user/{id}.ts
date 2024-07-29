@@ -41,9 +41,7 @@ export default (_express: Application) => {
 
 				try {
 					const deleteId = req.params.id as string;
-
 					if (!deleteId) throw new Error("ID không được để trống");
-
 					if (!mongoose.Types.ObjectId.isValid(deleteId)) throw new Error("ID không hợp lệ");
 
 					const existingUser = await provider.getById(deleteId);
