@@ -6,6 +6,8 @@ services:
     image: IMAGE-NAME:IMAGE-TAG
     volumes:
       - MOUNT-DATA-FOLDER/PROJECT-NAME:/usr/src/app/storage
+    environment:
+      - NODE_ENV=NODE_ENV_VALUE
     ports:
       - P-MAPPING:3000
     env_file:
