@@ -146,6 +146,21 @@ export default {
 						},
 					},
 				},
+				updateMyInfo: {
+					type: "object",
+					properties: {
+						first_name: { type: "string" },
+						middle_name: { type: "string" },
+						last_name: { type: "string" },
+						unit: {
+							type: "object",
+							properties: {
+								district: { type: "string" },
+								ward: { type: "string" },
+							},
+						},
+					},
+				},
 				userRegister: {
 					allOf: [
 						{
