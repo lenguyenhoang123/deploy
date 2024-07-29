@@ -57,7 +57,7 @@ export default (_express: Application) => {
 	async function forgotPassword(req: Req<IUserAuth, { email: string }>, res: Res): Promise<void> {
 		try {
 			const user = await userProvider.getOne({ where: { email: req.body.email } });
-			if (!user) throw new Error("Tài khoản không tồn tại");
+			if (!user) throw new Error("Tài khoản này không tồn tại. Vui lòng đăng ký tài khoản mới");
 
 			const otp = otpGen.generate(6, {
 				lowerCaseAlphabets: false,
@@ -82,7 +82,7 @@ export default (_express: Application) => {
 			);
 
 			if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
-			return res.sendOk({ data: { message: "Gửi mã xác minh thành công" } });
+			return res.sendOk({ data: { message: "Kiểm tra email của bạn để nhận mã đặt lại mật khẩu" } });
 		} catch (error) {
 			return res.sendError({ err: error });
 		}

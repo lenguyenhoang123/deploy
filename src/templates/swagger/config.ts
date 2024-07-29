@@ -172,6 +172,119 @@ export default {
 						},
 					],
 				},
+
+				// QUESTION BANK SECTION
+				Answer: {
+					type: "object",
+					properties: {
+						value: { type: "string" },
+						is_correct: { type: "boolean" },
+					},
+				},
+
+				QuestionBankMutate: {
+					type: "object",
+					properties: {
+						name: { type: "string" },
+						level: { type: "string", enum: ["EASY", "NORMAL", "HARD"] },
+						priority: { type: "number" },
+						answers: {
+							type: "array",
+							items: {
+								$ref: "#/components/schemas/Answer",
+							},
+						},
+					},
+				},
+
+				QuestionBank: {
+					allOf: [
+						{
+							$ref: "#/components/schemas/QuestionBankMutate",
+						},
+						{
+							type: "object",
+							properties: {
+								created_at: { type: "string", format: "date-time" },
+								created_by: { type: "string", format: "uuid" },
+								updated_at: { type: "string", format: "date-time" },
+								updated_by: { type: "string", format: "uuid" },
+							},
+						},
+					],
+				},
+
+				// EXAM SECTION
+				Template: {
+					type: "object",
+					properties: {
+						name: { type: "string" },
+						questions: {
+							type: "array",
+							items: { $ref: "#/components/schemas/QuestionBank" },
+						},
+					},
+				},
+
+				ParticipantAnswers: {
+					type: "array",
+					items: {
+						type: "object",
+						properties: {
+							question_id: { type: "string", format: "uuid" },
+							user_answer: { type: "string", format: "uuid" },
+						},
+					},
+				},
+
+				Participant: {
+					type: "object",
+					properties: {
+						user_id: { type: "string", format: "uuid" },
+						start_time: { type: "string", format: "date-time" },
+						submit_time: { type: "string", format: "date-time" },
+						answers: {
+							type: "array",
+							items: { $ref: "#/components/schemas/ParticipantAnswers" },
+						},
+					},
+				},
+
+				ExamMute: {
+					type: "object",
+					properties: {
+						name: { type: "string" },
+						description: { type: "string" },
+						start_time: { type: "string", format: "date-time" },
+						end_time: { type: "string", format: "date-time" },
+						allowed_time: { type: "number" },
+						template: {
+							type: "object",
+							items: { $ref: "#/components/schemas/Template" },
+						},
+						participants: {
+							type: "array",
+							items: { $ref: "#/components/schemas/Participant" },
+						},
+					},
+				},
+
+				Exam: {
+					allOf: [
+						{
+							$ref: "#/components/schemas/ExamMutate",
+						},
+						{
+							type: "object",
+							properties: {
+								created_at: { type: "string", format: "date-time" },
+								created_by: { type: "string", format: "uuid" },
+								updated_at: { type: "string", format: "date-time" },
+								updated_by: { type: "string", format: "uuid" },
+							},
+						},
+					],
+				},
 			},
 		},
 	},
