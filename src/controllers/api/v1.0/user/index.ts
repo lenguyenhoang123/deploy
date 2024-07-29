@@ -13,7 +13,7 @@ export default (_express: Application) => {
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /user/getUsers:
+				 * /user:
 				 *   get:
 				 *     tags: [User]
 				 *     description: Retrieve a list of users with optional filtering, sorting, and pagination.
