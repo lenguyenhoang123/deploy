@@ -15,6 +15,13 @@ export const validateRegisterUser = () => [
 	...validatePassword(),
 ];
 
+export const validateUpdateMyInfo = () => [
+	...validateFirstName(),
+	...validateMiddleName(),
+	...validateLastName(),
+	...validateUnit(),
+];
+
 export const validateEmail = () => [
 	body("email", "Email không được để trống").notEmpty(),
 	body("email", "Email không hợp lệ").isEmail(),
@@ -110,4 +117,5 @@ export default {
 	validateRegisterUser,
 	validateLogin,
 	validatePassword,
+	validateUpdateMyInfo,
 };
