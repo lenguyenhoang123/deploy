@@ -28,7 +28,7 @@ deploy:
         - export CI_REGISTRY_PW=$CI_REGISTRY_PW
         - export CI_REGISTRY_USER=$CI_REGISTRY_USER
         - tag=$(echo $CI_COMMIT_MESSAGE | sed -r 's/.*(\[tag\])//') 
-        - export tag=dev
+        - export tag=staging
         - cicd_path=$(pwd)/cicd
         - |
             if [ ! -d $mount_data_folder ]; then
