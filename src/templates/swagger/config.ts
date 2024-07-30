@@ -265,7 +265,7 @@ export default {
 					},
 				},
 
-				ExamMute: {
+				ExamMutate: {
 					type: "object",
 					properties: {
 						name: { type: "string" },
