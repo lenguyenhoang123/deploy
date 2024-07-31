@@ -70,7 +70,19 @@ export default (_express: Application) => {
 						currentPage: req.payload.currentPage,
 						sortField: req.payload.sortField,
 						sortOrder: req.payload.sortOrder,
-						attributes: req.payload.attributes,
+						attributes: [
+							"name",
+							"description",
+							"start_time",
+							"end_time",
+							"allowed_time",
+							"template",
+							"participants",
+							"created_by",
+							"updated_by",
+							"created_at",
+							"updated_at",
+						],
 					};
 
 					return res.sendOk({
