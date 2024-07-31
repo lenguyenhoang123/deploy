@@ -58,7 +58,7 @@ const templateSchema = new Schema<ITemplate>(
 	{
 		name: { type: String, required: true },
 		questions: {
-			type: [{ type: Schema.Types.ObjectId, ref: "QuestionBankCollection" }],
+			type: [{ type: Schema.Types.ObjectId, ref: QuestionBankCollection }],
 			required: true,
 		},
 	},

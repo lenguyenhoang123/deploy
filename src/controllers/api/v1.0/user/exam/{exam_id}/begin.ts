@@ -56,11 +56,11 @@ export default (_express: Application) => {
 					let participant = exam.participants.find((p) => p.user_id.toString() === userId);
 					if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
 
-					if (participant.start_time)
-						throw new Error(
-							`Bạn đã bắt đầu bài thi vào lúc ${dayjs(participant.start_time).format("HH:mm:ss DD/MM/YYYY")}`,
-						);
-					if (participant.submit_time) throw new Error("Bạn đã hoàn thành bài thi. Không thể bắt đầu.");
+					// if (participant.start_time)
+					// 	throw new Error(
+					// 		`Bạn đã bắt đầu bài thi vào lúc ${dayjs(participant.start_time).format("HH:mm:ss DD/MM/YYYY")}`,
+					// 	);
+					// if (participant.submit_time) throw new Error("Bạn đã hoàn thành bài thi. Không thể bắt đầu.");
 
 					let updatedParticipants = exam.participants.filter((p) => p.user_id.toString() !== userId);
 					participant.start_time = currentTime;
