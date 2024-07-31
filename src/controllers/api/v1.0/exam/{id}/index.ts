@@ -41,7 +41,21 @@ export default (_express: Application) => {
 					if (!itemId) throw new Error("ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(itemId)) throw new Error("ID không hợp lệ");
 
-					const data = await provider.getById(itemId);
+					const data = await provider.getById(itemId, {
+						attributes: [
+							"name",
+							"description",
+							"start_time",
+							"end_time",
+							"allowed_time",
+							"template",
+							"participants",
+							"created_by",
+							"updated_by",
+							"created_at",
+							"updated_at",
+						],
+					});
 					if (!data) throw new Error("Kỳ thi không tồn tại");
 
 					return res.sendOk({

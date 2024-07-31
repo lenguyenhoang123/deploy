@@ -66,7 +66,7 @@ export default (_express: Application) => {
 						currentPage: req.payload.currentPage,
 						sortField: req.payload.sortField,
 						sortOrder: req.payload.sortOrder,
-						attributes: req.payload.attributes,
+						attributes: ["first_name", "middle_name", "last_name", "email", "phone", "unit", "is_active", "is_admin"],
 					};
 
 					return res.sendOk({
