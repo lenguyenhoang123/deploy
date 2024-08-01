@@ -28,7 +28,9 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		}));
 
 		return {
-			name: examDetail.template.name,
+			exam_name: exam.name,
+			allowed_time: exam.allowed_time,
+			template_name: examDetail.template.name,
 			quantity: questions.length,
 			questions: questions,
 		};
