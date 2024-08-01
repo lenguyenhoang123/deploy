@@ -61,7 +61,7 @@ export default (_express: Application) => {
 
 				try {
 					const queryOptions = {
-						filters: req.payload.filters,
+						where: req.payload.where,
 						pageSize: req.payload.pageSize,
 						currentPage: req.payload.currentPage,
 						sortField: req.payload.sortField,
