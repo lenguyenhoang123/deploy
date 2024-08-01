@@ -65,12 +65,21 @@ export default (_express: Application) => {
 
 				try {
 					const queryOptions = {
-						filters: req.payload.filters,
+						where: req.payload.where,
 						pageSize: req.payload.pageSize,
 						currentPage: req.payload.currentPage,
 						sortField: req.payload.sortField,
 						sortOrder: req.payload.sortOrder,
-						attributes: req.payload.attributes,
+						attributes: [
+							"name",
+							"level",
+							"priority",
+							"answers",
+							"created_by",
+							"updated_by",
+							"created_at",
+							"updated_at",
+						],
 					};
 
 					return res.sendOk({

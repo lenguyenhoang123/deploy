@@ -75,8 +75,8 @@ export default (_express: Application) => {
 					let participant = exam.participants.find((p) => p.user_id.toString() === userId);
 					if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
 
-					if (!participant.start_time) throw new Error("Bạn chưa bắt đầu bài thi. Không thể nộp bài.");
-					if (participant.submit_time) throw new Error("Bạn đã hoàn thành bài thi. Không thể nộp bài.");
+					// if (!participant.start_time) throw new Error("Bạn chưa bắt đầu bài thi. Không thể nộp bài.");
+					// if (participant.submit_time) throw new Error("Bạn đã hoàn thành bài thi. Không thể nộp bài.");
 
 					// Participant Answers
 					// Remove objects with duplicate question_id
