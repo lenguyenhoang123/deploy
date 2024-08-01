@@ -128,51 +128,5 @@ export default (_express: Application) => {
 				}
 			},
 		},
-
-		get: {
-			middleware: verify,
-			handler: async (req: Req, res: Res) => {
-				/**
-				 * @openapi
-				 * /exam/{id}/templates:
-				 *   get:
-				 *     tags: [Exam]
-				 *     description: Get template of an exam
-				 *     security:
-				 *       - Bearer: []
-				 *     parameters:
-				 *       - name: id
-				 *         in: path
-				 *         schema:
-				 *           type: string
-				 *           example: 6699f4391c7ab023b0a77b5b
-				 *         description: Exam ID to get template
-				 *         required: true
-				 *     responses:
-				 *       200:
-				 *         description: Success
-				 *         content:
-				 *           application/json:
-				 *             schema:
-				 *               $ref: '#/components/schemas/Response'
-				 */
-
-				try {
-					const examId = req.params.id as string;
-					if (!examId) throw new Error("ID không được để trống");
-					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("ID không hợp lệ");
-
-					const template = await examProvider.getTemplateDetails(examId);
-					if (!template) throw new Error("Lấy đề thi thất bại");
-
-					return res.sendOk({
-						data: template,
-						message: "Lấy đề thi thành công",
-					});
-				} catch (error) {
-					return res.sendError({ err: error });
-				}
-			},
-		},
 	};
 };
