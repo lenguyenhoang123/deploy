@@ -27,6 +27,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 			answers: this.extractAnswerValues(question.answers),
 		}));
 
+		
 		return {
 			exam_name: exam.name,
 			allowed_time: exam.allowed_time,
