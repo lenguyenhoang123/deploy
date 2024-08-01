@@ -37,6 +37,7 @@ export default (_express: Application) => {
 					if (!user.is_active) throw new Error("Tài khoản chưa được kích hoạt");
 
 					const userDetails = {
+						_id: user.id,
 						full_name: user.full_name(),
 						email: user.email,
 						phone: user.phone,

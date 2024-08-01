@@ -1,5 +1,7 @@
 import BaseProvider from "#templates/base/baseProvider";
 import { IExam, IExamMethods, collectionName, schema } from "#models/exam";
+import { IAnswer } from "#models/questionBank";
+import { ObjectId } from "mongoose";
 
 export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 	constructor() {
