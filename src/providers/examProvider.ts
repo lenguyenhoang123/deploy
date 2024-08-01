@@ -8,17 +8,29 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		super({ collectionName, schema });
 	}
 
+	private extractAnswerValues(answers: IAnswer[]): { _id: ObjectId; value: string }[] {
+		return answers.map((answer) => ({
+			_id: answer._id,
+			value: answer.value,
+		}));
+	}
+
 	async getTemplateDetails(examId: string) {
 		const exam = await this.getById(examId);
 		if (!exam) throw new Error("Kỳ thi không tồn tại");
 
-		const examDetail = await exam.populate({ path: "template.questions", select: "name level priority answers" });
+		const examDetail = await exam.populate({ path: "template.questions", select: "name answers" });
 		if (!exam) throw new Error("Có lỗi xảy ra khi lấy chi tiết đề thi");
+
+		const questions = examDetail.template.questions.map((question) => ({
+			...question.toObject(),
+			answers: this.extractAnswerValues(question.answers),
+		}));
 
 		return {
 			name: examDetail.template.name,
-			questions: examDetail.template.questions,
-			number_of_questions: examDetail.template.questions.length,
+			quantity: questions.length,
+			questions: questions,
 		};
 	}
 }
