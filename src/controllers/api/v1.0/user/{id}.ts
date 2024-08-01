@@ -61,6 +61,7 @@ export default (_express: Application) => {
 					if (!user) throw new Error("Tài khoản không tồn tại");
 
 					const userDetails = {
+						_id: user.id,
 						full_name: user.full_name(),
 						email: user.email,
 						phone: user.phone,
