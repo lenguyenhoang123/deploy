@@ -250,6 +250,10 @@ export default {
 							user_answer: { type: "string", format: "uuid" },
 							question_answers: {
 								type: "array",
+								items: {
+									type: "string",
+									format: "uuid",
+								},
 							},
 						},
 					},
