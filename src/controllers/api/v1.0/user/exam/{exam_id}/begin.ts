@@ -53,18 +53,20 @@ export default (_express: Application) => {
 					if (currentTime < exam.start_time) throw new Error("Kỳ thi chưa diễn ra");
 					if (currentTime > exam.end_time) throw new Error("Kỳ thi đã hết hạn");
 
-					let participant = exam.participants.find((p) => p.user_id.toString() === userId);
+					const participant = exam.participants.find((p) => p.user_id.toString() === userId);
 					if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
 
-					// if (participant.start_time)
-					// 	throw new Error(
-					// 		`Bạn đã bắt đầu bài thi vào lúc ${dayjs(participant.start_time).format("HH:mm:ss DD/MM/YYYY")}`,
-					// 	);
-					// if (participant.submit_time) throw new Error("Bạn đã hoàn thành bài thi. Không thể bắt đầu.");
+					if (participant.submit_time) throw new Error("Bạn đã hoàn thành bài thi. Không thể bắt đầu.");
 
-					let updatedParticipants = exam.participants.filter((p) => p.user_id.toString() !== userId);
-					participant.start_time = currentTime;
-					updatedParticipants.push(participant);
+					// Update Exam's Participants
+					const remainingParticipants = exam.participants.filter((p) => p.user_id.toString() !== userId);
+					let updatedParticipants = remainingParticipants;
+					let updatedParticipant = participant;
+					if (!participant.answers || participant.answers.length === 0) {
+						updatedParticipant.answers = await provider.getShuffleQuestionsAndAnswers(examId);
+					}
+					updatedParticipant.start_time = currentTime;
+					updatedParticipants.push(updatedParticipant);
 
 					const data = await exam.updateOne({
 						participants: updatedParticipants,
