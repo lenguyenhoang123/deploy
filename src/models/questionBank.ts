@@ -9,7 +9,7 @@ export enum DifficultyLevels {
 export interface IAnswer {
 	_id: ObjectId;
 	value: string;
-	is_correct: boolean;
+	is_correct?: boolean;
 }
 const answerSchema = new Schema<IAnswer>(
 	{

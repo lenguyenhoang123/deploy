@@ -248,6 +248,9 @@ export default {
 						properties: {
 							question_id: { type: "string", format: "uuid" },
 							user_answer: { type: "string", format: "uuid" },
+							question_answers: {
+								type: "array",
+							},
 						},
 					},
 				},

@@ -1,12 +1,13 @@
 import { Model, ObjectId, Schema } from "mongoose";
 import { collectionName as QuestionBankCollection, QuestionBankModel } from "./questionBank";
 
-interface IParticipantAnswer {
+export interface IParticipantAnswer {
 	question_id: ObjectId;
-	user_answer: ObjectId;
+	user_answer?: ObjectId;
+	question_answers: ObjectId[];
 }
 
-interface IParticipant {
+export interface IParticipant {
 	_id: ObjectId;
 	user_id: ObjectId;
 	start_time: Date;
@@ -40,6 +41,10 @@ const participantAnswerSchema = new Schema<IParticipantAnswer>(
 	{
 		question_id: { type: Schema.Types.ObjectId, required: true },
 		user_answer: { type: Schema.Types.ObjectId },
+		question_answers: {
+			type: [{ type: Schema.Types.ObjectId }],
+			required: true,
+		},
 	},
 	{ _id: false },
 );
