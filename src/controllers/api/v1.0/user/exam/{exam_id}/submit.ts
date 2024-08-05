@@ -5,11 +5,9 @@ import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import { IExam } from "#models/exam";
 import mongoose from "mongoose";
-import { QuestionBankProvider } from "#providers/questionBankProvider";
 
 export default (_express: Application) => {
 	const examProvider = new ExamProvider();
-	const questionBankProvider = new QuestionBankProvider();
 	return <Resource>{
 		put: {
 			middleware: verify,
@@ -75,34 +73,21 @@ export default (_express: Application) => {
 					let participant = exam.participants.find((p) => p.user_id.toString() === userId);
 					if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
 
-					// if (!participant.start_time) throw new Error("Bạn chưa bắt đầu bài thi. Không thể nộp bài.");
-					// if (participant.submit_time) throw new Error("Bạn đã hoàn thành bài thi. Không thể nộp bài.");
+					if (!participant.start_time || !participant.answers || participant.answers.length === 0)
+						throw new Error("Bạn chưa bắt đầu bài thi. Không thể nộp bài.");
+					if (participant.submit_time) throw new Error("Bạn đã hoàn thành bài thi. Không thể nộp bài.");
 
-					// Participant Answers
-					// Remove objects with duplicate question_id
-					const participantAnswers = req.body.reduce((accumulator, current) => {
-						const isDuplicate = accumulator.some((item) => item.question_id === current.question_id);
-						if (!isDuplicate) accumulator.push(current);
-						return accumulator;
-					}, []);
-
-					// Validate Participant Answers
-					const questionBank = (await questionBankProvider.getAllQuestions()).rows;
-					for (const { question_id, user_answer } of participantAnswers) {
-						const question = questionBank.find((q) => q._id.toString() === question_id);
-						if (!question) throw new Error(`Câu hỏi với ID ${question_id} không tồn tại`);
-
-						if (user_answer) {
-							const validAnswer = question.answers.some((a) => a._id.toString() === user_answer);
-							if (!validAnswer) throw new Error(`Đáp án ${user_answer} không hợp lệ cho câu hỏi ${question_id}`);
-						}
-					}
-
-					// Update Participants
-					let updatedParticipants = exam.participants.filter((p) => p.user_id.toString() !== userId);
-					participant.submit_time = currentTime;
-					participant.answers.push(...participantAnswers);
-					updatedParticipants.push(participant);
+					// Update Exam's Participants
+					const submittedAnswers = req.body;
+					const remainingParticipants = exam.participants.filter((p) => p.user_id.toString() !== userId);
+					let updatedParticipants = remainingParticipants;
+					let updatedParticipant = participant;
+					updatedParticipant.answers = await examProvider.updateParticipantAnswersWithSubmittedAnswers(
+						participant.answers,
+						submittedAnswers,
+					);
+					updatedParticipant.submit_time = currentTime;
+					updatedParticipants.push(updatedParticipant);
 
 					const data = await exam.updateOne({
 						participants: updatedParticipants,
