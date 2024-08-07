@@ -15,7 +15,7 @@ export const validateRegisterUser = () => [
 	...validatePassword(),
 ];
 
-export const validateUpdateMyInfo = () => [
+export const validateUpdateUserInfo = () => [
 	...validateFirstName(),
 	...validateMiddleName(),
 	...validateLastName(),
@@ -117,5 +117,5 @@ export default {
 	validateRegisterUser,
 	validateLogin,
 	validatePassword,
-	validateUpdateMyInfo,
+	validateUpdateUserInfo,
 };

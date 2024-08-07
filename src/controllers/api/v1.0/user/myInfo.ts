@@ -3,7 +3,7 @@ import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { UserProvider } from "#providers/userProvider";
-import { validateUpdateMyInfoEntry } from "#middlewares/validator";
+import { validateUpdateUserInfoEntry } from "#middlewares/validator";
 
 export default (_express: Application) => {
 	const provider = new UserProvider();
@@ -53,7 +53,7 @@ export default (_express: Application) => {
 		},
 
 		put: {
-			middleware: [verify, validateUpdateMyInfoEntry],
+			middleware: [verify, validateUpdateUserInfoEntry],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
@@ -69,7 +69,7 @@ export default (_express: Application) => {
 				 *       content:
 				 *         application/json:
 				 *           schema:
-				 *             $ref: "#/components/schemas/updateMyInfo"
+				 *             $ref: "#/components/schemas/updateUserInfo"
 				 *     responses:
 				 *       200:
 				 *         description: Success
