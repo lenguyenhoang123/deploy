@@ -46,7 +46,8 @@ console.time("Built time");
 	await cp(resolve(root, "src/config"), buildConfigPath, { recursive: true });
 
 	// mv templates email
-	await moveAsync(resolve(root, "src/templates/email"), resolve(root, "dist/templates/email"), { mkdirp: true });
+	if (!existsSync(resolve(root, "dist/templates/email")))
+		await moveAsync(resolve(root, "src/templates/email"), resolve(root, "dist/templates/email"), { mkdirp: true });
 })()
 	.then(() => {
 		console.timeEnd("Built time");
