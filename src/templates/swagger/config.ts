@@ -146,7 +146,7 @@ export default {
 						},
 					},
 				},
-				updateMyInfo: {
+				updateUserInfo: {
 					type: "object",
 					properties: {
 						first_name: { type: "string" },

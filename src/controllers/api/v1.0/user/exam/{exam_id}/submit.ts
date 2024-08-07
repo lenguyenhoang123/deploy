@@ -3,7 +3,7 @@ import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
-import { IExam } from "#models/exam";
+import { IExam, IParticipantAnswer } from "#models/exam";
 import mongoose from "mongoose";
 
 export default (_express: Application) => {
@@ -82,7 +82,7 @@ export default (_express: Application) => {
 					const remainingParticipants = exam.participants.filter((p) => p.user_id.toString() !== userId);
 					let updatedParticipants = remainingParticipants;
 					let updatedParticipant = participant;
-					updatedParticipant.answers = await examProvider.updateParticipantAnswersWithSubmittedAnswers(
+					updatedParticipant.answers = await updateParticipantAnswersWithSubmittedAnswers(
 						participant.answers,
 						submittedAnswers,
 					);
@@ -103,4 +103,17 @@ export default (_express: Application) => {
 			},
 		},
 	};
+
+	async function updateParticipantAnswersWithSubmittedAnswers(
+		originalAnswers: IParticipantAnswer[],
+		newSubmittedAnswers: IParticipantAnswer[],
+	): Promise<IParticipantAnswer[]> {
+		const answerMap = new Map(
+			newSubmittedAnswers.map(({ question_id, user_answer }) => [question_id.toString(), user_answer]),
+		);
+		return originalAnswers.map((answer) => ({
+			...answer,
+			user_answer: answerMap.get(answer.question_id.toString()) || answer.user_answer,
+		}));
+	}
 };

@@ -3,10 +3,10 @@ import { FilterQuery } from "mongoose";
 const dictOperators = [
 	{ operator: "==", meaning: "Equals" },
 	{ operator: "!=", meaning: "Not equals" },
-	{ operator: ">", meaning: "Greater than" },
-	{ operator: "<", meaning: "Less than" },
 	{ operator: ">=", meaning: "Greater than or equal to" },
 	{ operator: "<=", meaning: "Less than or equal to" },
+	{ operator: ">", meaning: "Greater than" },
+	{ operator: "<", meaning: "Less than" },
 	{ operator: "@=", meaning: "Contains" },
 	{ operator: "_=", meaning: "Starts with" },
 	{ operator: "!@=", meaning: "Does not Contains" },
@@ -82,14 +82,14 @@ function genCondition(arrLeftRight: string[], character: string): any {
 			return { [conditionLeft]: conditionRight };
 		case "!=":
 			return { [conditionLeft]: { $ne: conditionRight } };
-		case ">":
-			return { [conditionLeft]: { $gt: conditionRight } };
-		case "<":
-			return { [conditionLeft]: { $lt: conditionRight } };
 		case ">=":
 			return { [conditionLeft]: { $gte: conditionRight } };
 		case "<=":
 			return { [conditionLeft]: { $lte: conditionRight } };
+		case ">":
+			return { [conditionLeft]: { $gt: conditionRight } };
+		case "<":
+			return { [conditionLeft]: { $lt: conditionRight } };
 		case "@=":
 			return { [conditionLeft]: { $regex: `.*${conditionRight}.*` } };
 		case "_=":
