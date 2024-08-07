@@ -6,17 +6,18 @@ import { ExamProvider } from "#providers/examProvider";
 import mongoose from "mongoose";
 
 export default (_express: Application) => {
-	const examProvider = new ExamProvider();
+	const provider = new ExamProvider();
+
 	return <Resource>{
 		get: {
-			middleware: verify,
+			middleware: [verify],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /user/exam/{exam_id}/result:
+				 * /statistics/exam/{exam_id}/participant/{participant_id}:
 				 *   get:
-				 *     tags: [User]
-				 *     description: Get exam result for participant
+				 *     tags: [Statistics]
+				 *     description: Get exam statistics by ID.
 				 *     security:
 				 *       - Bearer: []
 				 *     parameters:
@@ -26,6 +27,13 @@ export default (_express: Application) => {
 				 *           type: string
 				 *           example: 6699f4391c7ab023b0a77b5b
 				 *         description: Exam ID
+				 *         required: true
+				 *       - name: participant_id
+				 *         in: path
+				 *         schema:
+				 *           type: string
+				 *           example: 6699f4391c7ab023b0a77b5b
+				 *         description: Participant ID
 				 *         required: true
 				 *     responses:
 				 *       200:
@@ -37,19 +45,18 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					if (!req.user || !req.user.id) throw new Error("Lấy thông tin tài khoản thất bại!");
-					const userId = req.user.id;
-
 					const examId = req.params.exam_id as string;
+					const participantId = req.params.participant_id as string;
 					if (!examId) throw new Error("Exam ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("Exam ID không hợp lệ");
+					if (!participantId) throw new Error("Participant ID không được để trống");
+					if (!mongoose.Types.ObjectId.isValid(participantId)) throw new Error("Participant ID không hợp lệ");
 
-					const data = await examProvider.getExamResultForParticipant(examId, userId, true);
-					if (!data) throw new Error("Lấy kết quả bài thi của thí sinh thất bại");
+					const result = await provider.generateParticipantStatistics(examId, participantId);
 
 					return res.sendOk({
-						data: data,
-						message: "Lấy kết quả bài thi của thí sinh thành công",
+						data: result,
+						message: "Lấy kết quả thống kê thành công",
 					});
 				} catch (error) {
 					return res.sendError({ err: error });

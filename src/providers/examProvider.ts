@@ -1,7 +1,11 @@
 import BaseProvider from "#templates/base/baseProvider";
-import { IExam, IExamMethods, collectionName, schema, IParticipantAnswer } from "#models/exam";
+import { IExam, IExamMethods, collectionName, schema, IParticipantAnswer, IParticipant } from "#models/exam";
 import { IAnswer, IQuestionBank } from "#models/questionBank";
 import { ObjectId } from "mongoose";
+import { IResult, IUnitStatistics, IParticipantStatistics, IQueryOptions } from "#services/interfaces/istatistics";
+import { UserProvider } from "#providers/userProvider";
+import { applyFilters, applyPagination, applySorting } from "#services/statisticsService";
+const userProvider = new UserProvider();
 
 interface IFormattedQuestion {
 	_id: ObjectId;
@@ -48,7 +52,6 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 			answers: this.extractAnswerValues(question.answers),
 		}));
 
-		
 		return {
 			exam_name: name,
 			allowed_time,
@@ -56,68 +59,6 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 			quantity: questions.length,
 			questions,
 		};
-	}
-
-	async getExamDetailsForParticipant(examId: string, participantId: string) {
-		const { name, allowed_time, template, participants } = await this.getExamDetails(examId);
-
-		const participant = participants.find((p) => p.user_id.toString() === participantId);
-		if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
-
-		const formattedQuestions = await this.formatQuestions(template.questions, participant.answers);
-
-		return {
-			exam_name: name,
-			allowed_time,
-			template_name: template.name,
-			quantity: formattedQuestions.length,
-			questions: formattedQuestions,
-		};
-	}
-
-	async getExamResultForParticipant(examId: string, participantId: string) {
-		const { name, allowed_time, template, participants } = await this.getExamDetails(examId);
-
-		const participant = participants.find((p) => p.user_id.toString() === participantId);
-		if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
-
-		const formattedQuestions = await this.formatQuestions(template.questions, participant.answers, true);
-		const questionMap = new Map(formattedQuestions.map((q) => [q._id.toString(), q]));
-
-		const formattedAnswers = participant.answers.map((answer) => {
-			const question = questionMap.get(answer.question_id.toString());
-			if (!question) throw new Error(`Không tìm thấy câu hỏi với ID: ${answer.question_id}`);
-
-			const is_correct = this.isAnswerCorrect(question, answer.user_answer) ?? false;
-
-			return {
-				...question,
-				user_answer: answer.user_answer,
-				is_correct,
-			};
-		});
-
-		formattedQuestions.forEach((question) => {
-			const answer = formattedAnswers.find((ans) => ans._id.toString() === question._id.toString());
-			if (answer) {
-				question.user_answer = answer.user_answer;
-				question.is_correct = answer.is_correct;
-			} else {
-				question.is_correct = false;
-			}
-		});
-
-		return {
-			exam_name: name,
-			allowed_time,
-			template_name: template.name,
-			quantity: formattedQuestions.length,
-			questions: formattedQuestions,
-		};
-	}
-
-	private isAnswerCorrect(question: IQuestionBank | IFormattedQuestion, userAnswer: ObjectId): boolean {
-		return question.answers.some((a) => a._id.toString() === userAnswer?.toString() && a.is_correct);
 	}
 
 	private async formatQuestions(
@@ -150,6 +91,77 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		return formattedQuestions;
 	}
 
+	// Exam Details
+	async getExamDetailsForParticipant(examId: string, participantId: string) {
+		const { name, allowed_time, template, participants } = await this.getExamDetails(examId);
+
+		const participant = participants.find((p) => p.user_id.toString() === participantId);
+		if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
+
+		const formattedQuestions = await this.formatQuestions(template.questions, participant.answers);
+
+		return {
+			exam_name: name,
+			allowed_time,
+			template_name: template.name,
+			quantity: formattedQuestions.length,
+			questions: formattedQuestions,
+		};
+	}
+
+	// Exam Result
+	async getExamResultForParticipant(
+		examId: string,
+		participantId: string,
+		includeQuestions: boolean = false,
+	): Promise<IResult> {
+		const { name, allowed_time, template, participants } = await this.getExamDetails(examId);
+
+		const participant = participants.find((p) => p.user_id.toString() === participantId);
+		if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
+
+		const formattedQuestions = await this.formatQuestions(template.questions, participant.answers, true);
+		const questionMap = new Map(formattedQuestions.map((q) => [q._id.toString(), q]));
+
+		let correct_count = 0;
+		const formattedAnswers = participant.answers.map((answer) => {
+			const question = questionMap.get(answer.question_id.toString());
+			if (!question) throw new Error(`Không tìm thấy câu hỏi với ID: ${answer.question_id}`);
+
+			const is_correct = this.isAnswerCorrect(question, answer.user_answer) ?? false;
+			if (is_correct) correct_count++;
+
+			return {
+				...question,
+				user_answer: answer.user_answer,
+				is_correct,
+			};
+		});
+
+		if (includeQuestions) {
+			formattedQuestions.forEach((question) => {
+				const answer = formattedAnswers.find((ans) => ans._id.toString() === question._id.toString());
+				if (answer) {
+					question.user_answer = answer.user_answer;
+					question.is_correct = answer.is_correct;
+				} else {
+					question.is_correct = false;
+				}
+			});
+		}
+
+		return {
+			exam_name: name,
+			allowed_time,
+			template_name: template.name,
+			quantity: template.questions.length,
+			correct_count,
+			time_taken: this.getTimeTaken(participant),
+			questions: includeQuestions ? formattedQuestions : undefined,
+		};
+	}
+
+	// Shuffle Questions And Answers
 	async getShuffleQuestionsAndAnswers(examId: string): Promise<IParticipantAnswer[]> {
 		const questions = await this.getTemplateQuestions(examId);
 		if (!questions.length) throw new Error("Không lấy được danh sách câu hỏi của đề thi");
@@ -175,16 +187,108 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		return array;
 	}
 
-	async updateParticipantAnswersWithSubmittedAnswers(
-		originalAnswers: IParticipantAnswer[],
-		newSubmittedAnswers: IParticipantAnswer[],
-	): Promise<IParticipantAnswer[]> {
-		const answerMap = new Map(
-			newSubmittedAnswers.map(({ question_id, user_answer }) => [question_id.toString(), user_answer]),
+	// Statistics
+	private calculateTimeTakenInMinutes(startTime: Date, submitTime: Date): number {
+		return (submitTime.getTime() - startTime.getTime()) / (1000 * 60);
+	}
+
+	private getTimeTaken(participant: IParticipant): number {
+		return this.calculateTimeTakenInMinutes(participant.start_time, participant.submit_time);
+	}
+
+	private isAnswerCorrect(question: IQuestionBank | IFormattedQuestion, userAnswer: ObjectId): boolean {
+		return question.answers.some((a) => a._id.toString() === userAnswer?.toString() && a.is_correct);
+	}
+
+	async generateParticipantStatistics(examId: string, participantId: string): Promise<IParticipantStatistics> {
+		const user = await userProvider.getById(participantId);
+		const { correct_count, time_taken } = await this.getExamResultForParticipant(examId, participantId);
+		return {
+			first_name: user.first_name,
+			middle_name: user.middle_name,
+			last_name: user.last_name,
+			district: user.unit.district,
+			ward: user.unit.ward,
+			correct_count,
+			time_taken,
+		};
+	}
+
+	async getParticipantStatistics(examId: string, queryOptions: IQueryOptions): Promise<IParticipantStatistics[]> {
+		const { where, pageSize, currentPage, sortBy } = queryOptions;
+
+		const exam = await this.getById(examId);
+		if (!exam) throw new Error("Kỳ thi không tồn tại");
+		if (exam.participants?.length === 0) throw new Error("Kỳ thi chưa có người tham gia");
+
+		const validParticipants = this.filterValidParticipants(exam.participants);
+
+		let participantStats = await this.generateParticipantStats(examId, validParticipants);
+
+		participantStats = applyFilters(participantStats, where);
+		participantStats = applySorting(participantStats, sortBy);
+		participantStats = applyPagination(participantStats, pageSize, currentPage);
+
+		return participantStats;
+	}
+
+	async getUnitStatistics(examId: string, queryOptions: IQueryOptions): Promise<IUnitStatistics[]> {
+		const { where, pageSize, currentPage, sortBy } = queryOptions;
+
+		const exam = await this.getById(examId);
+		if (!exam) throw new Error("Kỳ thi không tồn tại");
+		if (exam.participants?.length === 0) throw new Error("Kỳ thi chưa có người tham gia");
+
+		const validParticipants = this.filterValidParticipants(exam.participants);
+
+		let districtStats = await this.generateDistrictStats(examId, validParticipants);
+
+		districtStats = applyFilters(districtStats, where);
+		districtStats = applySorting(districtStats, sortBy);
+		districtStats = applyPagination(districtStats, pageSize, currentPage);
+
+		return districtStats;
+	}
+
+	private filterValidParticipants(participants: IParticipant[]): IParticipant[] {
+		return participants.filter((p) => p.start_time && p.submit_time);
+	}
+
+	private async generateParticipantStats(
+		examId: string,
+		participants: IParticipant[],
+	): Promise<IParticipantStatistics[]> {
+		const stats = await Promise.all(
+			participants.map(async (participant) =>
+				this.generateParticipantStatistics(examId, participant.user_id.toString()),
+			),
 		);
-		return originalAnswers.map((answer) => ({
-			...answer,
-			user_answer: answerMap.get(answer.question_id.toString()) || answer.user_answer,
-		}));
+		return stats.filter(Boolean);
+	}
+
+	private async generateDistrictStats(examId: string, participants: IParticipant[]): Promise<IUnitStatistics[]> {
+		const districtStatsMap = new Map<string, IUnitStatistics>();
+
+		for (const participant of participants) {
+			const user = await userProvider.getById(participant.user_id.toString());
+			const { district } = user.unit;
+			const { correct_count, time_taken } = await this.getExamResultForParticipant(
+				examId,
+				participant.user_id.toString(),
+			);
+
+			const stats = districtStatsMap.get(district) || {
+				district,
+				correct_count: 0,
+				time_taken: 0,
+				participant_count: 0,
+			};
+			stats.correct_count += correct_count;
+			stats.time_taken += time_taken;
+			stats.participant_count += 1;
+			districtStatsMap.set(district, stats);
+		}
+
+		return Array.from(districtStatsMap.values());
 	}
 }
