@@ -2,9 +2,15 @@ import BaseProvider from "#templates/base/baseProvider";
 import { IExam, IExamMethods, collectionName, schema, IParticipantAnswer, IParticipant } from "#models/exam";
 import { IAnswer, IQuestionBank } from "#models/questionBank";
 import { ObjectId } from "mongoose";
-import { IResult, IUnitStatistics, IParticipantStatistics, IQueryOptions } from "#services/interfaces/istatistics";
+import {
+	IResult,
+	IUnitStatistics,
+	IParticipantStatistics,
+	IQueryOptions,
+	IPaginationResult,
+} from "#services/interfaces/istatistics";
 import { UserProvider } from "#providers/userProvider";
-import { applyFilters, applyPagination, applySorting } from "#services/statisticsService";
+import { applyFilters, applyPagination, applySorting, generatePaginationResult } from "#services/statisticsService";
 const userProvider = new UserProvider();
 
 interface IFormattedQuestion {
@@ -32,8 +38,12 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 	private async getExamDetails(examId: string) {
 		const exam = await this.getById(examId);
 		if (!exam) throw new Error("Kỳ thi không tồn tại");
+		if (!exam.template) throw new Error("Không tìm thấy danh sách câu hỏi của kỳ thi.");
 
-		const examDetail = await exam.populate({ path: "template.questions", select: "name answers" });
+		const examDetail = await exam.populate({
+			path: "template.questions",
+			select: "name answers",
+		});
 		if (!examDetail) throw new Error("Có lỗi xảy ra khi lấy chi tiết đề thi");
 
 		return examDetail;
@@ -126,7 +136,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		let correct_count = 0;
 		const formattedAnswers = participant.answers.map((answer) => {
 			const question = questionMap.get(answer.question_id.toString());
-			if (!question) throw new Error(`Không tìm thấy câu hỏi với ID: ${answer.question_id}`);
+			if (!question) return;
 
 			const is_correct = this.isAnswerCorrect(question, answer.user_answer) ?? false;
 			if (is_correct) correct_count++;
@@ -140,7 +150,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 
 		if (includeQuestions) {
 			formattedQuestions.forEach((question) => {
-				const answer = formattedAnswers.find((ans) => ans._id.toString() === question._id.toString());
+				const answer = formattedAnswers.find((ans) => ans?._id.toString() === question?._id.toString());
 				if (answer) {
 					question.user_answer = answer.user_answer;
 					question.is_correct = answer.is_correct;
@@ -204,22 +214,22 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		const user = await userProvider.getById(participantId);
 		const { correct_count, time_taken } = await this.getExamResultForParticipant(examId, participantId);
 		return {
-			first_name: user.first_name,
-			middle_name: user.middle_name,
-			last_name: user.last_name,
-			district: user.unit.district,
-			ward: user.unit.ward,
+			_id: user?.id,
+			first_name: user?.first_name,
+			middle_name: user?.middle_name,
+			last_name: user?.last_name,
+			district: user?.unit?.district,
+			ward: user?.unit?.ward,
 			correct_count,
 			time_taken,
 		};
 	}
 
-	async getParticipantStatistics(examId: string, queryOptions: IQueryOptions): Promise<IParticipantStatistics[]> {
+	async getParticipantStatistics(examId: string, queryOptions: IQueryOptions): Promise<IPaginationResult> {
 		const { where, pageSize, currentPage, sortBy } = queryOptions;
 
 		const exam = await this.getById(examId);
 		if (!exam) throw new Error("Kỳ thi không tồn tại");
-		if (exam.participants?.length === 0) throw new Error("Kỳ thi chưa có người tham gia");
 
 		const validParticipants = this.filterValidParticipants(exam.participants);
 
@@ -229,15 +239,14 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		participantStats = applySorting(participantStats, sortBy);
 		participantStats = applyPagination(participantStats, pageSize, currentPage);
 
-		return participantStats;
+		return generatePaginationResult(participantStats, pageSize, currentPage);
 	}
 
-	async getUnitStatistics(examId: string, queryOptions: IQueryOptions): Promise<IUnitStatistics[]> {
+	async getUnitStatistics(examId: string, queryOptions: IQueryOptions): Promise<IPaginationResult> {
 		const { where, pageSize, currentPage, sortBy } = queryOptions;
 
 		const exam = await this.getById(examId);
 		if (!exam) throw new Error("Kỳ thi không tồn tại");
-		if (exam.participants?.length === 0) throw new Error("Kỳ thi chưa có người tham gia");
 
 		const validParticipants = this.filterValidParticipants(exam.participants);
 
@@ -247,7 +256,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		districtStats = applySorting(districtStats, sortBy);
 		districtStats = applyPagination(districtStats, pageSize, currentPage);
 
-		return districtStats;
+		return generatePaginationResult(districtStats, pageSize, currentPage);
 	}
 
 	private filterValidParticipants(participants: IParticipant[]): IParticipant[] {

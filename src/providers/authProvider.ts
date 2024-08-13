@@ -15,7 +15,7 @@ export class UserAuthProvider extends BaseProvider<IUserAuth, IUserAuthMethods> 
 
 	async login(email: string, password: string) {
 		// Get User
-		const user = await this.userProvider.getOne({ where: { email }, attributes: ["id", "is_active"] });
+		const user = await this.userProvider.getOne({ where: { email }, attributes: ["id", "is_active", "is_admin"] });
 		if (!user) throw new Error("Tài khoản không tồn tại");
 		if (!user.is_active) throw new Error("Tài khoản chưa được kích hoạt");
 		// Get password
@@ -38,7 +38,7 @@ export class UserAuthProvider extends BaseProvider<IUserAuth, IUserAuthMethods> 
 	}
 
 	async verifyOtp(email: string, otp: string) {
-		const user = await this.userProvider.getOne({ where: { email }, attributes: ["id"] });
+		const user = await this.userProvider.getOne({ where: { email }, attributes: ["id", "is_active", "is_admin"] });
 		if (!user) throw new Error("Không tìm thấy người dùng");
 		// Get password
 		const auth = await this.getOne({

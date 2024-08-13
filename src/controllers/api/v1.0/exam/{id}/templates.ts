@@ -1,4 +1,4 @@
-import verify from "#middlewares/auth";
+import verify, { verifyAdmin } from "#middlewares/auth";
 import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
@@ -11,7 +11,7 @@ export default (_express: Application) => {
 	const questionBankProvider = new QuestionBankProvider();
 	return <Resource>{
 		put: {
-			middleware: verify,
+			middleware: [verify, verifyAdmin],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
@@ -53,8 +53,6 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					if (!req.user || !req.user.id) throw new Error("Lấy thông tin tài khoản thất bại!");
-
 					const examId = req.params.id as string;
 					if (!examId) throw new Error("ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("ID không hợp lệ");

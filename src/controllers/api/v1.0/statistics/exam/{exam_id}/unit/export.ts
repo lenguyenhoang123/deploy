@@ -1,4 +1,4 @@
-import verify from "#middlewares/auth";
+import verify, { verifyAdmin } from "#middlewares/auth";
 import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
@@ -14,7 +14,7 @@ export default (_express: Application) => {
 
 	return <Resource>{
 		get: {
-			middleware: [verify, queryFilter],
+			middleware: [verify, verifyAdmin, queryFilter],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
@@ -81,7 +81,7 @@ export default (_express: Application) => {
 
 					const result = await provider.getUnitStatistics(examId, queryOptions);
 
-					const formattedData = formattedDataToExport(result);
+					const formattedData = formattedDataToExport(result.rows);
 					const excelBuffer = await ExcelExportService.generateExcel(formattedData, unitStatisticsTemplate.headers);
 					res.setHeader("Content-Disposition", "attachment; filename=ThongKeTheoDonVi.xlsx");
 					res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
