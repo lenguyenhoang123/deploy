@@ -5,9 +5,11 @@ import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import { IExam, IParticipantAnswer } from "#models/exam";
 import mongoose from "mongoose";
+import { UserProvider } from "#providers/userProvider";
 
 export default (_express: Application) => {
 	const examProvider = new ExamProvider();
+	const userProvider = new UserProvider();
 	return <Resource>{
 		put: {
 			middleware: verify,
@@ -56,8 +58,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					if (!req.user || !req.user.id) throw new Error("Lấy thông tin tài khoản thất bại!");
-					const userId = req.user.id;
+					const userId = await userProvider.getUserIdFromRequest(req);
 
 					const examId = req.params.exam_id as string;
 					if (!examId) throw new Error("Exam ID không được để trống");
@@ -70,7 +71,7 @@ export default (_express: Application) => {
 					if (currentTime < exam.start_time) throw new Error("Kỳ thi chưa diễn ra");
 					if (currentTime > exam.end_time) throw new Error("Kỳ thi đã hết hạn");
 
-					let participant = exam.participants.find((p) => p.user_id.toString() === userId);
+					let participant = exam.participants.find((p) => p.user_id.toString() === userId.toString());
 					if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
 
 					if (!participant.start_time || !participant.answers || participant.answers.length === 0)
@@ -79,7 +80,7 @@ export default (_express: Application) => {
 
 					// Update Exam's Participants
 					const submittedAnswers = req.body;
-					const remainingParticipants = exam.participants.filter((p) => p.user_id.toString() !== userId);
+					const remainingParticipants = exam.participants.filter((p) => p.user_id.toString() !== userId.toString());
 					let updatedParticipants = remainingParticipants;
 					let updatedParticipant = participant;
 					updatedParticipant.answers = await updateParticipantAnswersWithSubmittedAnswers(

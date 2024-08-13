@@ -1,4 +1,4 @@
-import verify from "#middlewares/auth";
+import verify, { verifyAdmin } from "#middlewares/auth";
 import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
@@ -13,7 +13,7 @@ export default (_express: Application) => {
 
 	return <Resource>{
 		get: {
-			middleware: verify,
+			middleware: [verify, verifyAdmin],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
@@ -78,7 +78,7 @@ export default (_express: Application) => {
 		},
 
 		put: {
-			middleware: [verify, validateUpdateUserInfoEntry],
+			middleware: [verify, verifyAdmin, validateUpdateUserInfoEntry],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
@@ -143,7 +143,7 @@ export default (_express: Application) => {
 		},
 
 		delete: {
-			middleware: verify,
+			middleware: [verify, verifyAdmin],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
