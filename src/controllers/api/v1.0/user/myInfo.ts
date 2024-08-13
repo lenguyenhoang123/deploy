@@ -69,7 +69,7 @@ export default (_express: Application) => {
 				 *       content:
 				 *         application/json:
 				 *           schema:
-				 *             $ref: "#/components/schemas/updateUserInfo"
+				 *            $ref: "#/components/schemas/updateUserInfo"
 				 *     responses:
 				 *       200:
 				 *         description: Success
