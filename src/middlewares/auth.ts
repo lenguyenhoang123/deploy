@@ -35,3 +35,19 @@ export const verifyToken = async (req: Req) => {
 		throw new MeUError(401, "API", error);
 	}
 };
+
+export const verifyAdmin = (req: Req, res: Res, next: NextFunction) => {
+	try {
+		if (!req.user.isAdmin) {
+			throw new Error("User is not an admin");
+		}
+		next();
+	} catch (err) {
+		return res.status(403).send({
+			status: 403,
+			message: "Không có quyền truy cập",
+			message_en: "Access denied",
+			err: new MeUError(403, "API", err.message),
+		});
+	}
+};

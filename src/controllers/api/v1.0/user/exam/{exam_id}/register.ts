@@ -5,9 +5,11 @@ import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import { IExam } from "#models/exam";
 import mongoose from "mongoose";
+import { UserProvider } from "#providers/userProvider";
 
 export default (_express: Application) => {
 	const provider = new ExamProvider();
+	const userProvider = new UserProvider();
 	return <Resource>{
 		put: {
 			middleware: verify,
@@ -38,8 +40,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					if (!req.user || !req.user.id) throw new Error("Lấy thông tin tài khoản thất bại!");
-					const userId = req.user.id;
+					const userId = await userProvider.getUserIdFromRequest(req);
 
 					const examId = req.params.exam_id as string;
 					if (!examId) throw new Error("Exam ID không được để trống");
@@ -52,7 +53,7 @@ export default (_express: Application) => {
 					if (currentTime > exam.end_time) throw new Error("Kỳ thi đã hết hạn đăng ký");
 
 					const participants = exam.participants;
-					if (participants.find((p) => p.user_id.toString() === userId))
+					if (participants.find((p) => p.user_id.toString() === userId.toString()))
 						throw new Error("Bạn đã đăng ký kỳ thi này trước đó");
 
 					const data = await exam.updateOne({

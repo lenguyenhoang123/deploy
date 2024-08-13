@@ -1,4 +1,4 @@
-import verify from "#middlewares/auth";
+import verify, { verifyAdmin } from "#middlewares/auth";
 import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
@@ -6,11 +6,13 @@ import { ExamProvider } from "#providers/examProvider";
 import { queryFilter, requiredFilters } from "#middlewares/query-filter";
 import { IExam } from "#models/exam";
 import { validateExamEntry } from "#middlewares/validator";
+import { UserProvider } from "#providers/userProvider";
 
 type ExamCreate = Omit<IExam, "created_at" | "created_by" | "updated_at" | "updated_by">;
 
 export default (_express: Application) => {
 	const provider = new ExamProvider();
+	const userProvider = new UserProvider();
 	return <Resource>{
 		get: {
 			middleware: [verify, queryFilter, requiredFilters(["currentPage", "pageSize"])],
@@ -96,7 +98,7 @@ export default (_express: Application) => {
 		},
 
 		post: {
-			middleware: [verify, validateExamEntry],
+			middleware: [verify, verifyAdmin, validateExamEntry],
 			handler: async (req: Req<IExam, ExamCreate>, res: Res) => {
 				/**
 				 * @openapi
@@ -112,7 +114,7 @@ export default (_express: Application) => {
 				 *       content:
 				 *         application/json:
 				 *           schema:
-				 *             $ref: '#/components/schemas/ExamMute'
+				 *             $ref: '#/components/schemas/ExamMutate'
 				 *           example:
 				 *             {
 				 *               "name": "Kỳ thi tháng 08/2024",
@@ -131,9 +133,9 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					if (!req.user || !req.user.id) throw new Error("Lấy thông tin tài khoản thất bại!");
+					const userId = await userProvider.getUserIdFromRequest(req);
 					return res.sendOk({
-						data: await provider.post({ ...req.body, created_by: req.user._id }),
+						data: await provider.post({ ...req.body, created_by: userId }),
 						message: "Tạo kỳ thi thành công",
 					});
 				} catch (error) {

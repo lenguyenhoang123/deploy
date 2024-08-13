@@ -1,4 +1,4 @@
-import verify from "#middlewares/auth";
+import verify, { verifyAdmin } from "#middlewares/auth";
 import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
@@ -9,7 +9,7 @@ export default (_express: Application) => {
 	const provider = new UserProvider();
 	return <Resource>{
 		get: {
-			middleware: [verify, queryFilter, requiredFilters(["currentPage", "pageSize"])],
+			middleware: [verify, verifyAdmin, queryFilter, requiredFilters(["currentPage", "pageSize"])],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
