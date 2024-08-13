@@ -13,8 +13,8 @@
 		"DB_AUTHDB": "admin",
 		"DB_USER": "root",
 		"DB_PASS": "SOh3TbYhx",
-		"DB_HOST": "192.168.0.98",
-		"DB_PORT": 27017
+		"DB_HOST": "27.74.255.96",
+		"DB_PORT": 28118
 	},
 	"LoggingService": {
 		"IsEnabled": true,
