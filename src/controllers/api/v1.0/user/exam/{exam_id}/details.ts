@@ -4,9 +4,11 @@ import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import mongoose from "mongoose";
+import { UserProvider } from "#providers/userProvider";
 
 export default (_express: Application) => {
 	const examProvider = new ExamProvider();
+	const userProvider = new UserProvider();
 	return <Resource>{
 		get: {
 			middleware: verify,
@@ -37,14 +39,13 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					if (!req.user || !req.user.id) throw new Error("Lấy thông tin tài khoản thất bại!");
-					const userId = req.user.id;
+					const userId = await userProvider.getUserIdFromRequest(req);
 
 					const examId = req.params.exam_id as string;
 					if (!examId) throw new Error("Exam ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("Exam ID không hợp lệ");
 
-					const data = await examProvider.getExamDetailsForParticipant(examId, userId);
+					const data = await examProvider.getExamDetailsForParticipant(examId, userId.toString());
 					if (!data) throw new Error("Lấy chi tiết đề thi của thí sinh thất bại");
 
 					return res.sendOk({

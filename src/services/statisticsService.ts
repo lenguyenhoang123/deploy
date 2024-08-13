@@ -1,15 +1,18 @@
-import { ISortCriteria, ISortOptions } from "#services/interfaces/istatistics";
+import { IPaginationResult, ISortCriteria, ISortOptions } from "#services/interfaces/istatistics";
 
 // Sort And Rank Data
 export function parseSortOptions(sortByParam: string | undefined): ISortCriteria[] {
 	if (!sortByParam) {
-		return [{ field: "correct_count", order: "desc" }];
+		return [
+			{ field: "correct_count", order: "desc" },
+			{ field: "time_taken", order: "asc" },
+		];
 	}
 
 	return sortByParam.split(";").map((sortOption) => {
 		const [field, order] = sortOption.split(",");
 		return {
-			field: field as "correct_count" | "time_taken",
+			field,
 			order: order as "asc" | "desc",
 		};
 	});
@@ -85,7 +88,6 @@ export function applyFilters<T>(data: T[], where: Record<string, any>): T[] {
 }
 
 export function applySorting<T>(data: T[], sortBy: string): T[] {
-	if (!sortBy) return data;
 	const sortOptions = parseSortOptions(sortBy);
 	return sortAndRankData(data, { sortBy: sortOptions });
 }
@@ -95,6 +97,20 @@ export function applyPagination<T>(data: T[], pageSize: number, currentPage: num
 	const startIndex = (currentPage - 1) * pageSize;
 	const endIndex = startIndex + pageSize;
 	return data.slice(startIndex, endIndex);
+}
+
+// Pagination
+export function generatePaginationResult(data: any[], pageSize?: number, currentPage: number = 1): IPaginationResult {
+	const count = data.length;
+	const totalPages = Math.ceil(count / (pageSize ?? count));
+	const rows = pageSize ? data.slice((currentPage - 1) * pageSize, currentPage * pageSize) : data;
+
+	return {
+		count,
+		rows,
+		totalPages,
+		currentPage,
+	};
 }
 
 // Export

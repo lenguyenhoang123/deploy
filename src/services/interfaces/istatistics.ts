@@ -8,6 +8,7 @@ export interface IUnitStatistics {
 }
 
 export interface IParticipantStatistics {
+	_id: string;
 	first_name: string;
 	middle_name: string;
 	last_name: string;
@@ -42,4 +43,11 @@ export interface IQueryOptions {
 	pageSize?: number;
 	currentPage?: number;
 	sortBy?: string;
+}
+
+export interface IPaginationResult {
+	count: number;
+	rows: any[];
+	totalPages: number;
+	currentPage: number;
 }

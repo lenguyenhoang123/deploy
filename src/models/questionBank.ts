@@ -19,7 +19,7 @@ const answerSchema = new Schema<IAnswer>(
 	{ _id: true },
 );
 function arrayLimit(val: IAnswer[]) {
-	return val.length >= 4;
+	return val.length <= 4 && val.length >= 2;
 }
 
 export interface IQuestionBank {
@@ -48,7 +48,7 @@ export const schema = (function () {
 			priority: { type: Number, required: true },
 			answers: {
 				type: [answerSchema],
-				validate: [arrayLimit, "Câu hỏi phải có ít nhất 4 đáp án"],
+				validate: [arrayLimit, "Mỗi câu hỏi phải có từ 2 đến 4 đáp án"],
 				required: true,
 			},
 			created_by: { type: Schema.Types.ObjectId, Ref: collectionName },
