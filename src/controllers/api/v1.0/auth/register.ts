@@ -65,6 +65,10 @@ export default (_express: Application) => {
 			});
 			if (existingUser) {
 				if (existingUser.email === userValues.email) {
+					if (!existingUser.is_active)
+						throw new Error(
+							"Email này đã được đăng ký nhưng chưa được kích hoạt. Vui lòng liên hệ quản trị viên để được giúp đỡ",
+						);
 					throw new Error("Email đã được đăng ký trước đó");
 				}
 				if (existingUser.phone === userValues.phone) {
