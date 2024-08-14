@@ -47,8 +47,8 @@ export class UserAuthProvider extends BaseProvider<IUserAuth, IUserAuthMethods> 
 		});
 		if (!auth) throw new Error("Chưa tạo mã xác minh");
 		if (!auth.compareKey(otp)) throw new Error("Mã xác minh không chính xác");
-		/* Set expiration time to 1 min */
-		if (dayjs().diff(dayjs(auth.updated_at), "minute") > 1) throw new Error("Mã xác minh đã hết hạn");
+		/* Set expiration time to 3 min */
+		if (dayjs().diff(dayjs(auth.updated_at), "second") > 3 * 60) throw new Error("Mã xác minh đã hết hạn");
 		// Remove OTP from db and update is actvie to true
 		await Promise.all([this.delete(auth.id), user.updateOne({ is_active: true })]);
 
