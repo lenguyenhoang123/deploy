@@ -60,6 +60,9 @@ export default (_express: Application) => {
 					const exam = await examProvider.getById(examId);
 					if (!exam) throw new Error("Kỳ thi không tồn tại");
 
+					const currentTime = new Date();
+					if (currentTime >= exam.start_time) throw new Error("Không thể tạo đề thi cho kỳ thi đã hoặc đang diễn ra");
+
 					const { name, quantity } = req.body;
 
 					const quantityNumber = parseInt(quantity as string, 10);

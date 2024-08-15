@@ -105,7 +105,7 @@ export default (_express: Application) => {
 				 * /exam:
 				 *   post:
 				 *     tags: [Exam]
-				 *     description: Create a new question bank
+				 *     description: Create a new exam
 				 *     security:
 				 *       - Bearer: []
 				 *     requestBody:
