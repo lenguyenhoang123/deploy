@@ -128,7 +128,6 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		const { name, allowed_time, template, participants } = await this.getExamDetails(examId);
 
 		const participant = participants.find((p) => p.user_id.toString() === participantId);
-		if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
 
 		const formattedQuestions = await this.formatQuestions(template.questions, participant.answers, true);
 		const questionMap = new Map(formattedQuestions.map((q) => [q._id.toString(), q]));
