@@ -19,22 +19,25 @@ export class UserProvider extends BaseProvider<IUser, IUserMethods> {
 	}
 
 	async getUserFromRequest(req: Req): Promise<any> {
-		return this.handleUserRetrieval(req.user?.id);
+		const user = await this.handleUserRetrieval(req.user?.id);
+		if (!user) throw new Error("Có lỗi xảy ra khi lấy thông tin tài khoản");
+		return user;
 	}
 
 	async getUserIdFromRequest(req: Req): Promise<ObjectId> {
 		const user = await this.handleUserRetrieval(req.user?.id);
+		if (!user || !user.id) throw new Error("Có lỗi xảy ra khi lấy thông tin tài khoản");
 		return user.id;
 	}
 
 	private async handleUserRetrieval(userId: string): Promise<any> {
 		if (!userId) {
-			throw new MeUError(401, "API", new Error("Lấy thông tin tài khoản thất bại!"));
+			throw new Error("Không tìm thấy User ID");
 		}
 
 		const user = await this.getById(userId);
 		if (!user) {
-			throw new MeUError(404, "API", new Error("Người dùng không tồn tại"));
+			throw new Error("Tài khoản không tồn tại");
 		}
 
 		return user;
