@@ -97,8 +97,17 @@ export const validateExam = () => [
 
 	body("description").optional().isString().withMessage("Mô tả kỳ thi phải là một chuỗi ký tự"),
 
-	body("start_time").isISO8601().withMessage("Thời gian bắt đầu phải là định dạng ngày giờ hợp lệ"),
+	body("start_time")
+		.isISO8601()
+		.withMessage("Thời gian bắt đầu phải là định dạng ngày giờ hợp lệ")
+		.custom((value) => {
+			if (new Date(value) < new Date()) {
+				throw new Error("Không thể tạo kỳ thi đã hoặc đang diễn ra. Vui lòng chọn lại thời gian bắt đầu");
+			}
+			return true;
+		}),
 
+	,
 	body("end_time")
 		.isISO8601()
 		.withMessage("Thời gian kết thúc phải là định dạng ngày giờ hợp lệ")
