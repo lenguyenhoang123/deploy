@@ -80,6 +80,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
+					const currentTime = new Date();
 					if (!req.user || !req.user.id) throw new Error("Lấy thông tin tài khoản thất bại!");
 					const userId = req.user.id;
 
@@ -97,7 +98,7 @@ export default (_express: Application) => {
 						last_name: updatedUser.last_name,
 						unit: updatedUser.unit,
 						updated_by: userId,
-						updated_at: new Date(),
+						updated_at: currentTime,
 					});
 
 					if (data.modifiedCount <= 0) throw new Error("Có lỗi xảy ra khi cập nhật thông tin người dùng");

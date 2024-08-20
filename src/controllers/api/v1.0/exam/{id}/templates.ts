@@ -53,6 +53,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
+					const currentTime = new Date();
 					const examId = req.params.id as string;
 					if (!examId) throw new Error("ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("ID không hợp lệ");
@@ -60,7 +61,6 @@ export default (_express: Application) => {
 					const exam = await examProvider.getById(examId);
 					if (!exam) throw new Error("Kỳ thi không tồn tại");
 
-					const currentTime = new Date();
 					if (currentTime >= exam.start_time) throw new Error("Không thể tạo đề thi cho kỳ thi đã hoặc đang diễn ra");
 
 					const { name, quantity } = req.body;
@@ -75,7 +75,11 @@ export default (_express: Application) => {
 						questions: await questionBankProvider.getRandomQuestions(quantityNumber),
 					};
 
-					const data = await exam.updateOne({ template: newTemplate, updated_by: req.user.id, updated_at: new Date() });
+					const data = await exam.updateOne({
+						template: newTemplate,
+						updated_by: req.user.id,
+						updated_at: currentTime,
+					});
 					if (data.modifiedCount <= 0) throw new Error("Tạo đề thi thất bại");
 					return res.sendOk({ data: { message: "Tạo đề thi thành công" } });
 				} catch (error) {
