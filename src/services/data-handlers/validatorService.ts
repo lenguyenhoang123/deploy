@@ -101,7 +101,7 @@ export const validateExam = () => [
 		.isISO8601()
 		.withMessage("Thời gian bắt đầu phải là định dạng ngày giờ hợp lệ")
 		.custom((value) => {
-			if (new Date(value) < new Date()) {
+			if (new Date(value) <= new Date()) {
 				throw new Error("Không thể tạo kỳ thi đã hoặc đang diễn ra. Vui lòng chọn lại thời gian bắt đầu");
 			}
 			return true;
