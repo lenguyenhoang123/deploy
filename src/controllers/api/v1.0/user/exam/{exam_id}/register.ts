@@ -40,6 +40,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
+					const currentTime = new Date();
 					const userId = await userProvider.getUserIdFromRequest(req);
 
 					const examId = req.params.exam_id as string;
@@ -49,7 +50,6 @@ export default (_express: Application) => {
 					const exam = await provider.getById(examId);
 					if (!exam) throw new Error("Kỳ thi không tồn tại");
 
-					const currentTime = new Date();
 					if (currentTime > exam.end_time) throw new Error("Kỳ thi đã hết hạn đăng ký");
 
 					const participants = exam.participants;
@@ -58,8 +58,6 @@ export default (_express: Application) => {
 
 					const data = await exam.updateOne({
 						participants: [...participants, { user_id: userId }],
-						updated_by: userId,
-						updated_at: currentTime,
 					});
 
 					if (data.modifiedCount <= 0) throw new Error("Đăng ký thi thất bại");
