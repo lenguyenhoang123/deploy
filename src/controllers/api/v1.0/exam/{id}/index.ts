@@ -118,6 +118,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
+					const currentTime = new Date();
 					const userId = await userProvider.getUserIdFromRequest(req);
 
 					const examId = req.params.id as string;
@@ -129,7 +130,6 @@ export default (_express: Application) => {
 					});
 					if (!exam) throw new Error("Kỳ thi không tồn tại");
 
-					const currentTime = new Date();
 					if (currentTime >= exam.start_time) throw new Error("Không thể chỉnh sửa kỳ thi đã hoặc đang diễn ra");
 
 					const updatedExam = req.body;
@@ -140,7 +140,7 @@ export default (_express: Application) => {
 						end_time: updatedExam.end_time,
 						allowed_time: updatedExam.allowed_time,
 						updated_by: userId,
-						updated_at: new Date(),
+						updated_at: currentTime,
 					});
 
 					if (data.modifiedCount <= 0) throw new Error("Có lỗi xảy ra khi cập nhật kỳ thi");
