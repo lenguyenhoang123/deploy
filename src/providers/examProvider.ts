@@ -1,7 +1,7 @@
 import BaseProvider from "#templates/base/baseProvider";
 import { IExam, IExamMethods, collectionName, schema, IParticipantAnswer, IParticipant } from "#models/exam";
 import { IAnswer, IQuestionBank } from "#models/questionBank";
-import { ObjectId } from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import {
 	IResult,
 	IUnitStatistics,
@@ -24,6 +24,19 @@ interface IFormattedQuestion {
 export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 	constructor() {
 		super({ collectionName, schema });
+	}
+
+	async validateAndFetchExam(examId: string) {
+		if (!mongoose.Types.ObjectId.isValid(examId)) {
+			throw new Error("Exam ID không hợp lệ");
+		}
+
+		const exam = await this.getById(examId);
+		if (!exam) {
+			throw new Error("Kỳ thi không tồn tại");
+		}
+
+		return exam;
 	}
 
 	private extractAnswerValues(answers: IAnswer[], includeCorrect = false) {
@@ -197,7 +210,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 	}
 
 	// Statistics
-	private calculateTimeTakenInMinutes(startTime: Date, submitTime: Date): number {
+	calculateTimeTakenInMinutes(startTime: Date, submitTime: Date): number {
 		return (submitTime.getTime() - startTime.getTime()) / (1000 * 60);
 	}
 

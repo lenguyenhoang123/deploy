@@ -242,19 +242,28 @@ export default {
 				},
 
 				ParticipantAnswers: {
-					type: "array",
-					items: {
-						type: "object",
-						properties: {
-							question_id: { type: "string", format: "uuid" },
-							user_answer: { type: "string", format: "uuid" },
-							question_answers: {
-								type: "array",
-								items: {
-									type: "string",
-									format: "uuid",
-								},
+					type: "object",
+					properties: {
+						question_id: { type: "string", format: "uuid" },
+						user_answer: { type: "string", format: "uuid" },
+						question_answers: {
+							type: "array",
+							items: {
+								type: "string",
+								format: "uuid",
 							},
+						},
+					},
+				},
+
+				SubmitParticipantAnswers: {
+					type: "object",
+					properties: {
+						start_time: { type: "string", format: "date-time" },
+						submit_time: { type: "string", format: "date-time" },
+						answers: {
+							type: "array",
+							items: { $ref: "#/components/schemas/ParticipantAnswers" },
 						},
 					},
 				},
