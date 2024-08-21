@@ -121,10 +121,37 @@ export const validateExam = () => [
 	body("allowed_time").isInt({ min: 1 }).withMessage("Thời gian làm bài phải là một số nguyên dương"),
 ];
 
+export const validateSubmitExam = () => [
+	body("start_time")
+		.isISO8601()
+		.withMessage("Thời gian bắt đầu phải là định dạng ngày giờ hợp lệ")
+		.notEmpty()
+		.withMessage("Thời gian bắt đầu không được để trống"),
+
+	body("submit_time")
+		.isISO8601()
+		.withMessage("Thời gian nộp bài phải là định dạng ngày giờ hợp lệ")
+		.notEmpty()
+		.withMessage("Thời gian nộp bài không được để trống")
+		.custom((submit_time, { req }) => {
+			if (new Date(submit_time) <= new Date(req.body.start_time)) {
+				throw new Error("Thời gian nộp bài phải sau thời gian bắt đầu");
+			}
+			return true;
+		}),
+
+	body("answers")
+		.notEmpty()
+		.withMessage("Danh sách câu trả lời không được để trống")
+		.isArray()
+		.withMessage("Danh sách câu trả lời phải là một mảng"),
+];
+
 export default {
 	validateEmail,
 	validateRegisterUser,
 	validateLogin,
 	validatePassword,
 	validateUpdateUserInfo,
+	validateSubmitExam,
 };

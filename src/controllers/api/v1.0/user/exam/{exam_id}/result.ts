@@ -42,11 +42,7 @@ export default (_express: Application) => {
 					const userId = await userProvider.getUserIdFromRequest(req);
 
 					const examId = req.params.exam_id as string;
-					if (!examId) throw new Error("Exam ID không được để trống");
-					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("Exam ID không hợp lệ");
-
-					const exam = await examProvider.getById(examId);
-					if (!exam) throw new Error("Kỳ thi không tồn tại");
+					const exam = await examProvider.validateAndFetchExam(examId);
 
 					let participant = exam.participants.find((p) => p.user_id.toString() === userId.toString());
 					if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
