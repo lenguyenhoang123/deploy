@@ -4,15 +4,15 @@ import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import { IExam, IParticipantAnswer } from "#models/exam";
-import mongoose from "mongoose";
 import { UserProvider } from "#providers/userProvider";
+import { validateSubmitExamEntry } from "#middlewares/validator";
 
 export default (_express: Application) => {
 	const examProvider = new ExamProvider();
 	const userProvider = new UserProvider();
 	return <Resource>{
 		put: {
-			middleware: verify,
+			middleware: [verify, validateSubmitExamEntry],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
@@ -31,23 +31,27 @@ export default (_express: Application) => {
 				 *         description: Exam ID to submit
 				 *         required: true
 				 *     requestBody:
-				 *       description: Participant Answers
+				 *       description: Participant Answers with start and submit times
 				 *       required: true
 				 *       content:
 				 *         application/json:
 				 *           schema:
-				 *             $ref: '#/components/schemas/ParticipantAnswers'
+				 *             $ref: '#/components/schemas/SubmitParticipantAnswers'
 				 *           example:
-				 *              [
-				 *                {
-				 *                  "question_id": "6699f4391c7ab023b0a77b5b",
-				 *                  "user_answer": "6699f4391c7ab023b0a77b5b"
-				 *                },
-				 *                {
-				 *                  "question_id": "6699f4391c7ab023b0a77b5b",
-				 *                  "user_answer": ""
-				 *                }
-				 *              ]
+				 *              {
+				 *                "start_time": "2024-08-21T09:00:00Z",
+				 *                "submit_time": "2024-08-21T10:00:00Z",
+				 *                "answers": [
+				 *                  {
+				 *                    "question_id": "6699f4391c7ab023b0a77b5b",
+				 *                    "user_answer": "6699f4391c7ab023b0a77b5b"
+				 *                  },
+				 *                  {
+				 *                    "question_id": "6699f4391c7ab023b0a77b5b",
+				 *                    "user_answer": ""
+				 *                  }
+				 *                ]
+				 *              }
 				 *     responses:
 				 *       200:
 				 *         description: Success
@@ -58,43 +62,43 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					const currentTime = new Date();
-					const userId = await userProvider.getUserIdFromRequest(req);
+					let { start_time, submit_time, answers } = req.body;
+					start_time = new Date(start_time);
+					submit_time = new Date(submit_time);
 
 					const examId = req.params.exam_id as string;
-					if (!examId) throw new Error("Exam ID không được để trống");
-					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("Exam ID không hợp lệ");
+					const exam = await examProvider.validateAndFetchExam(examId);
 
-					const exam = await examProvider.getById(examId);
-					if (!exam) throw new Error("Kỳ thi không tồn tại");
+					if (start_time < exam.start_time)
+						throw new Error("Thời gian bắt đầu không hợp lệ. Không thể bắt đầu làm bài trước khi diễn ra kỳ thi.");
+					if (submit_time > exam.end_time)
+						throw new Error("Thời gian nộp bài không hợp lệ. Không thể nộp bài khi kỳ thi đã kết thúc.");
 
-					if (currentTime < exam.start_time) throw new Error("Kỳ thi chưa diễn ra");
-					if (currentTime > exam.end_time) throw new Error("Kỳ thi đã hết hạn");
+					if (examProvider.calculateTimeTakenInMinutes(start_time, submit_time) > exam.allowed_time)
+						throw new Error("Thời gian làm bài không thể lớn hơn thời gian cho phép.");
+
+					const userId = await userProvider.getUserIdFromRequest(req);
 
 					let participant = exam.participants.find((p) => p.user_id.toString() === userId.toString());
 					if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
 
-					if (!participant.start_time || !participant.answers || participant.answers.length === 0)
+					if (!participant.answers || participant.answers.length === 0)
 						throw new Error("Bạn chưa bắt đầu bài thi. Không thể nộp bài.");
 					if (participant.submit_time) throw new Error("Bạn đã hoàn thành bài thi. Không thể nộp bài.");
 
-					// Update Exam's Participants
-					const submittedAnswers = req.body;
+					// Submit Participant Answers
+					participant.start_time = start_time;
+					participant.submit_time = submit_time;
+					participant.answers = await updateParticipantAnswersWithSubmittedAnswers(participant.answers, answers);
+
 					const remainingParticipants = exam.participants.filter((p) => p.user_id.toString() !== userId.toString());
-					let updatedParticipants = remainingParticipants;
-					let updatedParticipant = participant;
-					updatedParticipant.answers = await updateParticipantAnswersWithSubmittedAnswers(
-						participant.answers,
-						submittedAnswers,
-					);
-					updatedParticipant.submit_time = currentTime;
-					updatedParticipants.push(updatedParticipant);
+					const updatedParticipants = [...remainingParticipants, participant];
 
 					const data = await exam.updateOne({
 						participants: updatedParticipants,
 					});
 
-					if (data.modifiedCount <= 0) throw new Error("Có lỗi xảy ra khi bắt đầu bài thi");
+					if (data.modifiedCount <= 0) throw new Error("Có lỗi xảy ra khi nộp bài thi");
 					return res.sendOk({ data: { message: "Nộp bài thi thành công" } });
 				} catch (error) {
 					return res.sendError({ err: error });
