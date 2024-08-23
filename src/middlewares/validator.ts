@@ -4,6 +4,7 @@ import { MeUError } from "../dto/MeUErrorDTO";
 import {
 	validateEmail,
 	validatePassword,
+	validateVerifyOTP,
 	validateRegisterUser,
 	validateLogin,
 	validateQuestionBank,
@@ -33,6 +34,7 @@ export const validate = (validations: ContextRunner[]) => async (req: Req, res: 
 
 export const validateEmailEntry = validate(validateEmail());
 export const validatePasswordEntry = validate(validatePassword());
+export const validateVerifyOTPEntry = validate(validateVerifyOTP());
 export const validateRegister = validate(validateRegisterUser());
 export const validateLoginEntry = validate(validateLogin());
 export const validateQuestionBankEntry = validate(validateQuestionBank());

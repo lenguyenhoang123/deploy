@@ -179,6 +179,7 @@ export default {
 							properties: {
 								is_admin: { type: "boolean" },
 								is_active: { type: "boolean" },
+								is_deleted: { type: "boolean" },
 								created_at: { type: "string" },
 								created_by: { type: "string" },
 								updated_at: { type: "string" },

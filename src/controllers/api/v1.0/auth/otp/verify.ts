@@ -4,11 +4,13 @@ import { Req, Res } from "#services/interfaces/iapi";
 import { IUser } from "#models/user";
 import { IUserAuth } from "#models/userAuth";
 import { UserAuthProvider } from "#providers/authProvider";
+import { validateVerifyOTPEntry } from "#middlewares/validator";
 
 export default (_express: Application) => {
 	const provider = new UserAuthProvider();
 	return <Resource>{
 		post: {
+			middleware: validateVerifyOTPEntry,
 			handler: async (req: Req<IUser & IUserAuth, { email: string; otp: string }>, res: Res) => {
 				/**
 				 * @openapi

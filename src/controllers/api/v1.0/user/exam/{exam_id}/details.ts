@@ -39,7 +39,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					const userId = await userProvider.getUserIdFromRequest(req);
+					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 
 					const examId = req.params.exam_id as string;
 					if (!examId) throw new Error("Exam ID không được để trống");
