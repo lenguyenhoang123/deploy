@@ -42,14 +42,13 @@ export default (_express: Application) => {
 
 				try {
 					const currentTime = new Date();
+					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 
 					const examId = req.params.exam_id as string;
 					const exam = await provider.validateAndFetchExam(examId);
 
 					if (currentTime < exam.start_time) throw new Error("Kỳ thi chưa diễn ra");
 					if (currentTime > exam.end_time) throw new Error("Kỳ thi đã hết hạn");
-
-					const userId = await userProvider.getUserIdFromRequest(req);
 
 					let participant = exam.participants.find((p) => p.user_id.toString() === userId.toString());
 					if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");

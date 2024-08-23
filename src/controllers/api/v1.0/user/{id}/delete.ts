@@ -2,23 +2,22 @@ import verify, { verifyAdmin } from "#middlewares/auth";
 import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
-import { QuestionBankProvider } from "#providers/questionBankProvider";
-import mongoose from "mongoose";
 import { UserProvider } from "#providers/userProvider";
+import mongoose from "mongoose";
 
 export default (_express: Application) => {
-	const provider = new QuestionBankProvider();
-	const userProvider = new UserProvider();
+	const provider = new UserProvider();
+
 	return <Resource>{
-		delete: {
+		put: {
 			middleware: [verify, verifyAdmin],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /debug/questionBank/{id}:
-				 *   delete:
-				 *     tags: [Question Bank]
-				 *     description: Delete question bank by ID.
+				 * /user/{id}/delete:
+				 *   put:
+				 *     tags: [User]
+				 *     description: Delete user by ID.
 				 *     security:
 				 *       - Bearer: []
 				 *     parameters:
@@ -27,7 +26,7 @@ export default (_express: Application) => {
 				 *         schema:
 				 *           type: string
 				 *           example: 6699f4391c7ab023b0a77b5b
-				 *         description: ID to delete
+				 *         description: User ID to delete
 				 *         required: true
 				 *     responses:
 				 *       200:
@@ -39,18 +38,27 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					const deleteId = req.params.id as string;
-					if (!deleteId) throw new Error("ID không được để trống");
-					if (!mongoose.Types.ObjectId.isValid(deleteId)) throw new Error("ID không hợp lệ");
+					const currentTime = new Date();
 
-					await userProvider.validateUserId(req.user.id as string);
-					const existingItem = await provider.getById(deleteId);
-					if (!existingItem) throw new Error("Câu hỏi không tồn tại");
+					const userId = req.params.id as string;
+					if (!userId) throw new Error("ID không được để trống");
+					if (!mongoose.Types.ObjectId.isValid(userId)) throw new Error("ID không hợp lệ");
 
-					return res.sendOk({
-						data: await provider.delete(deleteId),
-						message: "Xóa câu hỏi thành công",
+					await provider.validateUserId(req.user.id as string);
+
+					const user = await provider.getById(userId, {
+						attributes: ["is_deleted"],
 					});
+					provider.validateUser(user, false, true, "người dùng");
+
+					const data = await user.updateOne({
+						is_deleted: true,
+						updated_by: userId,
+						updated_at: currentTime,
+					});
+
+					if (data.modifiedCount <= 0) throw new Error("Có lỗi xảy ra khi xóa người dùng");
+					return res.sendOk({ data: { message: "Xóa người dùng thành công" } });
 				} catch (error) {
 					return res.sendError({ err: error });
 				}

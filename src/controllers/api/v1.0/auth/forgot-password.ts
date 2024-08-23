@@ -57,7 +57,7 @@ export default (_express: Application) => {
 	async function forgotPassword(req: Req<IUserAuth, { email: string }>, res: Res): Promise<void> {
 		try {
 			const user = await userProvider.getOne({ where: { email: req.body.email } });
-			if (!user) throw new Error("Tài khoản này không tồn tại. Vui lòng đăng ký tài khoản mới");
+			userProvider.validateUser(user, false);
 
 			const otp = otpGen.generate(6, {
 				lowerCaseAlphabets: false,

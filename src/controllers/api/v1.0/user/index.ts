@@ -60,6 +60,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
+					await provider.validateUserId(req.user.id as string);
 					const queryOptions = {
 						where: req.payload.where,
 						pageSize: req.payload.pageSize,
@@ -75,6 +76,7 @@ export default (_express: Application) => {
 							"unit",
 							"is_active",
 							"is_admin",
+							"is_deleted",
 							"created_at",
 						],
 					};

@@ -66,6 +66,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
+					await userProvider.validateUserId(req.user.id as string);
 					const queryOptions = {
 						where: req.payload.where,
 						pageSize: req.payload.pageSize,
@@ -86,7 +87,6 @@ export default (_express: Application) => {
 							"updated_at",
 						],
 					};
-
 					return res.sendOk({
 						data: await provider.getAll(queryOptions),
 						message: "Lấy danh sách kỳ thi thành công",
@@ -133,7 +133,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					const userId = await userProvider.getUserIdFromRequest(req);
+					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 					return res.sendOk({
 						data: await provider.post({ ...req.body, created_by: userId }),
 						message: "Tạo kỳ thi thành công",

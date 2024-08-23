@@ -5,9 +5,11 @@ import { Req, Res } from "#services/interfaces/iapi";
 import { AuthMethods, IUserAuth } from "#models/userAuth";
 import verify from "#middlewares/auth";
 import { validatePasswordEntry } from "#middlewares/validator";
+import { UserProvider } from "#providers/userProvider";
 
 export default (_express: Application) => {
 	const userAuthProvider = new UserAuthProvider();
+	const userProvider = new UserProvider();
 
 	return <Resource>{
 		post: {
@@ -48,11 +50,10 @@ export default (_express: Application) => {
 	async function resetPassword(req: Req<IUserAuth, { password: string }>, res: Res): Promise<void> {
 		try {
 			const { password } = req.body;
-			const user = req.user;
-			if (!user || !user.id) throw new Error("Lấy thông tin tài khoản thất bại!");
+			const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 
 			const auth = await userAuthProvider.getOne({
-				where: { user: user.id, auth_method: AuthMethods.PASSWORD },
+				where: { user: userId, auth_method: AuthMethods.PASSWORD },
 				attributes: ["auth_key"],
 			});
 
