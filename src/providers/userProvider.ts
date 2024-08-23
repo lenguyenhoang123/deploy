@@ -1,8 +1,7 @@
 import BaseProvider from "#templates/base/baseProvider";
 import { IUser, IUserMethods, collectionName, schema } from "#models/user";
-import { Req } from "#services/interfaces/iapi";
-import { MeUError } from "../dto/MeUErrorDTO";
-import { ObjectId } from "mongoose";
+import mongoose from "mongoose";
+import { capitalizeFirstLetter } from "#services/data-handlers/helperService";
 
 export class UserProvider extends BaseProvider<IUser, IUserMethods> {
 	constructor() {
@@ -18,28 +17,57 @@ export class UserProvider extends BaseProvider<IUser, IUserMethods> {
 		});
 	}
 
-	async getUserFromRequest(req: Req): Promise<any> {
-		const user = await this.handleUserRetrieval(req.user?.id);
-		if (!user) throw new Error("Có lỗi xảy ra khi lấy thông tin tài khoản");
-		return user;
+	async validateAndFetchUser(
+		userId: string,
+		validateActive: boolean = true,
+		validateDeleted: boolean = true,
+		entityName: string = "tài khoản",
+	): Promise<IUser | any> {
+		await this.validateUserId(userId, validateActive, validateDeleted, entityName);
+		return this.getById(userId);
 	}
 
-	async getUserIdFromRequest(req: Req): Promise<ObjectId> {
-		const user = await this.handleUserRetrieval(req.user?.id);
-		if (!user || !user.id) throw new Error("Có lỗi xảy ra khi lấy thông tin tài khoản");
+	async validateAndFetchUserId(
+		userId: string,
+		validateActive: boolean = true,
+		validateDeleted: boolean = true,
+		entityName: string = "tài khoản",
+	) {
+		await this.validateUserId(userId, validateActive, validateDeleted, entityName);
+		const user = await this.getById(userId);
 		return user.id;
 	}
 
-	private async handleUserRetrieval(userId: string): Promise<any> {
-		if (!userId) {
-			throw new Error("Không tìm thấy User ID");
+	async validateUserId(
+		userId: string,
+		validateActive: boolean = true,
+		validateDeleted: boolean = true,
+		entityName: string = "tài khoản",
+	): Promise<void> {
+		if (!mongoose.Types.ObjectId.isValid(userId)) {
+			throw new Error("User ID không hợp lệ");
 		}
 
 		const user = await this.getById(userId);
+		this.validateUser(user, validateActive, validateDeleted, entityName);
+	}
+
+	validateUser(
+		user: IUser | undefined,
+		validateActive: boolean = true,
+		validateDeleted: boolean = true,
+		entityName: string = "tài khoản",
+	): void {
 		if (!user) {
-			throw new Error("Tài khoản không tồn tại");
+			throw new Error(`Không tìm thấy ${entityName}`);
 		}
 
-		return user;
+		if (validateDeleted && user.is_deleted) {
+			throw new Error(`${capitalizeFirstLetter(entityName)} đã bị xóa khỏi hệ thống`);
+		}
+
+		if (validateActive && !user.is_active) {
+			throw new Error(`${capitalizeFirstLetter(entityName)} chưa được kích hoạt`);
+		}
 	}
 }

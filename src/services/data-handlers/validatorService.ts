@@ -5,6 +5,10 @@ export const validateLogin = () => {
 	return [...validateEmail(), ...validatePassword()];
 };
 
+export const validateVerifyOTP = () => {
+	return [...validateEmail(), ...validateOTP()];
+};
+
 export const validateRegisterUser = () => [
 	...validateEmail(),
 	...validateFirstName(),
@@ -53,6 +57,15 @@ export const validatePassword = () => [
 	body("password", "Mật khẩu không được để trống").notEmpty(),
 	body("password", "Mật khẩu không thể chứa khoảng trắng").not().contains(" "),
 	body("password", "Mật khẩu cần ít nhất 8 ký tự").isLength({ min: 8 }),
+];
+
+export const validateOTP = () => [
+	body("otp")
+		.notEmpty()
+		.withMessage("OTP không được để trống.")
+		.isNumeric()
+		.isLength({ min: 6, max: 6 })
+		.withMessage("OTP phải bao gồm 6 chữ số."),
 ];
 
 export const validateQuestionBank = () => [
@@ -148,6 +161,7 @@ export const validateSubmitExam = () => [
 ];
 
 export default {
+	validateVerifyOTP,
 	validateEmail,
 	validateRegisterUser,
 	validateLogin,

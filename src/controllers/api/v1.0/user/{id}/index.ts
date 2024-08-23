@@ -1,35 +1,51 @@
-import verify from "#middlewares/auth";
+import verify, { verifyAdmin } from "#middlewares/auth";
 import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { UserProvider } from "#providers/userProvider";
+import mongoose from "mongoose";
 import { validateUpdateUserInfoEntry } from "#middlewares/validator";
 
 export default (_express: Application) => {
 	const provider = new UserProvider();
+
 	return <Resource>{
 		get: {
-			middleware: verify,
+			middleware: [verify, verifyAdmin],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 *  /user/myInfo:
+				 * /user/{id}:
 				 *   get:
 				 *     tags: [User]
-				 *     description: Get My Info
+				 *     description: Get user by ID.
 				 *     security:
 				 *       - Bearer: []
+				 *     parameters:
+				 *       - name: id
+				 *         in: path
+				 *         schema:
+				 *           type: string
+				 *           example: 6699f4391c7ab023b0a77b5b
+				 *         description: User ID
+				 *         required: true
 				 *     responses:
 				 *       200:
 				 *         description: Success
 				 *         content:
 				 *           application/json:
-				 *            schema:
-				 *                $ref: '#/components/schemas/Response'
+				 *             schema:
+				 *               $ref: '#/components/schemas/Response'
 				 */
 
 				try {
-					const user = await provider.getById(req.user.id, {
+					const userId = req.params.id as string;
+					if (!userId) throw new Error("ID không được để trống");
+					if (!mongoose.Types.ObjectId.isValid(userId)) throw new Error("ID không hợp lệ");
+
+					await provider.validateUserId(req.user.id as string);
+
+					const user = await provider.getById(userId, {
 						attributes: [
 							"first_name",
 							"middle_name",
@@ -40,20 +56,23 @@ export default (_express: Application) => {
 							"is_admin",
 							"is_active",
 							"is_deleted",
+							"created_at",
 						],
 					});
-					provider.validateUser(user);
+					provider.validateUser(user, false, false, "người dùng");
 
 					const userDetails = {
-						_id: user.id,
 						full_name: user.full_name(),
 						email: user.email,
 						phone: user.phone,
 						unit: user.unit,
 						is_admin: user.is_admin,
+						is_active: user.is_active,
+						is_deleted: user.is_deleted,
+						created_at: user.created_at,
 					};
 
-					return res.sendOk({ data: userDetails, message: "Lấy thông tin tài khoản thành công" });
+					return res.sendOk({ data: userDetails, message: "Lấy thông tin người dùng thành công" });
 				} catch (error) {
 					return res.sendError({ err: error });
 				}
@@ -61,40 +80,53 @@ export default (_express: Application) => {
 		},
 
 		put: {
-			middleware: [verify, validateUpdateUserInfoEntry],
+			middleware: [verify, verifyAdmin, validateUpdateUserInfoEntry],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 *  /user/myInfo:
+				 * /user/{id}:
 				 *   put:
 				 *     tags: [User]
-				 *     description: Update My Info
+				 *     description: Update user by ID.
 				 *     security:
 				 *       - Bearer: []
+				 *     parameters:
+				 *       - name: id
+				 *         in: path
+				 *         schema:
+				 *           type: string
+				 *           example: 6699f4391c7ab023b0a77b5b
+				 *         description: User ID to update
+				 *         required: true
 				 *     requestBody:
-				 *       description: Update My Info Fields
+				 *       description: Update User Fields
 				 *       required: true
 				 *       content:
 				 *         application/json:
 				 *           schema:
-				 *            $ref: "#/components/schemas/updateUserInfo"
+				 *             $ref: "#/components/schemas/updateUserInfo"
 				 *     responses:
 				 *       200:
 				 *         description: Success
 				 *         content:
 				 *           application/json:
-				 *            schema:
-				 *                $ref: '#/components/schemas/Response'
+				 *             schema:
+				 *               $ref: '#/components/schemas/Response'
 				 */
 
 				try {
 					const currentTime = new Date();
 
-					const userId = req.user.id;
+					const userId = req.params.id as string;
+					if (!userId) throw new Error("ID không được để trống");
+					if (!mongoose.Types.ObjectId.isValid(userId)) throw new Error("ID không hợp lệ");
+
+					await provider.validateUserId(req.user.id as string);
+
 					const user = await provider.getById(userId, {
 						attributes: ["first_name", "middle_name", "last_name", "unit", "is_active", "is_deleted"],
 					});
-					provider.validateUser(user);
+					provider.validateUser(user, false, false, "người dùng");
 
 					const updatedUser = req.body;
 					const data = await user.updateOne({

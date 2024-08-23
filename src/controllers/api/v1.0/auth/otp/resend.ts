@@ -57,7 +57,7 @@ export default (_express: Application) => {
 	async function resend(req: Req<IUserAuth, { email: string }>, res: Res): Promise<void> {
 		try {
 			const user = await userProvider.getOne({ where: { email: req.body.email } });
-			if (!user) throw new Error("Không tìm thấy người dùng");
+			userProvider.validateUser(user, false);
 			const otp = otpGen.generate(6, {
 				lowerCaseAlphabets: false,
 				upperCaseAlphabets: false,
