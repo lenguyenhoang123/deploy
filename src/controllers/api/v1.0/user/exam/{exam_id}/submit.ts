@@ -62,6 +62,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
+					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 					let { start_time, submit_time, answers } = req.body;
 					start_time = new Date(start_time);
 					submit_time = new Date(submit_time);
@@ -76,8 +77,6 @@ export default (_express: Application) => {
 
 					if (examProvider.calculateTimeTakenInMinutes(start_time, submit_time) > exam.allowed_time)
 						throw new Error("Thời gian làm bài không thể lớn hơn thời gian cho phép.");
-
-					const userId = await userProvider.getUserIdFromRequest(req);
 
 					let participant = exam.participants.find((p) => p.user_id.toString() === userId.toString());
 					if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");

@@ -5,10 +5,12 @@ import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import { QuestionBankProvider } from "#providers/questionBankProvider";
 import mongoose from "mongoose";
+import { UserProvider } from "#providers/userProvider";
 
 export default (_express: Application) => {
 	const examProvider = new ExamProvider();
 	const questionBankProvider = new QuestionBankProvider();
+	const userProvider = new UserProvider();
 	return <Resource>{
 		put: {
 			middleware: [verify, verifyAdmin],
@@ -58,6 +60,7 @@ export default (_express: Application) => {
 					if (!examId) throw new Error("ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("ID không hợp lệ");
 
+					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 					const exam = await examProvider.getById(examId);
 					if (!exam) throw new Error("Kỳ thi không tồn tại");
 
@@ -77,7 +80,7 @@ export default (_express: Application) => {
 
 					const data = await exam.updateOne({
 						template: newTemplate,
-						updated_by: req.user.id,
+						updated_by: userId,
 						updated_at: currentTime,
 					});
 					if (data.modifiedCount <= 0) throw new Error("Tạo đề thi thất bại");
@@ -121,6 +124,7 @@ export default (_express: Application) => {
 					if (!examId) throw new Error("ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("ID không hợp lệ");
 
+					await userProvider.validateUserId(req.user.id as string);
 					const template = await examProvider.getTemplateDetails(examId);
 					if (!template) throw new Error("Lấy đề thi thất bại");
 

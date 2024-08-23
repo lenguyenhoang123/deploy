@@ -1,4 +1,4 @@
-import verify from "#middlewares/auth";
+import verify, { verifyAdmin } from "#middlewares/auth";
 import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
@@ -6,14 +6,16 @@ import { QuestionBankProvider } from "#providers/questionBankProvider";
 import { queryFilter, requiredFilters } from "#middlewares/query-filter";
 import { IQuestionBank } from "#models/questionBank";
 import { validateQuestionBankEntry } from "#middlewares/validator";
+import { UserProvider } from "#providers/userProvider";
 
 type QuestionBankCreate = Omit<IQuestionBank, "created_at" | "created_by" | "updated_at" | "updated_by">;
 
 export default (_express: Application) => {
 	const provider = new QuestionBankProvider();
+	const userProvider = new UserProvider();
 	return <Resource>{
 		get: {
-			middleware: [verify, queryFilter, requiredFilters(["currentPage", "pageSize"])],
+			middleware: [verify, verifyAdmin, queryFilter, requiredFilters(["currentPage", "pageSize"])],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
@@ -64,6 +66,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
+					await userProvider.validateUserId(req.user.id as string);
 					const queryOptions = {
 						where: req.payload.where,
 						pageSize: req.payload.pageSize,
@@ -81,7 +84,6 @@ export default (_express: Application) => {
 							"updated_at",
 						],
 					};
-
 					return res.sendOk({
 						data: await provider.getAll(queryOptions),
 						message: "Lấy danh sách câu hỏi thành công",
@@ -91,8 +93,9 @@ export default (_express: Application) => {
 				}
 			},
 		},
+
 		post: {
-			middleware: [verify, validateQuestionBankEntry],
+			middleware: [verify, verifyAdmin, validateQuestionBankEntry],
 			handler: async (req: Req<IQuestionBank, QuestionBankCreate>, res: Res) => {
 				/**
 				 * @openapi
@@ -132,9 +135,9 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					if (!req.user || !req.user.id) throw new Error("Lấy thông tin tài khoản thất bại!");
+					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 					return res.sendOk({
-						data: await provider.post({ ...req.body, created_by: req.user._id }),
+						data: await provider.post({ ...req.body, created_by: userId }),
 						message: "Thêm câu hỏi thành công",
 					});
 				} catch (error) {

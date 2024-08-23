@@ -4,9 +4,11 @@ import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import mongoose from "mongoose";
+import { UserProvider } from "#providers/userProvider";
 
 export default (_express: Application) => {
 	const provider = new ExamProvider();
+	const userProvider = new UserProvider();
 
 	return <Resource>{
 		get: {
@@ -45,6 +47,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
+					await userProvider.validateUserId(req.user.id as string);
 					const examId = req.params.exam_id as string;
 					const participantId = req.params.participant_id as string;
 					if (!examId) throw new Error("Exam ID không được để trống");

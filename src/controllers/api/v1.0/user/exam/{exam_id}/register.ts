@@ -41,7 +41,7 @@ export default (_express: Application) => {
 
 				try {
 					const currentTime = new Date();
-					const userId = await userProvider.getUserIdFromRequest(req);
+					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 
 					const examId = req.params.exam_id as string;
 					const exam = await provider.validateAndFetchExam(examId);

@@ -8,9 +8,11 @@ import mongoose from "mongoose";
 import { ExcelExportService } from "#services/excelExportService";
 import { unitStatisticsTemplate } from "#templates/excel/statisticsTemplate";
 import { formattedDataToExport } from "#services/statisticsService";
+import { UserProvider } from "#providers/userProvider";
 
 export default (_express: Application) => {
 	const provider = new ExamProvider();
+	const userProvider = new UserProvider();
 
 	return <Resource>{
 		get: {
@@ -68,6 +70,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
+					await userProvider.validateUserId(req.user.id as string);
 					const examId = req.params.exam_id as string;
 					if (!examId) throw new Error("ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("ID không hợp lệ");

@@ -15,9 +15,12 @@ export class UserAuthProvider extends BaseProvider<IUserAuth, IUserAuthMethods> 
 
 	async login(email: string, password: string) {
 		// Get User
-		const user = await this.userProvider.getOne({ where: { email }, attributes: ["id", "is_active", "is_admin"] });
-		if (!user) throw new Error("Tài khoản không tồn tại");
-		if (!user.is_active) throw new Error("Tài khoản chưa được kích hoạt");
+		const user = await this.userProvider.getOne({
+			where: { email },
+			attributes: ["id", "is_active", "is_admin", "is_deleted"],
+		});
+		this.userProvider.validateUser(user);
+
 		// Get password
 		const auth = await this.getOne({
 			where: { user: user.id, auth_method: AuthMethods.PASSWORD },
@@ -25,6 +28,7 @@ export class UserAuthProvider extends BaseProvider<IUserAuth, IUserAuthMethods> 
 		});
 		if (!auth) throw new Error("Chưa tạo mật khẩu");
 		if (!auth.compareKey(password)) throw new Error("Mật khẩu không chính xác");
+
 		const // Set token
 			tokenLife = dayjs().endOf("day").valueOf() - dayjs().valueOf(),
 			tokenPayload = { id: user.id, isAdmin: user.is_admin },
@@ -38,17 +42,24 @@ export class UserAuthProvider extends BaseProvider<IUserAuth, IUserAuthMethods> 
 	}
 
 	async verifyOtp(email: string, otp: string) {
-		const user = await this.userProvider.getOne({ where: { email }, attributes: ["id", "is_active", "is_admin"] });
-		if (!user) throw new Error("Không tìm thấy người dùng");
+		const user = await this.userProvider.getOne({
+			where: { email },
+			attributes: ["id", "is_active", "is_admin", "is_deleted"],
+		});
+		await this.userProvider.validateUser(user, false);
+
 		// Get password
 		const auth = await this.getOne({
 			where: { user: user.id, auth_method: AuthMethods.OTP },
 			attributes: ["auth_key", "updated_at"],
 		});
+
 		if (!auth) throw new Error("Chưa tạo mã xác minh");
 		if (!auth.compareKey(otp)) throw new Error("Mã xác minh không chính xác");
+
 		/* Set expiration time to 3 min */
 		if (dayjs().diff(dayjs(auth.updated_at), "second") > 3 * 60) throw new Error("Mã xác minh đã hết hạn");
+
 		// Remove OTP from db and update is actvie to true
 		await Promise.all([this.delete(auth.id), user.updateOne({ is_active: true })]);
 

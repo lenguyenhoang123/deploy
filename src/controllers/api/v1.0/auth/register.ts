@@ -16,7 +16,7 @@ const emailTemplates = constants.EMAIL;
 
 type UserRegister = Omit<
 	IUser & { password: string },
-	"is_admin" | "is_active" | "created_at" | "created_by" | "updated_at" | "updated_by"
+	"is_admin" | "is_active" | "is_deleted" | "created_at" | "created_by" | "updated_at" | "updated_by"
 >;
 
 export default (_express: Application) => {
@@ -65,18 +65,20 @@ export default (_express: Application) => {
 			});
 			if (existingUser) {
 				if (existingUser.email === userValues.email) {
+					if (existingUser.is_deleted)
+						throw new Error("Tài khoản này đã bị xóa khỏi hệ thống. Vui lòng liên hệ quản trị viên để được giúp đỡ.");
 					if (!existingUser.is_active)
 						throw new Error(
-							"Email này đã được đăng ký nhưng chưa được kích hoạt. Vui lòng liên hệ quản trị viên để được giúp đỡ",
+							"Email này đã được đăng ký nhưng chưa được kích hoạt. Vui lòng liên hệ quản trị viên để được giúp đỡ.",
 						);
-					throw new Error("Email đã được đăng ký trước đó");
+					throw new Error("Email này đã được đăng ký trước đó.");
 				}
 				if (existingUser.phone === userValues.phone) {
 					throw new Error("Số điện thoại đã được đăng ký trước đó");
 				}
 			}
 
-			const user = await userProvider.post({ ...userValues, is_active: false });
+			const user = await userProvider.post({ ...userValues, is_active: false, is_deleted: false });
 			const otp = otpGen.generate(6, {
 				lowerCaseAlphabets: false,
 				upperCaseAlphabets: false,

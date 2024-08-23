@@ -46,6 +46,7 @@ export default (_express: Application) => {
 					const examId = req.params.id as string;
 					if (!examId) throw new Error("ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("ID không hợp lệ");
+					await userProvider.validateUserId(req.user.id as string);
 
 					const exam = await provider.getById(examId, {
 						attributes: [
@@ -119,12 +120,12 @@ export default (_express: Application) => {
 
 				try {
 					const currentTime = new Date();
-					const userId = await userProvider.getUserIdFromRequest(req);
 
 					const examId = req.params.id as string;
 					if (!examId) throw new Error("ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("ID không hợp lệ");
 
+					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 					const exam = await provider.getById(examId, {
 						attributes: ["name", "description", "start_time", "end_time", "allowed_time", "updated_by", "updated_at"],
 					});
@@ -184,6 +185,7 @@ export default (_express: Application) => {
 					if (!deleteId) throw new Error("ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(deleteId)) throw new Error("ID không hợp lệ");
 
+					await userProvider.validateUserId(req.user.id as string);
 					const existingItem = await provider.getById(deleteId);
 					if (!existingItem) throw new Error("Kỳ thi không tồn tại");
 
