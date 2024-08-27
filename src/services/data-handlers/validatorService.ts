@@ -26,6 +26,8 @@ export const validateUpdateUserInfo = () => [
 	...validateUnit(),
 ];
 
+export const validateUpdateWebsiteConfig = () => [body("email", "Email không hợp lệ").isEmail()];
+
 export const validateEmail = () => [
 	body("email", "Email không được để trống").notEmpty(),
 	body("email", "Email không hợp lệ").isEmail(),
@@ -167,5 +169,6 @@ export default {
 	validateLogin,
 	validatePassword,
 	validateUpdateUserInfo,
+	validateUpdateWebsiteConfig,
 	validateSubmitExam,
 };

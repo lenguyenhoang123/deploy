@@ -189,6 +189,39 @@ export default {
 					],
 				},
 
+				// WEBSITE CONFIG SECTION
+				WebsiteConfigMutate: {
+					type: "object",
+					properties: {
+						name: { type: "string" },
+						phone: { type: "string" },
+						email: { type: "string" },
+						website: { type: "string" },
+						address: { type: "string" },
+						logo: { type: "string" },
+						banner: { type: "string" },
+						theme: { type: "string" },
+					},
+				},
+
+				WebsiteConfig: {
+					allOf: [
+						{
+							$ref: "#/components/schemas/WebsiteConfigMutate",
+						},
+						{
+							type: "object",
+							properties: {
+								is_default: { type: "boolean" },
+								created_at: { type: "string", format: "date-time" },
+								created_by: { type: "string", format: "uuid" },
+								updated_at: { type: "string", format: "date-time" },
+								updated_by: { type: "string", format: "uuid" },
+							},
+						},
+					],
+				},
+
 				// QUESTION BANK SECTION
 				Answer: {
 					type: "object",
