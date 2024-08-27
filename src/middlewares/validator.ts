@@ -10,6 +10,7 @@ import {
 	validateQuestionBank,
 	validateExam,
 	validateUpdateUserInfo,
+	validateUpdateWebsiteConfig,
 	validateSubmitExam,
 } from "#services/data-handlers/validatorService";
 import { validationResult, ContextRunner } from "express-validator";
@@ -39,8 +40,9 @@ export const validateRegister = validate(validateRegisterUser());
 export const validateLoginEntry = validate(validateLogin());
 export const validateQuestionBankEntry = validate(validateQuestionBank());
 export const validateExamEntry = validate(validateExam());
-export const validateSubmitExamEntry = validate(validateSubmitExam());
 export const validateUpdateUserInfoEntry = validate(validateUpdateUserInfo());
+export const validateUpdateWebsiteConfigEntry = validate(validateUpdateWebsiteConfig());
+export const validateSubmitExamEntry = validate(validateSubmitExam());
 
 export default validate;
 
