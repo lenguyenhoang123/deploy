@@ -125,9 +125,11 @@ const // Server functions
 			console.log(`Total cores: ${clc.greenBright(cores)}`);
 			console.log(`Primary process ${clc.bgGreenBright(process.pid)} is running`);
 
-			const newGenSwaggerPath = resolve(root, "dist/templates/swagger/swagger-output.json");
-			if (existsSync(newGenSwaggerPath))
-				await moveAsync(newGenSwaggerPath, resolve(storagePath, "swagger/swagger-output.json"), { mkdirp: true });
+			await generateSwagger(storagePath);
+
+			// const newGenSwaggerPath = resolve(root, "dist/templates/swagger/swagger-output.json");
+			// if (existsSync(newGenSwaggerPath))
+			// 	await moveAsync(newGenSwaggerPath, resolve(storagePath, "swagger/swagger-output.json"), { mkdirp: true });
 
 			for (let i = 0; i < cores; i++) cluster.fork();
 
