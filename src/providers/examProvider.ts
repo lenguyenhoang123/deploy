@@ -114,6 +114,19 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		return formattedQuestions;
 	}
 
+	// Exam Statuses
+	async getExamStatus(examId: string, userId: string) {
+		const { participants } = await this.getById(examId);
+		let is_registered = false,
+			is_submitted = false;
+
+		const participant = participants.find((p) => p.user_id.toString() === userId);
+		if (participant) is_registered = true;
+		if (participant?.submit_time) is_submitted = true;
+
+		return { is_registered, is_submitted };
+	}
+
 	// Exam Details
 	async getExamDetailsForParticipant(examId: string, participantId: string) {
 		const { name, allowed_time, template, participants } = await this.getExamDetails(examId);
