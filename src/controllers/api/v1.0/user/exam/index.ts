@@ -1,14 +1,10 @@
-import verify, { verifyAdmin } from "#middlewares/auth";
+import verify from "#middlewares/auth";
 import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import { queryFilter, requiredFilters } from "#middlewares/query-filter";
-import { IExam } from "#models/exam";
-import { validateExamEntry } from "#middlewares/validator";
 import { UserProvider } from "#providers/userProvider";
-
-type ExamCreate = Omit<IExam, "created_at" | "created_by" | "updated_at" | "updated_by">;
 
 export default (_express: Application) => {
 	const provider = new ExamProvider();
@@ -19,9 +15,9 @@ export default (_express: Application) => {
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /exam:
+				 * /user/exam:
 				 *   get:
-				 *     tags: [Exam]
+				 *     tags: [User]
 				 *     description: Retrieve a list of exams with optional filtering, sorting, and pagination.
 				 *     security:
 				 *       - Bearer: []
@@ -66,7 +62,7 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					await userProvider.validateUserId(req.user.id as string);
+					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 					const queryOptions = {
 						where: req.payload.where,
 						pageSize: req.payload.pageSize,
@@ -89,19 +85,26 @@ export default (_express: Application) => {
 
 					let data = await provider.getAll(queryOptions);
 
-					const exams = data.rows.map((exam) => ({
-						_id: exam._id,
-						name: exam.name,
-						description: exam.description,
-						start_time: exam.start_time,
-						end_time: exam.end_time,
-						allowed_time: exam.allowed_time,
-						created_by: exam.created_by,
-						updated_by: exam.updated_by,
-						created_at: exam.created_at,
-						updated_at: exam.updated_at,
-						question_count: exam?.template?.questions?.length || 0,
-					}));
+					const exams = await Promise.all(
+						data.rows.map(async (exam) => {
+							const { is_registered, is_submitted } = await provider.getExamStatus(exam.id, userId);
+							return {
+								_id: exam._id,
+								name: exam.name,
+								description: exam.description,
+								start_time: exam.start_time,
+								end_time: exam.end_time,
+								allowed_time: exam.allowed_time,
+								created_by: exam.created_by,
+								updated_by: exam.updated_by,
+								created_at: exam.created_at,
+								updated_at: exam.updated_at,
+								question_count: exam?.template?.questions?.length || 0,
+								is_registered: is_registered || false,
+								is_submitted: is_submitted || false,
+							};
+						}),
+					);
 
 					const responsesData = {
 						...data,
@@ -111,53 +114,6 @@ export default (_express: Application) => {
 					return res.sendOk({
 						data: responsesData,
 						message: "Lấy danh sách kỳ thi thành công",
-					});
-				} catch (error) {
-					return res.sendError({ err: error });
-				}
-			},
-		},
-
-		post: {
-			middleware: [verify, verifyAdmin, validateExamEntry],
-			handler: async (req: Req<IExam, ExamCreate>, res: Res) => {
-				/**
-				 * @openapi
-				 * /exam:
-				 *   post:
-				 *     tags: [Exam]
-				 *     description: Create a new exam
-				 *     security:
-				 *       - Bearer: []
-				 *     requestBody:
-				 *       description: Create Exam Fields
-				 *       required: true
-				 *       content:
-				 *         application/json:
-				 *           schema:
-				 *             $ref: '#/components/schemas/ExamMutate'
-				 *           example:
-				 *             {
-				 *               "name": "Kỳ thi tháng 08/2024",
-				 *               "description": "Kỳ thi đánh giá kiến thức cơ bản tháng 08/2024",
-				 *               "start_time": "2024-08-01T09:00:00Z",
-				 *               "end_time": "2024-08-31T09:00:00Z",
-				 *               "allowed_time": 120,
-				 *             }
-				 *     responses:
-				 *       200:
-				 *         description: Success
-				 *         content:
-				 *           application/json:
-				 *             schema:
-				 *               $ref: '#/components/schemas/Response'
-				 */
-
-				try {
-					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
-					return res.sendOk({
-						data: await provider.post({ ...req.body, created_by: userId }),
-						message: "Tạo kỳ thi thành công",
 					});
 				} catch (error) {
 					return res.sendError({ err: error });
