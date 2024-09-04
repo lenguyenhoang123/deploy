@@ -7,7 +7,7 @@ RUN ["pnpm", "import"]
 FROM base AS build 
 RUN ["pnpm", "install", "--frozen-lockfile"]
 COPY [".", "."]
-RUN ["pnpm", "run", "build"]`
+RUN ["pnpm", "run", "build"]
 
 FROM base AS run-deps
 RUN ["pnpm", "install", "--prod", "--frozen-lockfile"]
