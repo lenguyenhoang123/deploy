@@ -15,7 +15,7 @@ const cwd = process.cwd();
 console.time("Built time");
 
 (async function () {
-	const { esbuildOptions } = getEsbuildMetadata({ esbuild: { minify: true } });
+	const { esbuildOptions } = getEsbuildMetadata({ esbuild: { minify: false } });
 	const buildPath = resolve(__dirname, "dist");
 	const templatePath = resolve(buildPath, "templates");
 	const buildConfigPath = resolve(buildPath, "config");
