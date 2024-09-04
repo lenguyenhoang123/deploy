@@ -34,6 +34,7 @@ console.time("Built time");
 		platform: "node",
 		...esbuildOptions,
 	});
+	
 
 	// Post build functions here
 	const { default: swaggerConfig } = await import(pathToFileURL(swaggerConfigPath).href);
