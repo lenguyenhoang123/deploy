@@ -16,7 +16,7 @@
 		"copyConfig": "cp -R ./src/config ./dist",
 		"copyAssets": "npm run copyConfig",
 		"---------------PRODUCTION------------------": "",
-		"build": "node builder.mjs",
+		"build": "ts-node builder.ts",
 		"start": "cross-env-file -p ./.example_env.json node dist/index.js"
 	},
 	"keywords": [],
