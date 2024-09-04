@@ -15,7 +15,7 @@ const cwd = process.cwd();
 console.time("Built time");
 
 (async function () {
-	const { esbuildOptions } = getEsbuildMetadata({ esbuild: { minify: true } });
+	const { esbuildOptions } = getEsbuildMetadata({ esbuild: { minify: false } });
 	const buildPath = resolve(__dirname, "dist");
 	const templatePath = resolve(buildPath, "templates");
 	const buildConfigPath = resolve(buildPath, "config");
@@ -34,6 +34,7 @@ console.time("Built time");
 		platform: "node",
 		...esbuildOptions,
 	});
+	
 
 	// Post build functions here
 	const { default: swaggerConfig } = await import(pathToFileURL(swaggerConfigPath).href);

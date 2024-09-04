@@ -1,7 +1,6 @@
 import type { Options } from "swagger-jsdoc";
 import { resolve } from "path";
 import { root } from "../../root";
-import nconf from "nconf";
 
 export default {
 	definition: {
