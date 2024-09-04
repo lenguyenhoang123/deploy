@@ -27,11 +27,7 @@ const // Swagger functions
 	// Serve Swagger to web
 	serveSwagger = async (app: Application, storagePath: string) => {
 		// move swagger output
-		await moveAsync(
-			resolve(root, "dist/templates/swagger/swagger-output.json"),
-			resolve(storagePath, "swagger/swagger-output.json"),
-			{ mkdirp: true },
-		);
+
 		const doc = require(`${storagePath}/swagger/swagger-output.json`);
 
 		app.use(constants.SWAGGER_ROUTER, swaggerUI.serve, swaggerUI.setup(doc));
@@ -98,6 +94,11 @@ const // Server functions
 		// Generate swagger output
 
 		// await generateSwagger(storagePath);
+		await moveAsync(
+			resolve(__dirname, "templates/swagger/swagger-output.json"),
+			resolve(storagePath, "swagger/swagger-output.json"),
+			{ mkdirp: true },
+		);
 		serveSwagger(app, storagePath);
 
 		serverLog(`Serving static files from ${clc.blueBright(storagePath)}`);
@@ -122,6 +123,11 @@ const // Server functions
 			console.log(`Primary process ${clc.bgGreenBright(process.pid)} is running`);
 
 			// await generateSwagger(storagePath);
+			await moveAsync(
+				resolve(__dirname, "templates/swagger/swagger-output.json"),
+				resolve(storagePath, "swagger/swagger-output.json"),
+				{ mkdirp: true },
+			);
 
 			// const newGenSwaggerPath = resolve(root, "dist/templates/swagger/swagger-output.json");
 			// if (existsSync(newGenSwaggerPath))
