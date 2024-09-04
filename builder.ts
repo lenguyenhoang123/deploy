@@ -3,30 +3,26 @@ import { build, BuildOptions } from "esbuild";
 import { sys, readConfigFile, findConfigFile, parseJsonConfigFileContent } from "typescript";
 
 // Prebuild reqs
-import constants from "./src/constants";
 import { resolve } from "path";
-import { mkdir, rm, cp, writeFile } from "fs/promises";
-import { existsSync } from "fs";
-import { root } from "./src/root";
-import swaggerConfig from "./src/templates/swagger/config";
+import { mkdir, rm, cp } from "fs/promises";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import swaggerJSDoc from "swagger-jsdoc";
-import { promisify } from "util";
-import mv from "mv";
-const moveAsync = promisify<string, string, mv.Options>(mv);
+import swaggerConfig from "./src/templates/swagger/config";
 
 const cwd = process.cwd();
 console.time("Built time");
 (async function () {
 	const { esbuildOptions } = getEsbuildMetadata({ esbuild: { minify: true } });
-	const buildPath = resolve(__dirname, constants.BUILD_PATH);
+	const buildPath = resolve(__dirname, "dist");
 	const templatePath = resolve(buildPath, "templates");
 	const buildConfigPath = resolve(buildPath, "config");
+	const emailPath = resolve(templatePath, "email");
 
-	//  Pre build functions here
+	// Pre build functions here
 	if (existsSync(buildPath)) await rm(buildPath, { recursive: true });
 	await mkdir(buildPath);
-	// Generate Swagger
-	const spec = swaggerJSDoc(swaggerConfig);
+
+	await generateSwagger(templatePath);
 
 	// Builder
 	await build({
@@ -36,18 +32,11 @@ console.time("Built time");
 		...esbuildOptions,
 	});
 
-	// Post build functions here
-	// Remove unecessary codes
-	if (existsSync(resolve(templatePath, "swagger/config.js"))) await rm(resolve(templatePath, "swagger/config.js"));
-	await writeFile(resolve(templatePath, "swagger/swagger-output.json"), JSON.stringify(spec));
-
-	// Copy config path
-	await mkdir(buildConfigPath);
-	await cp(resolve(root, "src/config"), buildConfigPath, { recursive: true });
-
-	// mv templates email
-	if (!existsSync(resolve(root, "dist/templates/email")))
-		await moveAsync(resolve(root, "src/templates/email"), resolve(root, "dist/templates/email"), { mkdirp: true });
+	// Copy paths
+	await Promise.all([
+		cp(resolve(__dirname, "src/config"), buildConfigPath, { recursive: true }),
+		cp(resolve(__dirname, "src/templates/email"), emailPath, { recursive: true }),
+	]);
 })()
 	.then(() => {
 		console.timeEnd("Built time");
@@ -95,4 +84,13 @@ function getEsbuildMetadata(userConfig: { esbuild: BuildOptions; tsConfigFile?: 
 		tsconfig: tsConfigFile,
 	};
 	return { esbuildOptions };
+}
+
+// Generate swagger output
+async function generateSwagger(storagePath: string) {
+	const spec = swaggerJSDoc(swaggerConfig);
+	const swaggerServePath = `${storagePath}/swagger/`;
+	mkdirSync(swaggerServePath, { recursive: true });
+	writeFileSync(`${swaggerServePath}/swagger-output.json`, JSON.stringify(spec));
+	return;
 }
