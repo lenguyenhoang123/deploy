@@ -19,23 +19,19 @@ import verify from "./middlewares/auth";
 import response from "./middlewares/response";
 // Swagger
 import swaggerUI from "swagger-ui-express";
-import swaggerJSDoc from "swagger-jsdoc";
-import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { promisify } from "util";
 import mv from "mv";
 const moveAsync = promisify<string, string, mv.Options>(mv);
 
 const // Swagger functions
-	// Generate swagger output
-	generateSwagger = async (storagePath: string) => {
-		const swaggerConfig = require("./templates/swagger/config").default;
-		const spec = swaggerJSDoc(swaggerConfig);
-		const swaggerServePath = `${storagePath}/swagger/`;
-		mkdirSync(swaggerServePath, { recursive: true });
-		writeFileSync(`${swaggerServePath}/swagger-output.json`, JSON.stringify(spec));
-		return;
-	}, // Serve Swagger to web
+	// Serve Swagger to web
 	serveSwagger = async (app: Application, storagePath: string) => {
+		// move swagger output
+		await moveAsync(
+			resolve(root, "dist/templates/swagger/swagger-output.json"),
+			resolve(storagePath, "swagger/swagger-output.json"),
+			{ mkdirp: true },
+		);
 		const doc = require(`${storagePath}/swagger/swagger-output.json`);
 
 		app.use(constants.SWAGGER_ROUTER, swaggerUI.serve, swaggerUI.setup(doc));
@@ -101,7 +97,7 @@ const // Server functions
 		const app = await initServer(storagePath, "development", nconf);
 		// Generate swagger output
 
-		await generateSwagger(storagePath);
+		// await generateSwagger(storagePath);
 		serveSwagger(app, storagePath);
 
 		serverLog(`Serving static files from ${clc.blueBright(storagePath)}`);
@@ -125,7 +121,7 @@ const // Server functions
 			console.log(`Total cores: ${clc.greenBright(cores)}`);
 			console.log(`Primary process ${clc.bgGreenBright(process.pid)} is running`);
 
-			await generateSwagger(storagePath);
+			// await generateSwagger(storagePath);
 
 			// const newGenSwaggerPath = resolve(root, "dist/templates/swagger/swagger-output.json");
 			// if (existsSync(newGenSwaggerPath))

@@ -1,4 +1,4 @@
 {
 	"watch": ["src"],
-	"exec": "node builder.mjs && node ./dist/index.js"
+	"exec": "ts-node builder.ts && node ./dist/index.js"
 }
