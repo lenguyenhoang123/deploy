@@ -99,6 +99,7 @@ export default (_express: Application) => {
 								updated_by: exam.updated_by,
 								created_at: exam.created_at,
 								updated_at: exam.updated_at,
+								template_name: exam?.template?.name,
 								question_count: exam?.template?.questions?.length || 0,
 								is_registered: is_registered || false,
 								is_submitted: is_submitted || false,
