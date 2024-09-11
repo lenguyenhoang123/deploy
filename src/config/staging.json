@@ -6,6 +6,7 @@
 		"refreshTokenLife": 100000000
 	},
 	"Port": 3000,
+	"Storage": "/usr/src/app/storage",
 	"Database": {
 		"DB_DIALECT": "mongodb",
 		"DB_DATABASE": "shtt_online_exam",
