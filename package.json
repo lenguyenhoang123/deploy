@@ -1,5 +1,5 @@
 {
-	"name": "template-backend",
+	"name": "shtt-online-exam-be",
 	"version": "1.0",
 	"description": "",
 	"main": "dist/index.js",
