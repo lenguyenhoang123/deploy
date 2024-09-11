@@ -1,6 +1,7 @@
 import { Model, FilterQuery, Schema, UpdateQuery, PopulateOptions } from "mongoose";
 import { connectMongo } from "../../services/database/mongoose";
 import LoggingService from "../../services/file-system-handlers/logService";
+import { ObjectId } from "mongodb";
 
 export type BaseQueryOption<ModelInterface> = {
 	where?: FilterQuery<ModelInterface>;
@@ -125,10 +126,9 @@ class BaseProvider<ModelInterface, ModelMethods> {
 			$unset: Array.from(deleteFields).reduce((acc, field) => ({ ...acc, [field]: "" }), {}),
 		});
 	}
-
 	async put(id: string, body: UpdateQuery<ModelInterface>) {
 		this.logger.logDBAsync(`Updating ${JSON.stringify(body)}, where ${id}`);
-		return await this.collection.updateOne({ id }, body);
+		return await this.collection.updateOne({ _id: new ObjectId(id) }, { $set: body });
 	}
 
 	async delete(id: string) {

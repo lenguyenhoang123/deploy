@@ -26,7 +26,7 @@ export default {
 	SWAGGER_OUTPUT: "/swagger/swagger-output.json",
 
 	MIME_TYPES: {
-		IMAGE: ["image/jpeg", "image/png", "image/gif"],
+		IMAGE: ["image/jpeg", "image/png", "image/gif", "image/webp"],
 		VIDEO: [
 			"video/x-flv",
 			"video/mp4",
@@ -37,6 +37,7 @@ export default {
 			"video/x-msvideo",
 			"video/x-ms-wmv",
 		],
+		AUDIO: ["audio/x-wav", "audio/x-aiff", "audio/mpeg", "audio/mp4", "application/ogg"],
 	},
 
 	ERROR_TYPE: {

@@ -349,6 +349,30 @@ export default {
 						},
 					],
 				},
+
+				// FILE SECTION
+				File: {
+					type: "object",
+					properties: {
+						file_name: { type: "string" },
+						original_name: { type: "string" },
+						mime_type: { type: "string" },
+						file_type: { type: "string" },
+						file_path: { type: "string" },
+						size: { type: "number" },
+						created_at: { type: "string", format: "date-time" },
+						created_by: { type: "string", format: "uuid" },
+						updated_at: { type: "string", format: "date-time" },
+						updated_by: { type: "string", format: "uuid" },
+					},
+				},
+
+				FileUpload: {
+					type: "object",
+					properties: {
+						file: { type: "string", format: "binary" },
+					},
+				},
 			},
 		},
 	},
