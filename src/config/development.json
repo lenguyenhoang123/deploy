@@ -4,6 +4,7 @@
 		"refreshTokenSecret": "Local_Refresh_5"
 	},
 	"Port": 3000,
+	"Storage": "",
 	"Database": {
 		"DB_DIALECT": "mongodb",
 		"DB_DATABASE": "shtt_online_exam",

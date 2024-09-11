@@ -6,9 +6,9 @@ export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionB
 		super({ collectionName, schema });
 	}
 
-	async getQuestions(quantity: number) {
+	async getQuestions(maxQuantity: number) {
 		const queryOptions = {
-			pageSize: quantity,
+			pageSize: maxQuantity,
 			currentPage: 1,
 			sortField: "name",
 			sortOrder: "asc",
@@ -25,7 +25,7 @@ export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionB
 		try {
 			if (quantity <= 0) throw new Error("Số lượng câu hỏi phải lớn hơn 0");
 
-			const result = await this.getQuestions(quantity);
+			const result = await this.getQuestions(1000);
 			if (result.count === 0) throw new Error("Không có câu hỏi nào trong ngân hàng câu hỏi");
 			if (result.count < quantity)
 				throw new Error(`Số lượng câu hỏi trong ngân hàng là: ${result.count}. Không đủ số câu cần tạo.`);
