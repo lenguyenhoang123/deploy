@@ -127,6 +127,30 @@ export default {
 				},
 				// END RESPONSE SECTION
 
+				// FILE SECTION
+				File: {
+					type: "object",
+					properties: {
+						file_name: { type: "string" },
+						original_name: { type: "string" },
+						mime_type: { type: "string" },
+						file_type: { type: "string" },
+						file_path: { type: "string" },
+						size: { type: "number" },
+						created_at: { type: "string", format: "date-time" },
+						created_by: { type: "string", format: "uuid" },
+						updated_at: { type: "string", format: "date-time" },
+						updated_by: { type: "string", format: "uuid" },
+					},
+				},
+
+				FileUpload: {
+					type: "object",
+					properties: {
+						file: { type: "string", format: "binary" },
+					},
+				},
+
 				// USER SECTION
 				userMutate: {
 					type: "object",
@@ -197,8 +221,8 @@ export default {
 						email: { type: "string" },
 						website: { type: "string" },
 						address: { type: "string" },
-						logo: { type: ["string", "null"] },
-						banner: { type: ["string", "null"] },
+						logo: { type: ["string", "null"], format: "uuid" },
+						banner: { type: ["string", "null"], format: "uuid" },
 						theme: { type: "string" },
 					},
 				},
@@ -236,6 +260,13 @@ export default {
 						name: { type: "string" },
 						level: { type: "string", enum: ["EASY", "NORMAL", "HARD"] },
 						priority: { type: "number" },
+						files: {
+							type: "array",
+							items: {
+								type: "string",
+								format: "uuid",
+							},
+						},
 						answers: {
 							type: "array",
 							items: {
@@ -348,30 +379,6 @@ export default {
 							},
 						},
 					],
-				},
-
-				// FILE SECTION
-				File: {
-					type: "object",
-					properties: {
-						file_name: { type: "string" },
-						original_name: { type: "string" },
-						mime_type: { type: "string" },
-						file_type: { type: "string" },
-						file_path: { type: "string" },
-						size: { type: "number" },
-						created_at: { type: "string", format: "date-time" },
-						created_by: { type: "string", format: "uuid" },
-						updated_at: { type: "string", format: "date-time" },
-						updated_by: { type: "string", format: "uuid" },
-					},
-				},
-
-				FileUpload: {
-					type: "object",
-					properties: {
-						file: { type: "string", format: "binary" },
-					},
 				},
 			},
 		},

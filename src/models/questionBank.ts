@@ -1,4 +1,5 @@
 import { Model, ObjectId, Schema } from "mongoose";
+import { collectionName as fileCollection, FileModel } from "./file";
 
 export enum DifficultyLevels {
 	EASY = "EASY",
@@ -26,6 +27,7 @@ export interface IQuestionBank {
 	name: string;
 	level: string;
 	priority: number;
+	files?: ObjectId[] | FileModel[];
 	answers: IAnswer[];
 	created_at?: Date;
 	created_by?: ObjectId;
@@ -46,6 +48,7 @@ export const schema = (function () {
 				required: true,
 			},
 			priority: { type: Number, required: true },
+			files: [{ type: Schema.Types.ObjectId, ref: fileCollection }],
 			answers: {
 				type: [answerSchema],
 				validate: [arrayLimit, "Mỗi câu hỏi phải có từ 2 đến 4 đáp án"],

@@ -7,19 +7,22 @@ import { queryFilter, requiredFilters } from "#middlewares/query-filter";
 import { IQuestionBank } from "#models/questionBank";
 import { validateQuestionBankEntry } from "#middlewares/validator";
 import { UserProvider } from "#providers/userProvider";
+import { FileProvider } from "#providers/fileProvider";
+import mongoose from "mongoose";
 
 type QuestionBankCreate = Omit<IQuestionBank, "created_at" | "created_by" | "updated_at" | "updated_by">;
 
 export default (_express: Application) => {
 	const provider = new QuestionBankProvider();
 	const userProvider = new UserProvider();
+	const fileProvider = new FileProvider();
 	return <Resource>{
 		get: {
 			middleware: [verify, verifyAdmin, queryFilter, requiredFilters(["currentPage", "pageSize"])],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /debug/questionBank:
+				 * /questionBank:
 				 *   get:
 				 *     tags: [Question Bank]
 				 *     description: Retrieve a list of questions with optional filtering, sorting, and pagination.
@@ -77,6 +80,7 @@ export default (_express: Application) => {
 							"name",
 							"level",
 							"priority",
+							"files",
 							"answers",
 							"created_by",
 							"updated_by",
@@ -99,7 +103,7 @@ export default (_express: Application) => {
 			handler: async (req: Req<IQuestionBank, QuestionBankCreate>, res: Res) => {
 				/**
 				 * @openapi
-				 * /debug/questionBank:
+				 * /questionBank:
 				 *   post:
 				 *     tags: [Question Bank]
 				 *     description: Create a new question bank
@@ -112,19 +116,6 @@ export default (_express: Application) => {
 				 *         application/json:
 				 *           schema:
 				 *             $ref: '#/components/schemas/QuestionBankMutate'
-				 *           example:
-				 *                 name: "Đâu là thủ đô của nước Pháp?"
-				 *                 level: "EASY"
-				 *                 priority: 1
-				 *                 answers:
-				 *                   - value: "Paris"
-				 *                     is_correct: true
-				 *                   - value: "London"
-				 *                     is_correct: false
-				 *                   - value: "Berlin"
-				 *                     is_correct: false
-				 *                   - value: "Madrid"
-				 *                     is_correct: false
 				 *     responses:
 				 *       200:
 				 *         description: Success
@@ -136,6 +127,23 @@ export default (_express: Application) => {
 
 				try {
 					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
+
+					const files = req.body.files;
+					if (files && files.length > 0) {
+						await Promise.all(
+							files.map(async (fileId) => {
+								if (!mongoose.Types.ObjectId.isValid(fileId)) {
+									throw new Error("Chứa file không hợp lệ");
+								}
+
+								const existingFile = await fileProvider.getById(fileId);
+								if (!existingFile) {
+									throw new Error("Chứa file không tồn tại trong hệ thống");
+								}
+							}),
+						);
+					}
+
 					return res.sendOk({
 						data: await provider.post({ ...req.body, created_by: userId }),
 						message: "Thêm câu hỏi thành công",
