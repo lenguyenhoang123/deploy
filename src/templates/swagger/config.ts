@@ -211,7 +211,6 @@ export default {
 						},
 					],
 				},
-
 				// WEBSITE CONFIG SECTION
 				WebsiteConfigMutate: {
 					type: "object",
