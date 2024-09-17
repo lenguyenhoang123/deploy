@@ -15,9 +15,9 @@ export default (_express: Application) => {
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /debug/file:
+				 * /file:
 				 *   get:
-				 *     tags: [Debug]
+				 *     tags: [File]
 				 *     description: Retrieve a list of files with optional filtering, sorting, and pagination.
 				 *     security:
 				 *       - Bearer: []

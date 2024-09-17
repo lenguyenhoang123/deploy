@@ -21,6 +21,33 @@ export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionB
 		}
 	}
 
+	async getQuestionDetails(questionId: string) {
+		const question = await this.getById(questionId, {
+			attributes: [
+				"name",
+				"level",
+				"priority",
+				"files",
+				"answers",
+				"created_by",
+				"updated_by",
+				"created_at",
+				"updated_at",
+			],
+		});
+
+		if (!question) throw new Error("Câu hỏi không tồn tại");
+		if (!question.files) throw new Error("Không lấy được danh sách file của câu hỏi.");
+
+		const questionDetail = await question.populate({
+			path: "files",
+			select: "file_name original_name mime_type file_type file_path size",
+		});
+		if (!questionDetail) throw new Error("Có lỗi xảy ra khi lấy chi tiết câu hỏi");
+
+		return questionDetail;
+	}
+
 	async getRandomQuestions(quantity: number): Promise<IQuestionBank[]> {
 		try {
 			if (quantity <= 0) throw new Error("Số lượng câu hỏi phải lớn hơn 0");

@@ -1,4 +1,5 @@
 import { Model, ObjectId, Schema } from "mongoose";
+import { collectionName as fileCollection, FileModel } from "./file";
 
 export interface IWebsiteConfig {
 	name?: string;
@@ -6,8 +7,8 @@ export interface IWebsiteConfig {
 	email?: string;
 	website?: string;
 	address?: string;
-	logo?: string;
-	banner?: string;
+	logo?: ObjectId | FileModel;
+	banner?: ObjectId | FileModel;
 	theme?: string;
 	is_default?: boolean;
 	created_at?: Date;
@@ -27,8 +28,8 @@ export const schema = (function () {
 			email: { type: String },
 			website: { type: String },
 			address: { type: String },
-			logo: { type: String },
-			banner: { type: String },
+			logo: { type: Schema.Types.ObjectId, ref: fileCollection },
+			banner: { type: Schema.Types.ObjectId, ref: fileCollection },
 			theme: { type: String },
 			is_default: { type: Boolean, default: false },
 			created_by: { type: Schema.Types.ObjectId, Ref: collectionName },

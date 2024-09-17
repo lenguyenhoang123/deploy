@@ -85,11 +85,13 @@ export const validateQuestionBank = () => [
 		.notEmpty()
 		.withMessage("Độ khó không được để trống"),
 
+	body("files").optional().isArray().withMessage("Danh sách file phải là một mảng"),
+
 	body("answers")
 		.isArray()
 		.withMessage("Đáp án phải là một mảng")
-		.custom((value) => value.length >= 4)
-		.withMessage("Phải có ít nhất 4 đáp án")
+		.custom((value) => value.length >= 2 && value.length <= 4)
+		.withMessage("Mỗi câu hỏi phải có từ 2 đến 4 đáp án")
 		.custom((answers: any[]) => {
 			return answers.every(
 				(answer) => answer.value && typeof answer.value === "string" && typeof answer.is_correct === "boolean",
