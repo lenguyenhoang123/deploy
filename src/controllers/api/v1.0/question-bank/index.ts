@@ -22,7 +22,7 @@ export default (_express: Application) => {
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /questionBank:
+				 * /question-bank:
 				 *   get:
 				 *     tags: [Question Bank]
 				 *     description: Retrieve a list of questions with optional filtering, sorting, and pagination.
@@ -82,6 +82,7 @@ export default (_express: Application) => {
 							"priority",
 							"files",
 							"answers",
+							"is_deleted",
 							"created_by",
 							"updated_by",
 							"created_at",
@@ -103,7 +104,7 @@ export default (_express: Application) => {
 			handler: async (req: Req<IQuestionBank, QuestionBankCreate>, res: Res) => {
 				/**
 				 * @openapi
-				 * /questionBank:
+				 * /question-bank:
 				 *   post:
 				 *     tags: [Question Bank]
 				 *     description: Create a new question bank

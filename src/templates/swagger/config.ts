@@ -283,6 +283,7 @@ export default {
 						{
 							type: "object",
 							properties: {
+								is_deleted: { type: "boolean" },
 								created_at: { type: "string", format: "date-time" },
 								created_by: { type: "string", format: "uuid" },
 								updated_at: { type: "string", format: "date-time" },

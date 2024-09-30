@@ -12,6 +12,7 @@ export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionB
 			currentPage: 1,
 			sortField: "name",
 			sortOrder: "asc",
+			where: { $or: [{ is_deleted: false }, { is_deleted: undefined }] },
 		};
 		try {
 			const questions = await this.getAll(queryOptions);
@@ -29,6 +30,7 @@ export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionB
 				"priority",
 				"files",
 				"answers",
+				"is_deleted",
 				"created_by",
 				"updated_by",
 				"created_at",
@@ -49,13 +51,16 @@ export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionB
 	}
 
 	async getRandomQuestions(quantity: number): Promise<IQuestionBank[]> {
+		const MAX_QUANTITY = 1000;
 		try {
 			if (quantity <= 0) throw new Error("Số lượng câu hỏi phải lớn hơn 0");
+			if (quantity > MAX_QUANTITY)
+				throw new Error(`Hệ thống chỉ cho phép tạo đề thi có tối đa ${MAX_QUANTITY} câu hỏi.`);
 
-			const result = await this.getQuestions(1000);
+			const result = await this.getQuestions(MAX_QUANTITY);
 			if (result.count === 0) throw new Error("Không có câu hỏi nào trong ngân hàng câu hỏi");
 			if (result.count < quantity)
-				throw new Error(`Số lượng câu hỏi trong ngân hàng là: ${result.count}. Không đủ số câu cần tạo.`);
+				throw new Error(`Số câu hỏi hợp lệ trong ngân hàng là: ${result.count}. Không đủ số câu cần tạo.`);
 
 			const questions = result.rows;
 			const groupedQuestions = this.groupQuestionsByLevel(questions);

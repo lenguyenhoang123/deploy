@@ -10,13 +10,17 @@ import {
 	IPaginationResult,
 } from "#services/interfaces/istatistics";
 import { UserProvider } from "#providers/userProvider";
+import { QuestionBankProvider } from "#providers/questionBankProvider";
 import { applyFilters, applyPagination, applySorting, generatePaginationResult } from "#services/statisticsService";
+import { IFile } from "#models/file";
 const userProvider = new UserProvider();
+const questionBankProvider = new QuestionBankProvider();
 
 interface IFormattedQuestion {
 	_id: ObjectId;
 	name: string;
 	answers: IAnswer[];
+	files?: IFile[];
 	user_answer?: ObjectId;
 	is_correct?: boolean;
 }
@@ -55,7 +59,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 
 		const examDetail = await exam.populate({
 			path: "template.questions",
-			select: "name answers",
+			select: "name answers files",
 		});
 		if (!examDetail) throw new Error("Có lỗi xảy ra khi lấy chi tiết đề thi");
 
@@ -92,21 +96,27 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		const formattedQuestions: IFormattedQuestion[] = [];
 		const templateQuestionMap = new Map<string, any>();
 
-		templateQuestions.forEach((t_question) => {
-			templateQuestionMap.set(t_question._id.toString(), t_question);
+		templateQuestions.forEach((templateQuestion) => {
+			templateQuestionMap.set(templateQuestion._id.toString(), templateQuestion);
 		});
 
-		for (const p_question of participantQuestions) {
-			const t_question = templateQuestionMap.get(p_question.question_id.toString());
-			if (t_question) {
-				const answers = p_question.question_answers
-					.map((answerId) => this.getAnswerById(t_question.answers, answerId, includeCorrect))
+		for (const participantQuestion of participantQuestions) {
+			const templateQuestion = templateQuestionMap.get(participantQuestion.question_id.toString());
+			if (templateQuestion) {
+				const answers = participantQuestion.question_answers
+					.map((answerId) => this.getAnswerById(templateQuestion.answers, answerId, includeCorrect))
 					.filter(Boolean);
 
+				let files = [];
+				if (templateQuestion.files && templateQuestion.files.length > 0) {
+					files = (await questionBankProvider.getQuestionDetails(templateQuestion.id)).files;
+				}
+
 				formattedQuestions.push({
-					_id: p_question.question_id,
-					name: t_question.name,
+					_id: participantQuestion.question_id,
+					name: templateQuestion.name,
 					answers,
+					files: files.length > 0 ? files : undefined,
 				});
 			}
 		}
