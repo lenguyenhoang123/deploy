@@ -71,7 +71,7 @@ export default (_express: Application) => {
 
 			// Extract file information
 			const mimeTypes = constants.MIME_TYPES,
-				originalName = req.file.originalname.split("/").pop(),
+				originalName = Buffer.from(req.file.originalname, "latin1").toString("utf8"),
 				extension = originalName.split(".").pop(),
 				mimeType = mime.getType(extension),
 				path = {

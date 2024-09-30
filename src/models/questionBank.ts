@@ -29,6 +29,7 @@ export interface IQuestionBank {
 	priority: number;
 	files?: ObjectId[] | FileModel[];
 	answers: IAnswer[];
+	is_deleted?: boolean;
 	created_at?: Date;
 	created_by?: ObjectId;
 	updated_at?: Date;
@@ -54,6 +55,7 @@ export const schema = (function () {
 				validate: [arrayLimit, "Mỗi câu hỏi phải có từ 2 đến 4 đáp án"],
 				required: true,
 			},
+			is_deleted: { type: Boolean, default: false },
 			created_by: { type: Schema.Types.ObjectId, Ref: collectionName },
 			updated_by: { type: Schema.Types.ObjectId, Ref: collectionName },
 		},
