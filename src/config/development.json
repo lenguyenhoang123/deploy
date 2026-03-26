@@ -9,10 +9,10 @@
 		"DB_DIALECT": "mongodb",
 		"DB_DATABASE": "shtt_online_exam",
 		"DB_AUTHDB": "admin",
-		"DB_USER": "root",
+		"DB_USER": "shttonlineuser",
 		"DB_PASS": "SOh3TbYhx",
-		"DB_HOST": "192.168.0.98",
-		"DB_PORT": 27017
+		"DB_HOST": "27.74.255.97",
+		"DB_PORT": 8000
 	},
 	"LoggingService": {
 		"IsEnabled": true,
@@ -29,7 +29,12 @@
 		}
 	},
 	"Domains": {
-		"Frontend": ["http://shtt.erp.meu-solutions.com", "http://192.168.0.242:3031"],
-		"Backend": ["http://localhost:3000"]
+		"Frontend": [
+			"http://shtt.erp.meu-solutions.com",
+			"http://192.168.0.242:3031"
+		],
+		"Backend": [
+			"http://localhost:3000"
+		]
 	}
 }
