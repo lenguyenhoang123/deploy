@@ -67,11 +67,10 @@ export default (_express: Application) => {
 				if (existingUser.email === userValues.email) {
 					if (existingUser.is_deleted)
 						throw new Error("Tài khoản này đã bị xóa khỏi hệ thống. Vui lòng liên hệ quản trị viên để được giúp đỡ.");
-					if (!existingUser.is_active)
-						throw new Error(
-							"Email này đã được đăng ký nhưng chưa được kích hoạt. Vui lòng liên hệ quản trị viên để được giúp đỡ.",
-						);
-					throw new Error("Email này đã được đăng ký trước đó.");
+					if (existingUser.is_active) throw new Error("Email này đã được đăng ký trước đó.");
+
+					// User not activated yet → allow re-registration
+					return await reRegister(existingUser, userValues, password, res);
 				}
 				if (existingUser.phone === userValues.phone) {
 					throw new Error("Số điện thoại đã được đăng ký trước đó");
@@ -79,40 +78,75 @@ export default (_express: Application) => {
 			}
 
 			const user = await userProvider.post({ ...userValues, is_active: false, is_deleted: false });
-			const otp = otpGen.generate(6, {
-				lowerCaseAlphabets: false,
-				upperCaseAlphabets: false,
-				specialChars: false,
-			});
-			await userAuthProvider.bulkCreate([
-				{
-					user: user.id,
-					auth_key: password,
-					auth_method: AuthMethods.PASSWORD,
-				},
-				{
-					user: user.id,
-					auth_key: otp,
-					auth_method: AuthMethods.OTP,
-				},
-			]);
-
-			mailService.sendmail(
-				{
-					from: nconf.get("smtpOptions:auth:user"),
-					to: req.body.email,
-					...emailTemplates.register(req.body.email, otp),
-				},
-				(err, info) => {
-					if (err) return logger.logErrorAsync("register", err, null);
-					return logger.logAsync("AUTH", "register", info, null);
-				},
-			);
+			const otp = await generateAndSendOtp(user.id, password, req.body.email);
 
 			if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
 			return res.sendOk({ data: { message: "Đăng ký tài khoản thành công" } });
 		} catch (error) {
 			return res.sendError({ err: error });
 		}
+	}
+
+	async function reRegister(existingUser: any, userValues: Omit<UserRegister, "password">, password: string, res: Res): Promise<void> {
+		// Check if new phone number is already registered by another user
+		if (existingUser.phone !== userValues.phone) {
+			const phoneUser = await userProvider.getOne({ where: { phone: userValues.phone } });
+			if (phoneUser) throw new Error("Số điện thoại đã được đăng ký trước đó");
+		}
+
+		// Update user information
+		await userProvider.put(existingUser.id, {
+			first_name: userValues.first_name,
+			middle_name: userValues.middle_name,
+			last_name: userValues.last_name,
+			phone: userValues.phone,
+			unit: userValues.unit,
+		});
+
+		// Update or create password auth record
+		const passwordAuth = await userAuthProvider.getOne({
+			where: { user: existingUser.id, auth_method: AuthMethods.PASSWORD },
+		});
+		if (passwordAuth) await passwordAuth.updateOne({ auth_key: password });
+		else await userAuthProvider.post({ user: existingUser.id, auth_key: password, auth_method: AuthMethods.PASSWORD });
+
+		// Generate new OTP
+		const otp = otpGen.generate(6, { lowerCaseAlphabets: false, upperCaseAlphabets: false, specialChars: false });
+		const otpAuth = await userAuthProvider.getOne({
+			where: { user: existingUser.id, auth_method: AuthMethods.OTP },
+		});
+		if (otpAuth) await otpAuth.updateOne({ auth_key: otp });
+		else await userAuthProvider.post({ user: existingUser.id, auth_key: otp, auth_method: AuthMethods.OTP });
+
+		sendOtpEmail(userValues.email, otp);
+
+		if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
+		return res.sendOk({ data: { message: "Đăng ký tài khoản thành công" } });
+	}
+
+	async function generateAndSendOtp(userId: any, password: string, email: string): Promise<string> {
+		const otp = otpGen.generate(6, { lowerCaseAlphabets: false, upperCaseAlphabets: false, specialChars: false });
+
+		await userAuthProvider.bulkCreate([
+			{ user: userId, auth_key: password, auth_method: AuthMethods.PASSWORD },
+			{ user: userId, auth_key: otp, auth_method: AuthMethods.OTP },
+		]);
+
+		sendOtpEmail(email, otp);
+		return otp;
+	}
+
+	function sendOtpEmail(email: string, otp: string): void {
+		mailService.sendmail(
+			{
+				from: nconf.get("smtpOptions:auth:user"),
+				to: email,
+				...emailTemplates.register(email, otp),
+			},
+			(err, info) => {
+				if (err) return logger.logErrorAsync("register", err, null);
+				return logger.logAsync("AUTH", "register", info, null);
+			},
+		);
 	}
 };
