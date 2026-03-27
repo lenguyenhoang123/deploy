@@ -18,7 +18,13 @@ const connectMongo = async () => {
 			DB_HOST: string;
 			DB_PORT: string;
 		};
-		const connectionString = `mongodb://${db.DB_USER}:${db.DB_PASS}@${db.DB_HOST}:${db.DB_PORT}/${db.DB_AUTHDB}`;
+		// Build connection string with auth only if credentials are provided
+		let connectionString: string;
+		if (db.DB_USER && db.DB_PASS) {
+			connectionString = `mongodb://${db.DB_USER}:${db.DB_PASS}@${db.DB_HOST}:${db.DB_PORT}/${db.DB_AUTHDB}`;
+		} else {
+			connectionString = `mongodb://${db.DB_HOST}:${db.DB_PORT}`;
+		}
 		serverLog(`Connecting to MongoDB at ${connectionString}`);
 		await mongoose.connect(connectionString, { dbName: db.DB_DATABASE });
 		logger.logDBAsync("Successfully connected");

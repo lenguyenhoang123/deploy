@@ -11,6 +11,7 @@
 		"-------------------DEV------------------": "",
 		"test": "jest",
 		"start:dev": "cross-env-file -p ./.example_env.json nodemon",
+		"seed": "cross-env-file -p ./.example_env.json ts-node seed.ts",
 		"----------------BUILD-COPY------------------": "",
 		"copyEnv": "cp .env dist/",
 		"copyConfig": "cp -R ./src/config ./dist",

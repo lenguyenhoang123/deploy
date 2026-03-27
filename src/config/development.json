@@ -8,10 +8,10 @@
 	"Database": {
 		"DB_DIALECT": "mongodb",
 		"DB_DATABASE": "shtt_online_exam",
-		"DB_AUTHDB": "admin",
+		"DB_AUTHDB": "shtt_online_exam",
 		"DB_USER": "shttonlineuser",
 		"DB_PASS": "SOh3TbYhx",
-		"DB_HOST": "27.74.255.97",
+		"DB_HOST": "27.74.255.96",
 		"DB_PORT": 8000
 	},
 	"LoggingService": {
