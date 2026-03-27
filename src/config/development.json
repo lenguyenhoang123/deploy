@@ -21,11 +21,12 @@
 		"Url": ""
 	},
 	"smtpOptions": {
-		"host": "smtp-relay.sendinblue.com",
+		"host": "smtp.gmail.com",
 		"port": 587,
+		"secure": false,
 		"auth": {
-			"user": "intranet@meu-solutions.com",
-			"pass": "rY94xnIGBZm2MdgT"
+			"user": "devtest0908@gmail.com",
+			"pass": "hzpj kudf mxbv apwm"
 		}
 	},
 	"Domains": {
