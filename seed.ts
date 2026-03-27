@@ -141,6 +141,29 @@ async function seedWebsiteConfig() {
     console.log("✅ WebsiteConfig: đã tạo");
 }
 
+async function seedMeuAdmin() {
+    const MEU_ADMIN_EMAIL = "admin@meu-solutions.com";
+    const existMeuAdmin = await User.findOne({ email: MEU_ADMIN_EMAIL });
+    if (existMeuAdmin) { console.log("⏩ MeU Admin: đã tồn tại, bỏ qua"); return; }
+
+    const meuAdmin = await User.create({
+        first_name: "Admin",
+        last_name: "MeU",
+        email: MEU_ADMIN_EMAIL,
+        phone: "0900000000",
+        unit: { district: "Quận 1", ward: "Phường Bến Nghé" },
+        is_admin: true,
+        is_active: true,
+    });
+    const meuSalt = genSaltSync();
+    await UserAuth.create({
+        user: meuAdmin._id,
+        auth_key: hashSync("12345678", meuSalt),
+        auth_method: "PASSWORD",
+    });
+    console.log("✅ MeU Admin: đã tạo — email: admin@meu-solutions.com | password: 12345678");
+}
+
 async function seedUsers() {
     const ADMIN_EMAIL = "admin@shtt.edu.vn";
     const existing = await User.findOne({ email: ADMIN_EMAIL });
@@ -330,6 +353,7 @@ async function main() {
 
         await seedWebsiteConfig();
         const adminId = await seedUsers();
+        await seedMeuAdmin();
         await seedQuestionBank(adminId as mongoose.Types.ObjectId);
 
         const questions = await QuestionBank.find({ is_deleted: false }).select("_id").lean();
