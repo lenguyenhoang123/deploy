@@ -239,9 +239,18 @@ stateDiagram-v2
 
 ---
 
-## 7. Test Cases
+## 7. Important Notes
 
-### 7.1 POST /auth/register - Happy Path
+⚠️ **If user doesn't verify OTP and tries to login:**
+- Login will **FAIL** with error: "Tài khoản chưa được kích hoạt"
+- User must verify OTP through `/auth/otp/verify` to activate account
+- See [LOGIN_FLOW.md](./LOGIN_FLOW.md) for details on login behavior with inactive accounts
+
+---
+
+## 8. Test Cases
+
+### 8.1 POST /auth/register - Happy Path
 
 | TC   | Mô tả                           | Input                                                                 | Expected                                |
 | ---- | -------------------------------- | --------------------------------------------------------------------- | --------------------------------------- |
@@ -249,7 +258,7 @@ stateDiagram-v2
 | TC02 | Trả OTP trong môi trường dev    | Đăng ký hợp lệ, NODE_ENV=development                                 | Response chứa `{ otp: "..." }`          |
 | TC03 | Không trả OTP trong prod        | Đăng ký hợp lệ, NODE_ENV=production                                  | Response chứa `{ message: "..." }`      |
 
-### 7.2 POST /auth/register - Validation Errors
+### 8.2 POST /auth/register - Validation Errors
 
 | TC   | Mô tả                                | Input                        | Expected                                      |
 | ---- | ------------------------------------- | ---------------------------- | --------------------------------------------- |
@@ -266,7 +275,7 @@ stateDiagram-v2
 | TC14 | Quận rỗng                           | `unit.district: ""`          | 400 - "Quận không được để trống"              |
 | TC15 | Phường rỗng                         | `unit.ward: ""`              | 400 - "Phường/ xã không được để trống"        |
 
-### 7.3 POST /auth/register - Business Logic Errors
+### 8.3 POST /auth/register - Business Logic Errors
 
 | TC   | Mô tả                                  | Input                                          | Expected                                                          |
 | ---- | --------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------- |
@@ -275,7 +284,7 @@ stateDiagram-v2
 | TC18 | Email đã bị xoá                       | Email đã đăng ký, `is_deleted=true`             | Error: "Tài khoản này đã bị xóa khỏi hệ thống..."               |
 | TC19 | SĐT đã tồn tại                        | Phone đã đăng ký bởi user khác                  | Error: "Số điện thoại đã được đăng ký trước đó"                  |
 
-### 7.4 POST /auth/otp/verify - Happy Path
+### 8.4 POST /auth/otp/verify - Happy Path
 
 | TC   | Mô tả                               | Input                                | Expected                                     |
 | ---- | ------------------------------------ | ------------------------------------ | -------------------------------------------- |
@@ -284,7 +293,7 @@ stateDiagram-v2
 | TC22 | OTP record bị xoá sau verify        | OTP đúng                             | UserAuth [OTP] đã bị xoá                    |
 | TC23 | JWT chứa đúng payload               | OTP đúng                             | Token decode: `{ id, isAdmin }`              |
 
-### 7.5 POST /auth/otp/verify - Error Cases
+### 8.5 POST /auth/otp/verify - Error Cases
 
 | TC   | Mô tả                               | Input                              | Expected                                    |
 | ---- | ------------------------------------ | ---------------------------------- | ------------------------------------------- |
@@ -296,7 +305,7 @@ stateDiagram-v2
 | TC29 | OTP format sai                      | `otp: "abc"`                       | 400 - "OTP phải bao gồm 6 chữ số"          |
 | TC30 | OTP rỗng                           | `otp: ""`                          | 400 - "OTP không được để trống"             |
 
-### 7.6 POST /auth/otp/resend
+### 8.6 POST /auth/otp/resend
 
 | TC   | Mô tả                                   | Input                           | Expected                                   |
 | ---- | ---------------------------------------- | ------------------------------- | ------------------------------------------ |
@@ -306,7 +315,7 @@ stateDiagram-v2
 | TC34 | User đã bị xoá                          | User `is_deleted=true`           | Error: "Tài khoản đã bị xóa khỏi hệ thống"|
 | TC35 | Email rỗng                              | `email: ""`                      | 400 - "Email không được để trống"          |
 
-### 7.7 Frontend - Form Validation
+### 8.7 Frontend - Form Validation
 
 | TC   | Mô tả                                 | Hành vi                                  | Expected                                         |
 | ---- | -------------------------------------- | ---------------------------------------- | ------------------------------------------------ |
@@ -318,7 +327,7 @@ stateDiagram-v2
 | TC41 | Không chọn phường                     | Bỏ trống ward                            | Lỗi: "Vui lòng chọn thông tin"                  |
 | TC42 | OTP chưa nhập đủ 6 số                | Nhập "123"                               | Lỗi: "Vui lòng nhập đầy đủ mã xác nhận"        |
 
-### 7.8 Frontend - UX Flow
+### 8.8 Frontend - UX Flow
 
 | TC   | Mô tả                                    | Hành vi                                   | Expected                                        |
 | ---- | ----------------------------------------- | ----------------------------------------- | ----------------------------------------------- |

@@ -118,7 +118,7 @@ export default (_express: Application) => {
 		if (otpAuth) await otpAuth.updateOne({ auth_key: otp });
 		else await userAuthProvider.post({ user: existingUser.id, auth_key: otp, auth_method: AuthMethods.OTP });
 
-		sendOtpEmail(userValues.email, otp);
+		await sendOtpEmail(userValues.email, otp);
 
 		if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
 		return res.sendOk({ data: { message: "Đăng ký tài khoản thành công" } });
@@ -132,21 +132,27 @@ export default (_express: Application) => {
 			{ user: userId, auth_key: otp, auth_method: AuthMethods.OTP },
 		]);
 
-		sendOtpEmail(email, otp);
+		await sendOtpEmail(email, otp);
 		return otp;
 	}
 
-	function sendOtpEmail(email: string, otp: string): void {
-		mailService.sendmail(
-			{
-				from: nconf.get("smtpOptions:auth:user"),
-				to: email,
-				...emailTemplates.register(email, otp),
-			},
-			(err, info) => {
-				if (err) return logger.logErrorAsync("register", err, null);
-				return logger.logAsync("AUTH", "register", info, null);
-			},
-		);
+	async function sendOtpEmail(email: string, otp: string): Promise<void> {
+		return new Promise((resolve, reject) => {
+			mailService.sendmail(
+				{
+					from: nconf.get("smtpOptions:auth:user"),
+					to: email,
+					...emailTemplates.register(email, otp),
+				},
+				(err, info) => {
+					if (err) {
+						logger.logErrorAsync("register", err, null);
+						return reject(err);
+					}
+					logger.logAsync("AUTH", "register", info, null);
+					resolve();
+				},
+			);
+		});
 	}
 };
