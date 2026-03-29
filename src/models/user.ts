@@ -7,10 +7,11 @@ export interface IUser {
 	last_name: string;
 	email: string;
 	phone: string;
-	unit: {
+	unit?: {
 		district: string;
 		ward: string;
 	};
+	profile?: Record<string, any>;
 	is_admin?: boolean;
 	is_active?: boolean;
 	is_deleted?: boolean;
@@ -61,6 +62,7 @@ export const schema = (function () {
 				district: String,
 				ward: String,
 			},
+			profile: { type: Schema.Types.Mixed },
 			is_active: { type: Boolean, default: false },
 			is_deleted: { type: Boolean, default: false },
 			is_admin: { type: Boolean, default: false },
@@ -75,6 +77,8 @@ export const schema = (function () {
 	newSchema.method("full_name", function () {
 		return [this.last_name, this.middle_name, this.first_name].filter((val) => val).join(" ");
 	});
+
+	newSchema.index({ "profile.identity_number": 1 }, { unique: true, sparse: true });
 
 	newSchema.pre("save", function () {
 		this.first_name = capitalizeFirstLetter(this.first_name);

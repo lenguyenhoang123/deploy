@@ -7,6 +7,11 @@ export enum DifficultyLevels {
 	HARD = "HARD",
 }
 
+export enum QuestionTypes {
+	MULTIPLE_CHOICE = "MULTIPLE_CHOICE",
+	ESSAY = "ESSAY",
+}
+
 export interface IAnswer {
 	_id: ObjectId;
 	value: string;
@@ -25,6 +30,7 @@ function arrayLimit(val: IAnswer[]) {
 
 export interface IQuestionBank {
 	name: string;
+	type: string;
 	level: string;
 	priority: number;
 	files?: ObjectId[] | FileModel[];
@@ -43,6 +49,12 @@ export const schema = (function () {
 	const newSchema = new Schema<IQuestionBank, QuestionBankModel, IQuestionBankMethods>(
 		{
 			name: { type: String, required: true },
+			type: {
+				type: String,
+				enum: Object.values(QuestionTypes),
+				default: QuestionTypes.MULTIPLE_CHOICE,
+				required: true,
+			},
 			level: {
 				type: String,
 				enum: Object.values(DifficultyLevels),
@@ -52,8 +64,13 @@ export const schema = (function () {
 			files: [{ type: Schema.Types.ObjectId, ref: fileCollection }],
 			answers: {
 				type: [answerSchema],
-				validate: [arrayLimit, "Mỗi câu hỏi phải có từ 2 đến 4 đáp án"],
-				required: true,
+				validate: {
+					validator: function (this: IQuestionBank, val: IAnswer[]) {
+						if (this.type === QuestionTypes.ESSAY) return true;
+						return val.length >= 2 && val.length <= 4;
+					},
+					message: "Mỗi câu hỏi trắc nghiệm phải có từ 2 đến 4 đáp án",
+				},
 			},
 			is_deleted: { type: Boolean, default: false },
 			created_by: { type: Schema.Types.ObjectId, Ref: collectionName },

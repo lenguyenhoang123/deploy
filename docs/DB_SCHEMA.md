@@ -2,7 +2,7 @@
 
 > **Database:** MongoDB  
 > **ODM:** Mongoose 8.x  
-> **Updated:** 27/03/2026  
+> **Updated:** 30/03/2026  
 
 ---
 
@@ -42,13 +42,13 @@
        │                       │
        │  ┌──────────────────┐ │   ┌──────────────────┐
        └──│ exam_participant │◄┘   │  website_config  │
-    ❌    │      (MỚI)       │     │                  │
+    ✅    │      (MỚI)       │     │                  │
           │ user_id 🔗→user  │     │ logo 🔗→file    │
-          │ exam_id 🔗→exam  │     │ banners 🔗→file │ ❌
+          │ exam_id 🔗→exam  │     │ banners 🔗→file │ ✅
           └──────────────────┘     └──────────────────┘
 
                                    ┌──────────────────┐
-                                   │  content_page    │ ❌
+                                   │  content_page    │ ✅
                                    │      (MỚI)       │
                                    │ files 🔗→file   │
                                    └──────────────────┘
@@ -70,7 +70,7 @@
 | `phone` | String | ✅ | — | ✅ 📇 | `isMobilePhone('vi-VN')` | ✅ | |
 | `unit.district` | String | — | — | — | — | ⚠️ | Sẽ bỏ, thay bằng `profile` |
 | `unit.ward` | String | — | — | — | — | ⚠️ | Sẽ bỏ, thay bằng `profile` |
-| `profile` | Mixed | — | — | — | Validate dynamic theo `profile_schema` | ❌ | **MỚI** — Xem chi tiết bên dưới |
+| `profile` | Mixed | — | — | — | Validate dynamic theo `profile_schema` | ✅ | **MỚI** — Xem chi tiết bên dưới |
 | `is_admin` | Boolean | — | `false` | — | — | ✅ | |
 | `is_active` | Boolean | — | `false` | — | — | ✅ | `true` sau khi verify OTP |
 | `is_deleted` | Boolean | — | `false` | — | — | ✅ | Soft delete |
@@ -85,7 +85,7 @@
 **Pre-save hooks:**
 - `capitalizeFirstLetter` cho `first_name`, `last_name`, `middle_name`
 
-### ❌ Field mới: `profile` (Mixed / SchemaType.Mixed)
+### ✅ Field mới: `profile` (Mixed / SchemaType.Mixed)
 
 > Dữ liệu bổ sung, validate dynamic theo `profile_schema` trong `WebsiteConfig`.
 
@@ -101,7 +101,7 @@
 ```
 
 **Indexes cần tạo thêm:**
-- `profile.identity_number`: unique, sparse (❌)
+- `profile.identity_number`: unique, sparse (✅)
 
 ---
 
@@ -176,31 +176,31 @@
 
 ---
 
-## 4. Collection: `exam_participant` ❌
+## 4. Collection: `exam_participant` ✅
 
-> **❌ CHƯA CÓ — CẦN TẠO MỚI**  
+> **✅ ĐÃ TẠO**  
 > Tách từ `exam.participants[]`. Mỗi document = 1 lượt thi của 1 user trong 1 kỳ thi.
 
 | Field | Type | Required | Default | Validation | Status | Ghi chú |
 |-------|------|----------|---------|------------|--------|---------|
-| `_id` | ObjectId | auto | — | — | ❌ | 🔑 PK |
-| `exam_id` | ObjectId | ✅ | — | 🔗 ref `exam` | ❌ | |
-| `user_id` | ObjectId | ✅ | — | 🔗 ref `user` | ❌ | |
-| `attempt_number` | Number | ✅ | — | integer, 1–5 | ❌ | Lượt thi thứ mấy |
-| `status` | String | ✅ | `"in_progress"` | enum `[registered, in_progress, submitted]` | ❌ | |
-| `start_time` | Date | — | — | — | ❌ | Thời điểm bắt đầu làm bài |
-| `submit_time` | Date | — | — | phải > `start_time` | ❌ | Thời điểm nộp bài |
-| `score` | Number | — | — | 0 – tổng câu hỏi | ❌ | Số câu đúng (MC only) |
-| `time_taken` | Number | — | — | đơn vị: phút (decimal) | ❌ | Thời gian làm bài thực tế |
-| `shuffled_questions` | ObjectId[] | ✅ | — | 🔗 ref `question_bank` | ❌ | Thứ tự câu hỏi đã shuffle |
-| `shuffled_answers` | Mixed | — | — | Map question_id → answer order | ❌ | Thứ tự đáp án đã shuffle |
-| `answers` | Array | — | `[]` | — | ❌ | Bài làm của thí sinh |
-| `answers[].question_id` | ObjectId | ✅ | — | 🔗 ref `question_bank` | ❌ | |
-| `answers[].user_answer` | ObjectId | — | — | ID đáp án (MC) | ❌ | Cho câu trắc nghiệm |
-| `answers[].text_answer` | String | — | — | — | ❌ | Cho câu tự luận |
-| `answers[].is_correct` | Boolean | — | — | Tính từ `question_bank` | ❌ | `null` cho ESSAY |
-| `created_at` | Date | auto | — | timestamps | ❌ | |
-| `updated_at` | Date | auto | — | timestamps | ❌ | |
+| `_id` | ObjectId | auto | — | — | ✅ | 🔑 PK |
+| `exam_id` | ObjectId | ✅ | — | 🔗 ref `exam` | ✅ | |
+| `user_id` | ObjectId | ✅ | — | 🔗 ref `user` | ✅ | |
+| `attempt_number` | Number | ✅ | — | integer, 1–5 | ✅ | Lượt thi thứ mấy |
+| `status` | String | ✅ | `"in_progress"` | enum `[registered, in_progress, submitted]` | ✅ | |
+| `start_time` | Date | — | — | — | ✅ | Thời điểm bắt đầu làm bài |
+| `submit_time` | Date | — | — | phải > `start_time` | ✅ | Thời điểm nộp bài |
+| `score` | Number | — | — | 0 – tổng câu hỏi | ✅ | Số câu đúng (MC only) |
+| `time_taken` | Number | — | — | đơn vị: phút (decimal) | ✅ | Thời gian làm bài thực tế |
+| `shuffled_questions` | ObjectId[] | ✅ | — | 🔗 ref `question_bank` | ✅ | Thứ tự câu hỏi đã shuffle |
+| `shuffled_answers` | Mixed | — | — | Map question_id → answer order | ✅ | Thứ tự đáp án đã shuffle |
+| `answers` | Array | — | `[]` | — | ✅ | Bài làm của thí sinh |
+| `answers[].question_id` | ObjectId | ✅ | — | 🔗 ref `question_bank` | ✅ | |
+| `answers[].user_answer` | ObjectId | — | — | ID đáp án (MC) | ✅ | Cho câu trắc nghiệm |
+| `answers[].text_answer` | String | — | — | — | ✅ | Cho câu tự luận |
+| `answers[].is_correct` | Boolean | — | — | Tính từ `question_bank` | ✅ | `null` cho ESSAY |
+| `created_at` | Date | auto | — | timestamps | ✅ | |
+| `updated_at` | Date | auto | — | timestamps | ✅ | |
 
 **Indexes:**
 ```javascript
@@ -226,7 +226,7 @@
 |-------|------|----------|---------|------------|--------|---------|
 | `_id` | ObjectId | auto | — | — | ✅ | 🔑 PK |
 | `name` | String | ✅ | — | — | ✅ | Nội dung câu hỏi |
-| `type` | String | ✅ | `"MULTIPLE_CHOICE"` | enum `[MULTIPLE_CHOICE, ESSAY]` | ❌ | **MỚI** |
+| `type` | String | ✅ | `"MULTIPLE_CHOICE"` | enum `[MULTIPLE_CHOICE, ESSAY]` | ✅ | **MỚI** |
 | `level` | String | ✅ | — | enum `[EASY, NORMAL, HARD]` | ✅ | Độ khó |
 | `priority` | Number | ✅ | — | — | ✅ | Thứ tự ưu tiên |
 | `files` | ObjectId[] | — | `[]` | 🔗 ref `file` | ✅ | Hình ảnh / file đính kèm |
@@ -244,10 +244,10 @@
 - `answers`: phải có 2–4 phần tử (`arrayLimit`)
 - Đúng **1** đáp án có `is_correct: true`
 
-**Thay đổi cần làm:**
-- Thêm field `type` (❌)
-- Câu `ESSAY`: `answers` có thể rỗng `[]`, bỏ validate `arrayLimit`
-- Câu `MULTIPLE_CHOICE`: giữ nguyên validate hiện tại
+**Thay đổi đã làm:**
+- Thêm field `type` (✅)
+- Câu `ESSAY`: `answers` có thể rỗng `[]`, bỏ validate `arrayLimit` (✅)
+- Câu `MULTIPLE_CHOICE`: giữ nguyên validate hiện tại (✅)
 
 **Business rules:**
 - Xóa câu hỏi = soft delete (`is_deleted: true`)
@@ -295,19 +295,19 @@
 | `address` | String | — | — | — | ✅ | |
 | `logo` | ObjectId | — | — | 🔗 ref `file` | ✅ | 1 file logo |
 | `banner` | ObjectId | — | — | 🔗 ref `file` | ⚠️ | Sẽ thay bằng `banners[]` |
-| `banners` | ObjectId[] | — | `[]` | 🔗 ref `file` | ❌ | **MỚI** — Nhiều banner slider |
-| `guide_video` | ObjectId | — | — | 🔗 ref `file` | ❌ | **MỚI** — Video hướng dẫn |
+| `banners` | ObjectId[] | — | `[]` | 🔗 ref `file` | ✅ | **MỚI** — Nhiều banner slider |
+| `guide_video` | ObjectId | — | — | 🔗 ref `file` | ✅ | **MỚI** — Video hướng dẫn |
 | `theme` | String | — | — | — | ✅ | Theme color |
 | `is_default` | Boolean | — | `false` | — | ✅ | Chỉ 1 document active |
-| `profile_schema` | Array | — | — | — | ❌ | **MỚI** — Config-First (xem dưới) |
-| `exam_rules` | Object | — | — | — | ❌ | **MỚI** — Config-First (xem dưới) |
-| `unit_schema` | Object | — | — | — | ❌ | **MỚI** — Config-First (xem dưới) |
+| `profile_schema` | Array | — | — | — | ✅ | **MỚI** — Config-First (xem dưới) |
+| `exam_rules` | Object | — | — | — | ✅ | **MỚI** — Config-First (xem dưới) |
+| `unit_schema` | Object | — | — | — | ✅ | **MỚI** — Config-First (xem dưới) |
 | `created_by` | ObjectId | — | — | 🔗 ref `user` | ✅ | |
 | `updated_by` | ObjectId | — | — | 🔗 ref `user` | ✅ | |
 | `created_at` | Date | auto | — | timestamps | ✅ | |
 | `updated_at` | Date | auto | — | timestamps | ✅ | |
 
-### ❌ Sub-schema: `profile_schema[]` (Config-First)
+### ✅ Sub-schema: `profile_schema[]` (Config-First)
 
 > Định nghĩa các fields bổ sung trong `user.profile`. Hệ thống validate dynamic + FE tự render form.
 
@@ -363,7 +363,7 @@
 | `required` | Boolean | — | Bắt buộc khi đăng ký/sửa profile |
 | `unique` | Boolean | — | Kiểm tra trùng lặp trong DB |
 
-### ❌ Sub-schema: `exam_rules` (Config-First)
+### ✅ Sub-schema: `exam_rules` (Config-First)
 
 > Quy tắc thi, áp dụng cho tất cả kỳ thi.
 
@@ -388,7 +388,7 @@
 | `question_config[].count` | Number | Số câu hỏi random |
 | `essay_grading` | String | `manual` (chấm tay) hoặc `auto` (tương lai) |
 
-### ❌ Sub-schema: `unit_schema` (Config-First)
+### ✅ Sub-schema: `unit_schema` (Config-First)
 
 > Cấu hình cách nhóm thống kê theo đơn vị.
 
@@ -415,25 +415,25 @@
 
 ---
 
-## 8. Collection: `content_page` ❌
+## 8. Collection: `content_page` ✅
 
-> **❌ CHƯA CÓ — CẦN TẠO MỚI**  
+> **✅ ĐÃ TẠO**  
 > Quản lý nội dung trang CMS: thể lệ, tài liệu tham khảo, thông báo kết quả, liên hệ...
 
 | Field | Type | Required | Default | Validation | Status | Ghi chú |
 |-------|------|----------|---------|------------|--------|---------|
-| `_id` | ObjectId | auto | — | — | ❌ | 🔑 PK |
-| `title` | String | ✅ | — | min 1, max 255 | ❌ | Tiêu đề trang |
-| `slug` | String | ✅ | — | unique 📇, URL-safe | ❌ | URL-friendly slug |
-| `type` | String | ✅ | — | enum (xem dưới) | ❌ | Loại trang |
-| `content` | String | ✅ | — | HTML | ❌ | Nội dung (rich text) |
-| `sort_order` | Number | — | `0` | — | ❌ | Thứ tự hiển thị |
-| `is_active` | Boolean | — | `true` | — | ❌ | Ẩn/hiện |
-| `files` | ObjectId[] | — | `[]` | 🔗 ref `file` | ❌ | File đính kèm (PDF, doc...) |
-| `created_by` | ObjectId | — | — | 🔗 ref `user` | ❌ | |
-| `updated_by` | ObjectId | — | — | 🔗 ref `user` | ❌ | |
-| `created_at` | Date | auto | — | timestamps | ❌ | |
-| `updated_at` | Date | auto | — | timestamps | ❌ | |
+| `_id` | ObjectId | auto | — | — | ✅ | 🔑 PK |
+| `title` | String | ✅ | — | min 1, max 255 | ✅ | Tiêu đề trang |
+| `slug` | String | ✅ | — | unique 📇, URL-safe | ✅ | URL-friendly slug |
+| `type` | String | ✅ | — | enum (xem dưới) | ✅ | Loại trang |
+| `content` | String | ✅ | — | HTML | ✅ | Nội dung (rich text) |
+| `sort_order` | Number | — | `0` | — | ✅ | Thứ tự hiển thị |
+| `is_active` | Boolean | — | `true` | — | ✅ | Ẩn/hiện |
+| `files` | ObjectId[] | — | `[]` | 🔗 ref `file` | ✅ | File đính kèm (PDF, doc...) |
+| `created_by` | ObjectId | — | — | 🔗 ref `user` | ✅ | |
+| `updated_by` | ObjectId | — | — | 🔗 ref `user` | ✅ | |
+| `created_at` | Date | auto | — | timestamps | ✅ | |
+| `updated_at` | Date | auto | — | timestamps | ✅ | |
 
 **Enum `type`:**
 - `exam_rules` — Thể lệ cuộc thi
@@ -455,25 +455,25 @@
 
 | # | Collection | Documents dự kiến | Status | Ghi chú |
 |---|-----------|-------------------|--------|---------|
-| 1 | `user` | ~500–5000 | ✅ → ⚠️ | Thêm `profile` (Mixed) |
+| 1 | `user` | ~500–5000 | ✅ | Đã thêm `profile` (Mixed) |
 | 2 | `user_auth` | ~1000–10000 | ✅ | 1 PASSWORD + N OTP mỗi user |
 | 3 | `exam` | ~1–5 | ✅ → ⚠️ | Bỏ embedded `participants[]` |
-| 4 | `exam_participant` | ~2500–25000 | ❌ | **MỚI** — 5 lượt/user × N users |
-| 5 | `question_bank` | ~200–500 | ✅ → ⚠️ | Thêm `type` |
+| 4 | `exam_participant` | ~2500–25000 | ✅ | **MỚI** — 5 lượt/user × N users |
+| 5 | `question_bank` | ~200–500 | ✅ | Đã thêm `type` |
 | 6 | `file` | ~50–300 | ✅ | |
-| 7 | `website_config` | 1 | ✅ → ⚠️ | Mở rộng Config-First |
-| 8 | `content_page` | ~5–20 | ❌ | **MỚI** |
+| 7 | `website_config` | 1 | ✅ | Đã mở rộng Config-First |
+| 8 | `content_page` | ~5–20 | ✅ | **MỚI** |
 
 ---
 
 ## Migration Plan
 
-### Bước 1: Schema changes (không phá dữ liệu cũ)
+### Bước 1: Schema changes (không phá dữ liệu cũ) ✅
 1. `user` — Thêm `profile: { type: Schema.Types.Mixed }` (backward compatible)
 2. `question_bank` — Thêm `type: { type: String, enum: [...], default: 'MULTIPLE_CHOICE' }` (có default)
 3. `website_config` — Thêm `banners`, `guide_video`, `profile_schema`, `exam_rules`, `unit_schema`
 
-### Bước 2: Tạo collections mới
+### Bước 2: Tạo collections mới ✅
 4. Tạo model `exam_participant` + indexes
 5. Tạo model `content_page` + indexes
 
