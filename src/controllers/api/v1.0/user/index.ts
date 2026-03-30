@@ -24,7 +24,7 @@ export default (_express: Application) => {
 				 *         in: query
 				 *         schema:
 				 *           type: string
-				 *         description: Optional filter criteria for the users.
+				 *         description: Optional filter criteria for the users. Examples - profile.school_name==THPT Nguyễn Du, profile.class_name==10, profile.gender==Nam
 				 *       - name: pageSize
 				 *         in: query
 				 *         schema:
@@ -74,6 +74,7 @@ export default (_express: Application) => {
 							"email",
 							"phone",
 							"unit",
+							"profile",
 							"is_active",
 							"is_admin",
 							"is_deleted",

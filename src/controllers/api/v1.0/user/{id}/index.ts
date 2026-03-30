@@ -53,8 +53,9 @@ export default (_express: Application) => {
 							"email",
 							"phone",
 							"unit",
-							"is_admin",
+							"profile",
 							"is_active",
+							"is_admin",
 							"is_deleted",
 							"created_at",
 						],
@@ -66,6 +67,7 @@ export default (_express: Application) => {
 						email: user.email,
 						phone: user.phone,
 						unit: user.unit,
+						profile: user.profile,
 						is_admin: user.is_admin,
 						is_active: user.is_active,
 						is_deleted: user.is_deleted,
@@ -124,7 +126,7 @@ export default (_express: Application) => {
 					await provider.validateUserId(req.user.id as string);
 
 					const user = await provider.getById(userId, {
-						attributes: ["first_name", "middle_name", "last_name", "unit", "is_active", "is_deleted"],
+						attributes: ["first_name", "middle_name", "last_name", "unit", "profile", "is_active", "is_deleted"],
 					});
 					provider.validateUser(user, false, false, "người dùng");
 
@@ -134,6 +136,7 @@ export default (_express: Application) => {
 						middle_name: updatedUser.middle_name,
 						last_name: updatedUser.last_name,
 						unit: updatedUser.unit,
+						profile: updatedUser.profile,
 						updated_by: userId,
 						updated_at: currentTime,
 					});

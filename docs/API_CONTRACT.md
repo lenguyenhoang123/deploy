@@ -96,10 +96,10 @@ Authorization: Bearer <access_token>
 
 ---
 
-### `POST /auth/register` ⚠️
+### `POST /auth/register` ✅
 Đăng ký tài khoản mới, gửi OTP qua email để xác minh.
 
-> **⚠️ Cần sửa:** Thêm các fields mới (`identity_number`, `date_of_birth`, `gender`, `class_name`, `school_name`, `school_address`) theo yêu cầu. Hướng Config-First: validate theo `profile_schema` từ WebsiteConfig.
+> **✅ Đã xong:** Hỗ trợ `profile` object động. Validate theo `profile_schema` từ WebsiteConfig (required, unique, type check...).
 
 **Request (hiện tại):**
 ```json
@@ -275,12 +275,17 @@ Gửi OTP về email để reset password.
 
 ## 2. User — Admin Management
 
-### `GET /user` ⚠️
+### `GET /user` ✅
 🔒 **Yêu cầu auth** (Admin)
 
-> **⚠️ Cần sửa:** Trả thêm các fields mới từ `profile` (CCCD, DOB, giới tính, lớp, trường...)
+> **✅ Đã xong:** Trả về đầy đủ `profile` fields. Hỗ trợ filter theo `profile.xxx` (vd: `profile.school_name`, `profile.class_name`).
 
 **Query params:** `currentPage`, `pageSize`, `sortField`, `sortOrder`, `filters`
+
+**Filter examples:**
+- `?filters=profile.school_name==THPT Nguyễn Du`
+- `?filters=profile.class_name==10,profile.gender==Nam`
+- `?filters=profile.identity_number==079200012345`
 
 **Response 200 (bản cuối):**
 ```json
@@ -320,10 +325,10 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `GET /user/{id}` ⚠️
+### `GET /user/{id}` ✅
 🔒 **Yêu cầu auth** (Admin)
 
-> **⚠️ Cần sửa:** Trả thêm `profile` fields.
+> **✅ Đã xong:** Trả về đầy đủ `profile` fields.
 
 **Response 200 (bản cuối):**
 ```json
@@ -354,10 +359,10 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `PUT /user/{id}` ⚠️
+### `PUT /user/{id}` ✅
 🔒 **Yêu cầu auth** (Admin) — Cập nhật thông tin người dùng.
 
-> **⚠️ Cần sửa:** Cho phép cập nhật `profile` fields.
+> **✅ Đã xong:** Cho phép cập nhật `profile` fields động.
 
 **Request (bản cuối):**
 ```json
@@ -401,10 +406,10 @@ Gửi OTP về email để reset password.
 
 ## 3. User — Profile & Exam Flow
 
-### `GET /user/myInfo` ⚠️
+### `GET /user/myInfo` ✅
 🔒 **Yêu cầu auth** — Lấy thông tin tài khoản đang đăng nhập.
 
-> **⚠️ Cần sửa:** Trả thêm `profile` fields.
+> **✅ Đã xong:** Trả về đầy đủ `profile` fields.
 
 **Response 200 (bản cuối):**
 ```json
@@ -431,10 +436,10 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `PUT /user/myInfo` ⚠️
+### `PUT /user/myInfo` ✅
 🔒 **Yêu cầu auth** — Cập nhật thông tin cá nhân.
 
-> **⚠️ Cần sửa:** Cho phép cập nhật `profile` fields.
+> **✅ Đã xong:** Cho phép cập nhật `profile` fields động.
 
 **Request (bản cuối):**
 ```json
@@ -1379,10 +1384,10 @@ Gửi OTP về email để reset password.
 
 ## 7. Website Config
 
-### `GET /website-config` ⚠️
+### `GET /website-config` ✅
 **Không yêu cầu auth** — Lấy cấu hình website (public).
 
-> **⚠️ Cần sửa:** Trả thêm `banners[]`, `guide_video`, `profile_schema`, `exam_rules`, `unit_schema`.
+> **✅ Đã xong:** Trả về đầy đủ `banners[]`, `guide_video`, `profile_schema`, `exam_rules`, `unit_schema`.
 
 **Response 200 (bản cuối):**
 ```json
@@ -1466,10 +1471,10 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `PUT /website-config` ⚠️
+### `PUT /website-config` ✅
 🔒 **Yêu cầu auth** (Admin) — Cập nhật cấu hình website.
 
-> **⚠️ Cần sửa:** Hỗ trợ cập nhật `banners[]`, `guide_video`, `profile_schema`, `exam_rules`, `unit_schema`.
+> **✅ Đã xong:** Hỗ trợ cập nhật đầy đủ `banners[]`, `guide_video`, `profile_schema`, `exam_rules`, `unit_schema`.
 
 **Request (bản cuối):**
 ```json

@@ -7,6 +7,7 @@ import { MailService } from "#services/mailService";
 import { LoggingService } from "#services/file-system-handlers/logService";
 import { UserAuthProvider } from "#providers/authProvider";
 import { IUser } from "#models/user";
+import { WebsiteConfigProvider } from "#providers/websiteConfigProvider";
 import nconf from "nconf";
 import constants from "#constants/index";
 import { AuthMethods } from "#models/userAuth";
@@ -22,6 +23,7 @@ type UserRegister = Omit<
 export default (_express: Application) => {
 	const userProvider = new UserProvider();
 	const userAuthProvider = new UserAuthProvider();
+	const websiteConfigProvider = new WebsiteConfigProvider();
 	const mailService = new MailService();
 	const logger = new LoggingService();
 
@@ -58,7 +60,25 @@ export default (_express: Application) => {
 
 	async function register(req: Req<IUser, UserRegister>, res: Res): Promise<void> {
 		try {
-			const { password, ...userValues } = req.body;
+			const { password, profile, ...userValues } = req.body;
+
+			// Get profile_schema from WebsiteConfig for validation
+			const websiteConfig = await websiteConfigProvider.getOne({ where: { is_default: true } });
+			const profileSchema = websiteConfig?.profile_schema || [];
+
+			// Validate profile fields against profile_schema
+			if (profileSchema.length > 0) {
+				const validationError = validateProfile(profile, profileSchema);
+				if (validationError) throw new Error(validationError);
+			}
+
+			// Check unique identity_number if present in profile
+			if (profile?.identity_number) {
+				const existingCCCD = await userProvider.getOne({
+					where: { "profile.identity_number": profile.identity_number },
+				});
+				if (existingCCCD) throw new Error("Số CCCD đã được đăng ký trước đó");
+			}
 
 			const existingUser = await userProvider.getOne({
 				where: { $or: [{ email: userValues.email }, { phone: userValues.phone }] },
@@ -70,14 +90,14 @@ export default (_express: Application) => {
 					if (existingUser.is_active) throw new Error("Email này đã được đăng ký trước đó.");
 
 					// User not activated yet → allow re-registration
-					return await reRegister(existingUser, userValues, password, res);
+					return await reRegister(existingUser, userValues, profile, password, res);
 				}
 				if (existingUser.phone === userValues.phone) {
 					throw new Error("Số điện thoại đã được đăng ký trước đó");
 				}
 			}
 
-			const user = await userProvider.post({ ...userValues, is_active: false, is_deleted: false });
+			const user = await userProvider.post({ ...userValues, profile, is_active: false, is_deleted: false });
 			const otp = await generateAndSendOtp(user.id, password, req.body.email);
 
 			if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
@@ -87,11 +107,25 @@ export default (_express: Application) => {
 		}
 	}
 
-	async function reRegister(existingUser: any, userValues: Omit<UserRegister, "password">, password: string, res: Res): Promise<void> {
+	async function reRegister(
+		existingUser: any,
+		userValues: Omit<UserRegister, "password" | "profile">,
+		profile: Record<string, any> | undefined,
+		password: string,
+		res: Res,
+	): Promise<void> {
 		// Check if new phone number is already registered by another user
 		if (existingUser.phone !== userValues.phone) {
 			const phoneUser = await userProvider.getOne({ where: { phone: userValues.phone } });
 			if (phoneUser) throw new Error("Số điện thoại đã được đăng ký trước đó");
+		}
+
+		// Check if new CCCD is already registered by another user
+		if (profile?.identity_number && profile.identity_number !== existingUser.profile?.identity_number) {
+			const cccdUser = await userProvider.getOne({
+				where: { "profile.identity_number": profile.identity_number },
+			});
+			if (cccdUser) throw new Error("Số CCCD đã được đăng ký trước đó");
 		}
 
 		// Update user information
@@ -101,6 +135,7 @@ export default (_express: Application) => {
 			last_name: userValues.last_name,
 			phone: userValues.phone,
 			unit: userValues.unit,
+			profile: profile,
 		});
 
 		// Update or create password auth record
@@ -154,5 +189,44 @@ export default (_express: Application) => {
 				},
 			);
 		});
+	}
+
+	// Validate profile fields against profile_schema from WebsiteConfig
+	function validateProfile(profile: Record<string, any> | undefined, profileSchema: any[]): string | null {
+		if (!profile) return "Vui lòng cung cấp thông tin profile";
+
+		for (const field of profileSchema) {
+			const value = profile[field.key];
+
+			// Check required fields
+			if (field.required && (value === undefined || value === null || value === "")) {
+				return `${field.label} là bắt buộc`;
+			}
+
+			// Skip validation if value is empty and not required
+			if (!value && !field.required) continue;
+
+			// Type validation
+			switch (field.type) {
+				case "text":
+					if (typeof value !== "string") return `${field.label} phải là chuỗi ký tự`;
+					break;
+				case "number":
+					if (typeof value !== "number" && isNaN(Number(value))) {
+						return `${field.label} phải là số`;
+					}
+					break;
+				case "date":
+					if (!Date.parse(value)) return `${field.label} phải là ngày hợp lệ`;
+					break;
+				case "select":
+					if (field.options && !field.options.includes(value)) {
+						return `${field.label} phải là một trong các giá trị: ${field.options.join(", ")}`;
+					}
+					break;
+			}
+		}
+
+		return null;
 	}
 };

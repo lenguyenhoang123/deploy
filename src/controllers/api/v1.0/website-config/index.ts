@@ -34,7 +34,7 @@ export default (_express: Application) => {
 				try {
 					let websiteConfig = await provider.getOne({
 						where: { is_default: true },
-						attributes: ["name", "phone", "email", "website", "address", "logo", "banner", "theme", "is_default"],
+						attributes: ["name", "phone", "email", "website", "address", "logo", "banner", "banners", "theme", "guide_video", "profile_schema", "exam_rules", "unit_schema", "is_default"],
 					});
 
 					if (!websiteConfig) {
@@ -46,7 +46,12 @@ export default (_express: Application) => {
 							address: null,
 							logo: null,
 							banner: null,
+							banners: null,
 							theme: null,
+							guide_video: null,
+							profile_schema: null,
+							exam_rules: null,
+							unit_schema: null,
 							is_default: true,
 						};
 						websiteConfig = await provider.post({ ...newInfo });
@@ -61,6 +66,14 @@ export default (_express: Application) => {
 							path: "banner",
 							select: "file_name original_name mime_type file_type file_path size",
 						},
+						{
+							path: "banners",
+							select: "file_name original_name mime_type file_type file_path size",
+						},
+						{
+							path: "guide_video",
+							select: "file_name original_name mime_type file_type file_path size",
+						},
 					]);
 
 					const data = {
@@ -71,7 +84,12 @@ export default (_express: Application) => {
 						address: websiteConfigDetail.address,
 						logo: websiteConfigDetail.logo,
 						banner: websiteConfigDetail.banner,
+						banners: websiteConfigDetail.banners,
 						theme: websiteConfigDetail.theme,
+						guide_video: websiteConfigDetail.guide_video,
+						profile_schema: websiteConfigDetail.profile_schema,
+						exam_rules: websiteConfigDetail.exam_rules,
+						unit_schema: websiteConfigDetail.unit_schema,
 					};
 
 					if (!data) throw new Error("Có lỗi xảy ra khi lấy chi tiết cấu hình website");
@@ -114,7 +132,7 @@ export default (_express: Application) => {
 					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 					const websiteConfig = await provider.getOne({
 						where: { is_default: true },
-						attributes: ["name", "phone", "email", "website", "address", "logo", "banner", "theme"],
+						attributes: ["name", "phone", "email", "website", "address", "logo", "banner", "banners", "theme", "guide_video", "profile_schema", "exam_rules", "unit_schema"],
 					});
 
 					if (!websiteConfig)
@@ -133,10 +151,17 @@ export default (_express: Application) => {
 						address: req.body.address,
 						logo: req.body.logo,
 						banner: req.body.banner,
+						banners: req.body.banners,
 						theme: req.body.theme,
+						guide_video: req.body.guide_video,
+						profile_schema: req.body.profile_schema,
+						exam_rules: req.body.exam_rules,
+						unit_schema: req.body.unit_schema,
 					};
 					const logo = updatedWebsiteConfig.logo,
-						banner = updatedWebsiteConfig.banner;
+						banner = updatedWebsiteConfig.banner,
+						banners = updatedWebsiteConfig.banners,
+						guide_video = updatedWebsiteConfig.guide_video;
 
 					if (logo) {
 						if (!mongoose.Types.ObjectId.isValid(logo)) {
@@ -157,6 +182,29 @@ export default (_express: Application) => {
 						const existingFile = await fileProvider.getById(banner);
 						if (!existingFile) {
 							throw new Error("File ID của banner không tồn tại trong hệ thống");
+						}
+					}
+
+					if (banners && Array.isArray(banners)) {
+						for (const bannerId of banners) {
+							if (!mongoose.Types.ObjectId.isValid(bannerId)) {
+								throw new Error("File ID trong banners không hợp lệ");
+							}
+							const existingFile = await fileProvider.getById(bannerId);
+							if (!existingFile) {
+								throw new Error("File ID trong banners không tồn tại trong hệ thống");
+							}
+						}
+					}
+
+					if (guide_video) {
+						if (!mongoose.Types.ObjectId.isValid(guide_video)) {
+							throw new Error("File ID của guide_video không hợp lệ");
+						}
+
+						const existingFile = await fileProvider.getById(guide_video);
+						if (!existingFile) {
+							throw new Error("File ID của guide_video không tồn tại trong hệ thống");
 						}
 					}
 
