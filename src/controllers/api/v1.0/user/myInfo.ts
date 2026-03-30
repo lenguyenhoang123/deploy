@@ -37,6 +37,7 @@ export default (_express: Application) => {
 							"email",
 							"phone",
 							"unit",
+							"profile",
 							"is_admin",
 							"is_active",
 							"is_deleted",
@@ -50,6 +51,7 @@ export default (_express: Application) => {
 						email: user.email,
 						phone: user.phone,
 						unit: user.unit,
+						profile: user.profile,
 						is_admin: user.is_admin,
 					};
 
@@ -92,7 +94,7 @@ export default (_express: Application) => {
 
 					const userId = req.user.id;
 					const user = await provider.getById(userId, {
-						attributes: ["first_name", "middle_name", "last_name", "unit", "is_active", "is_deleted"],
+						attributes: ["first_name", "middle_name", "last_name", "unit", "profile", "is_active", "is_deleted"],
 					});
 					provider.validateUser(user);
 
@@ -102,6 +104,7 @@ export default (_express: Application) => {
 						middle_name: updatedUser.middle_name,
 						last_name: updatedUser.last_name,
 						unit: updatedUser.unit,
+						profile: updatedUser.profile,
 						updated_by: userId,
 						updated_at: currentTime,
 					});

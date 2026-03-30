@@ -182,6 +182,19 @@ export default {
 								ward: { type: "string" },
 							},
 						},
+						profile: {
+							type: "object",
+							description: "Dynamic profile fields based on profile_schema from WebsiteConfig",
+							additionalProperties: true,
+							example: {
+								identity_number: "079200012345",
+								date_of_birth: "2010-05-15",
+								gender: "Nam",
+								class_name: "10",
+								school_name: "THPT Nguyễn Du",
+								school_address: "Đường Nguyễn Du, Quận 1, TP.HCM",
+							},
+						},
 					},
 				},
 				userRegister: {
@@ -189,7 +202,25 @@ export default {
 						{
 							$ref: "#/components/schemas/userMutate",
 						},
-						{ type: "object", properties: { password: { type: "string" } } },
+						{
+							type: "object",
+							properties: {
+								password: { type: "string" },
+								profile: {
+									type: "object",
+									description: "Dynamic profile fields based on profile_schema from WebsiteConfig",
+									additionalProperties: true,
+									example: {
+										identity_number: "079200012345",
+										date_of_birth: "2010-05-15",
+										gender: "Nam",
+										class_name: "10",
+										school_name: "THPT Nguyễn Du",
+										school_address: "Đường Nguyễn Du, Quận 1, TP.HCM",
+									},
+								},
+							},
+						},
 					],
 				},
 				User: {
@@ -222,7 +253,62 @@ export default {
 						address: { type: "string" },
 						logo: { type: ["string", "null"], format: "uuid" },
 						banner: { type: ["string", "null"], format: "uuid" },
+						banners: {
+							type: "array",
+							items: { type: "string", format: "uuid" },
+						},
+						guide_video: { type: ["string", "null"], format: "uuid" },
 						theme: { type: "string" },
+						profile_schema: {
+							type: "array",
+							items: {
+								type: "object",
+								properties: {
+									key: { type: "string" },
+									label: { type: "string" },
+									type: { type: "string", enum: ["text", "date", "select", "number"] },
+									options: { type: "array", items: { type: "string" } },
+									required: { type: "boolean" },
+									unique: { type: "boolean" },
+								},
+							},
+						},
+						exam_rules: {
+							type: "object",
+							properties: {
+								max_attempts: { type: "number" },
+								time_minutes: { type: "number" },
+								question_config: {
+									type: "array",
+									items: {
+										type: "object",
+										properties: {
+											type: { type: "string", enum: ["MULTIPLE_CHOICE", "ESSAY"] },
+											count: { type: "number" },
+										},
+									},
+								},
+								essay_grading: { type: "string", enum: ["manual", "auto"] },
+							},
+						},
+						unit_schema: {
+							type: "object",
+							properties: {
+								group_by_field: { type: "string" },
+								group_label: { type: "string" },
+								classification_field: { type: "string" },
+								classification_rules: {
+									type: "array",
+									items: {
+										type: "object",
+										properties: {
+											label: { type: "string" },
+											pattern: { type: "string" },
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 

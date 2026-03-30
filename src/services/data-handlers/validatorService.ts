@@ -15,8 +15,8 @@ export const validateRegisterUser = () => [
 	...validateMiddleName(),
 	...validateLastName(),
 	...validatePhone(),
-	...validateUnit(),
 	...validatePassword(),
+	body("profile").optional().isObject().withMessage("Profile phải là một object"),
 ];
 
 export const validateUpdateUserInfo = () => [
@@ -24,6 +24,7 @@ export const validateUpdateUserInfo = () => [
 	...validateMiddleName(),
 	...validateLastName(),
 	...validateUnit(),
+	body("profile").optional().isObject().withMessage("Profile phải là một object"),
 ];
 
 export const validateUpdateWebsiteConfig = () => [body("email").optional().isEmail().withMessage("Email không hợp lệ")];
