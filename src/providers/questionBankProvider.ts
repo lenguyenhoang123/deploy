@@ -1,5 +1,6 @@
 import BaseProvider from "#templates/base/baseProvider";
 import { IQuestionBank, IQuestionBankMethods, collectionName, schema } from "#models/questionBank";
+import mongoose from "mongoose";
 
 export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionBankMethods> {
 	constructor() {
@@ -19,6 +20,27 @@ export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionB
 			return questions;
 		} catch (error) {
 			throw new Error("Lấy tất cả câu hỏi thất bại");
+		}
+	}
+
+	async getQuestionsByType(maxQuantity: number, questionType: string) {
+		const queryOptions = {
+			pageSize: maxQuantity,
+			currentPage: 1,
+			sortField: "name",
+			sortOrder: "asc",	
+			where: {
+				$and: [
+					{ type: questionType },
+					{ $or: [{ is_deleted: false }, { is_deleted: undefined }] },
+				],
+			},
+		};
+		try {
+			const questions = await this.getAll(queryOptions);
+			return questions;
+		} catch (error) {
+			throw new Error("Lấy câu hỏi theo loại thất bại");
 		}
 	}
 
@@ -48,6 +70,62 @@ export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionB
 		if (!questionDetail) throw new Error("Có lỗi xảy ra khi lấy chi tiết câu hỏi");
 
 		return questionDetail;
+	}
+
+	async getQuestionsByIds(questionIds: string[]): Promise<IQuestionBank[]> {
+		if (!questionIds || questionIds.length === 0) return [];
+
+		const validIds = questionIds.filter((id) => id && id.match(/^[0-9a-fA-F]{24}$/));
+		if (validIds.length === 0) return [];
+
+		const objectIds = validIds.map((id) => new mongoose.Types.ObjectId(id));
+
+		const result = await this.getAll({
+			where: {
+				_id: { $in: objectIds },
+				$or: [{ is_deleted: false }, { is_deleted: undefined }],
+			},
+			pageSize: objectIds.length,
+			currentPage: 1,
+		});
+
+		return result.rows;
+	}
+
+	async getRandomQuestionsByType(quantity: number, questionType: string): Promise<IQuestionBank[]> {
+		const MAX_QUANTITY = 1000;
+		try {
+			if (quantity <= 0) return [];
+			if (quantity > MAX_QUANTITY)
+				throw new Error(`Hệ thống chỉ cho phép tạo đề thi có tối đa ${MAX_QUANTITY} câu.`);
+
+			const result = await this.getQuestionsByType(MAX_QUANTITY, questionType);
+			if (result.count === 0) throw new Error(`Không có câu hỏi ${questionType} nào trong ngân hàng câu hỏi`);
+			if (result.count < quantity)
+				throw new Error(`Số câu hỏi ${questionType} hợp lệ trong ngân hàng là: ${result.count}. Không đủ số câu cần tạo.`);
+
+			const questions = result.rows;
+			const groupedQuestions = this.groupQuestionsByLevel(questions);
+
+			const numQuestionsPerLevel = Math.floor(quantity / 3);
+			const easyQuestions = this.shuffleAndSlice(groupedQuestions["EASY"], numQuestionsPerLevel);
+			const normalQuestions = this.shuffleAndSlice(groupedQuestions["NORMAL"], numQuestionsPerLevel);
+			const hardQuestions = this.shuffleAndSlice(groupedQuestions["HARD"], numQuestionsPerLevel);
+
+			let combinedQuestions = [...easyQuestions, ...normalQuestions, ...hardQuestions] as any[];
+			if (combinedQuestions.length < quantity) {
+				combinedQuestions = await this.fillRemainingQuestions(questions, combinedQuestions, quantity);
+			}
+
+			let sortedQuestions = combinedQuestions.sort((a, b) => a._id - b._id);
+			sortedQuestions.forEach((q) => {
+				q.answers.sort((a, b) => a - b);
+			});
+
+			return sortedQuestions;
+		} catch (error) {
+			throw new Error(`Lấy câu hỏi ngẫu nhiên theo loại thất bại: ${error.message}`);
+		}
 	}
 
 	async getRandomQuestions(quantity: number): Promise<IQuestionBank[]> {

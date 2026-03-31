@@ -158,12 +158,84 @@ export const validateSubmitExam = () => [
 			return true;
 		}),
 
+	body("attempt_number")
+		.notEmpty()
+		.withMessage("Số lượt thi không được để trống")
+		.isInt({ min: 1, max: 5 })
+		.withMessage("Số lượt thi phải từ 1 đến 5"),
+
 	body("answers")
 		.notEmpty()
 		.withMessage("Danh sách câu trả lời không được để trống")
 		.isArray()
-		.withMessage("Danh sách câu trả lời phải là một mảng"),
+		.withMessage("Danh sách câu trả lời phải là một mảng")
+		.custom((answers: any[]) => {
+			if (!Array.isArray(answers) || answers.length === 0) {
+				throw new Error("Danh sách câu trả lời không được để trống");
+			}
+			for (const answer of answers) {
+				// Validate question_id
+				if (!answer.question_id) {
+					throw new Error("Mỗi câu trả lời phải có question_id");
+				}
+				if (!/^[0-9a-fA-F]{24}$/.test(answer.question_id)) {
+					throw new Error(`question_id ${answer.question_id} không hợp lệ`);
+				}
+				// Validate answer format - must have either user_answer or text_answer
+				if (!answer.user_answer && !answer.text_answer) {
+					throw new Error("Mỗi câu trả lời phải có user_answer (trắc nghiệm) hoặc text_answer (tự luận)");
+				}
+				// Validate user_answer format (if provided)
+				if (answer.user_answer && !/^[0-9a-fA-F]{24}$/.test(answer.user_answer)) {
+					throw new Error(`user_answer ${answer.user_answer} không hợp lệ`);
+				}
+				// Validate text_answer format (if provided)
+				if (answer.text_answer && typeof answer.text_answer !== "string") {
+					throw new Error("text_answer phải là chuỗi ký tự");
+				}
+			}
+			return true;
+		}),
 ];
+
+// Validate profile fields against profile_schema from WebsiteConfig
+export function validateProfile(profile: Record<string, any> | undefined, profileSchema: any[]): string | null {
+	if (!profile) return "Vui lòng cung cấp thông tin profile";
+
+	for (const field of profileSchema) {
+		const value = profile[field.key];
+
+		// Check required fields
+		if (field.required && (value === undefined || value === null || value === "")) {
+			return `${field.label} là bắt buộc`;
+		}
+
+		// Skip validation if value is empty and not required
+		if (!value && !field.required) continue;
+
+		// Type validation
+		switch (field.type) {
+			case "text":
+				if (typeof value !== "string") return `${field.label} phải là chuỗi ký tự`;
+				break;
+			case "number":
+				if (typeof value !== "number" && isNaN(Number(value))) {
+					return `${field.label} phải là số`;
+				}
+				break;
+			case "date":
+				if (!Date.parse(value)) return `${field.label} phải là ngày hợp lệ`;
+				break;
+			case "select":
+				if (field.options && !field.options.includes(value)) {
+					return `${field.label} phải là một trong các giá trị: ${field.options.join(", ")}`;
+				}
+				break;
+		}
+	}
+
+	return null;
+}
 
 export default {
 	validateVerifyOTP,

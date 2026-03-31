@@ -55,36 +55,69 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 	private async getExamDetails(examId: string) {
 		const exam = await this.getById(examId);
 		if (!exam) throw new Error("Kỳ thi không tồn tại");
-		if (!exam.template) throw new Error("Không tìm thấy danh sách câu hỏi của kỳ thi.");
+		if (!exam.templates || exam.templates.length === 0) throw new Error("Không tìm thấy danh sách câu hỏi của kỳ thi.");
 
 		const examDetail = await exam.populate({
-			path: "template.questions",
-			select: "name answers files",
+			path: "templates.questions",
+			select: "name type answers files",
 		});
 		if (!examDetail) throw new Error("Có lỗi xảy ra khi lấy chi tiết đề thi");
 
 		return examDetail;
 	}
 
-	async getTemplateQuestions(examId: string) {
-		const { template } = await this.getExamDetails(examId);
+	// Get random template from exam templates array
+	private getRandomTemplate(templates: any[]): any {
+		if (!templates || templates.length === 0) {
+			throw new Error("Không có đề thi nào trong kỳ thi");
+		}
+		const randomIndex = Math.floor(Math.random() * templates.length);
+		return templates[randomIndex];
+	}
+
+	// Get template by ID from templates array
+	private getTemplateById(templates: any[], templateId: string): any {
+		const template = templates.find((t: any) => t._id.toString() === templateId);
+		if (!template) {
+			throw new Error("Không tìm thấy đề thi");
+		}
+		return template;
+	}
+
+	async getTemplateQuestions(examId: string, templateId?: string) {
+		const exam = await this.getExamDetails(examId);
+		const templates = exam.templates;
+
+		let template;
+		if (templateId) {
+			template = templates.find((t: any) => t._id.toString() === templateId);
+			if (!template) throw new Error("Không tìm thấy đề thi");
+		} else {
+			template = this.getRandomTemplate(templates);
+		}
+
 		return template.questions;
 	}
 
 	async getTemplateDetails(examId: string) {
-		const { name, allowed_time, template } = await this.getExamDetails(examId);
+		const exam = await this.getExamDetails(examId);
+		const templates = exam.templates;
 
-		const questions = template.questions.map((question) => ({
-			...question.toObject(),
-			answers: this.extractAnswerValues(question.answers),
+		const formattedTemplates = templates.map((template: any) => ({
+			template_id: template._id,
+			template_name: template.name,
+			quantity: template.questions.length,
+			questions: template.questions.map((question: any) => ({
+				...question.toObject(),
+				answers: this.extractAnswerValues(question.answers),
+			})),
 		}));
 
 		return {
-			exam_name: name,
-			allowed_time,
-			template_name: template.name,
-			quantity: questions.length,
-			questions,
+			exam_name: exam.name,
+			allowed_time: exam.allowed_time,
+			template_count: templates.length,
+			templates: formattedTemplates,
 		};
 	}
 
@@ -139,10 +172,19 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 
 	// Exam Details
 	async getExamDetailsForParticipant(examId: string, participantId: string) {
-		const { name, allowed_time, template, participants } = await this.getExamDetails(examId);
+		const exam = await this.getExamDetails(examId);
+		const { name, allowed_time, templates, participants } = exam;
 
 		const participant = participants.find((p) => p.user_id.toString() === participantId);
 		if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
+
+		// Get template based on participant's template_id or random if not set
+		let template;
+		if (participant.template_id) {
+			template = this.getTemplateById(templates, participant.template_id.toString());
+		} else {
+			template = this.getRandomTemplate(templates);
+		}
 
 		const formattedQuestions = await this.formatQuestions(template.questions, participant.answers);
 
@@ -161,9 +203,18 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		participantId: string,
 		includeQuestions: boolean = false,
 	): Promise<IResult> {
-		const { name, allowed_time, template, participants } = await this.getExamDetails(examId);
+		const exam = await this.getExamDetails(examId);
+		const { name, allowed_time, templates, participants } = exam;
 
 		const participant = participants.find((p) => p.user_id.toString() === participantId);
+
+		// Get template based on participant's template_id or random if not set
+		let template;
+		if (participant.template_id) {
+			template = this.getTemplateById(templates, participant.template_id.toString());
+		} else {
+			template = this.getRandomTemplate(templates);
+		}
 
 		const formattedQuestions = await this.formatQuestions(template.questions, participant.answers, true);
 		const questionMap = new Map(formattedQuestions.map((q) => [q._id.toString(), q]));
@@ -206,25 +257,39 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		};
 	}
 
-	// Shuffle Questions And Answers
-	async getShuffleQuestionsAndAnswers(examId: string): Promise<IParticipantAnswer[]> {
-		const questions = await this.getTemplateQuestions(examId);
+	// Shuffle Questions And Answers - returns both answers and template_id
+	async getShuffleQuestionsAndAnswers(examId: string, templateId?: string): Promise<{ answers: IParticipantAnswer[]; template_id: string }> {
+		const exam = await this.getExamDetails(examId);
+		const templates = exam.templates;
+
+		let template;
+		if (templateId) {
+			template = this.getTemplateById(templates, templateId);
+		} else {
+			template = this.getRandomTemplate(templates);
+		}
+
+		const questions = template.questions;
 		if (!questions.length) throw new Error("Không lấy được danh sách câu hỏi của đề thi");
 
-		let participantAnswers = questions.map((question) => ({
+		let participantAnswers = questions.map((question: any) => ({
 			question_id: question._id,
-			question_answers: question.answers.map((answer) => answer._id),
+			question_answers: question.answers.map((answer: any) => answer._id),
 		}));
 
 		participantAnswers = this.shuffleArray(participantAnswers);
-		participantAnswers.forEach((answer) => {
+		participantAnswers.forEach((answer: any) => {
 			answer.question_answers = this.shuffleArray(answer.question_answers);
 		});
 
-		return participantAnswers;
+		return {
+			answers: participantAnswers,
+			template_id: template._id.toString(),
+		};
 	}
 
-	private shuffleArray<T>(array: T[]): T[] {
+	// Public shuffle method for external use
+	shuffleArray<T>(array: T[]): T[] {
 		for (let i = array.length - 1; i > 0; i--) {
 			const j = Math.floor(Math.random() * (i + 1));
 			[array[i], array[j]] = [array[j], array[i]];

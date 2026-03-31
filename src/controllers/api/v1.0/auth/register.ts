@@ -2,7 +2,7 @@ import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { UserProvider } from "#providers/userProvider";
 import { Req, Res } from "#services/interfaces/iapi";
-import { validateRegister } from "#middlewares/validator";
+import { validateRegisterUser, validateProfile } from "#services/data-handlers/validatorService";
 import { MailService } from "#services/mailService";
 import { LoggingService } from "#services/file-system-handlers/logService";
 import { UserAuthProvider } from "#providers/authProvider";
@@ -27,9 +27,9 @@ export default (_express: Application) => {
 	const mailService = new MailService();
 	const logger = new LoggingService();
 
-	return <Resource>{
+	return {
 		post: {
-			middleware: validateRegister,
+			middleware: validateRegisterUser,
 			handler: async (req: Req<IUser, UserRegister>, res: Res) => {
 				/**
 				 * @openapi
@@ -189,44 +189,5 @@ export default (_express: Application) => {
 				},
 			);
 		});
-	}
-
-	// Validate profile fields against profile_schema from WebsiteConfig
-	function validateProfile(profile: Record<string, any> | undefined, profileSchema: any[]): string | null {
-		if (!profile) return "Vui lòng cung cấp thông tin profile";
-
-		for (const field of profileSchema) {
-			const value = profile[field.key];
-
-			// Check required fields
-			if (field.required && (value === undefined || value === null || value === "")) {
-				return `${field.label} là bắt buộc`;
-			}
-
-			// Skip validation if value is empty and not required
-			if (!value && !field.required) continue;
-
-			// Type validation
-			switch (field.type) {
-				case "text":
-					if (typeof value !== "string") return `${field.label} phải là chuỗi ký tự`;
-					break;
-				case "number":
-					if (typeof value !== "number" && isNaN(Number(value))) {
-						return `${field.label} phải là số`;
-					}
-					break;
-				case "date":
-					if (!Date.parse(value)) return `${field.label} phải là ngày hợp lệ`;
-					break;
-				case "select":
-					if (field.options && !field.options.includes(value)) {
-						return `${field.label} phải là một trong các giá trị: ${field.options.join(", ")}`;
-					}
-					break;
-			}
-		}
-
-		return null;
 	}
 };

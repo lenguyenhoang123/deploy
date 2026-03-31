@@ -3,7 +3,9 @@ import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { UserProvider } from "#providers/userProvider";
+import { WebsiteConfigProvider } from "#providers/websiteConfigProvider";
 import { validateUpdateUserInfoEntry } from "#middlewares/validator";
+import { validateProfile } from "#services/data-handlers/validatorService";
 
 export default (_express: Application) => {
 	const provider = new UserProvider();
@@ -99,6 +101,19 @@ export default (_express: Application) => {
 					provider.validateUser(user);
 
 					const updatedUser = req.body;
+
+					// Validate profile if provided
+					if (updatedUser.profile) {
+						const websiteConfigProvider = new WebsiteConfigProvider();
+						const websiteConfig = await websiteConfigProvider.getOne({ where: { is_default: true } });
+						const profileSchema = websiteConfig?.profile_schema || [];
+						
+						if (profileSchema.length > 0) {
+							const validationError = validateProfile(updatedUser.profile, profileSchema);
+							if (validationError) throw new Error(validationError);
+						}
+					}
+
 					const data = await user.updateOne({
 						first_name: updatedUser.first_name,
 						middle_name: updatedUser.middle_name,

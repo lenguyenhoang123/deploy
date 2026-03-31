@@ -6,6 +6,7 @@ import { ExamProvider } from "#providers/examProvider";
 import { QuestionBankProvider } from "#providers/questionBankProvider";
 import mongoose from "mongoose";
 import { UserProvider } from "#providers/userProvider";
+import { QuestionTypes } from "#models/questionBank";
 
 export default (_express: Application) => {
 	const examProvider = new ExamProvider();
@@ -45,6 +46,11 @@ export default (_express: Application) => {
 				 *               quantity:
 				 *                 type: integer
 				 *                 example: 20
+				 *                 description: Số lượng câu hỏi trắc nghiệm
+				 *               essay_quantity:
+				 *                 type: integer
+				 *                 example: 5
+				 *                 description: Số lượng câu hỏi tự luận (essay)
 				 *     responses:
 				 *       200:
 				 *         description: Success
@@ -66,25 +72,39 @@ export default (_express: Application) => {
 
 					if (currentTime >= exam.start_time) throw new Error("Không thể tạo đề thi cho kỳ thi đã hoặc đang diễn ra");
 
-					const { name, quantity } = req.body;
+					const { name, quantity, essay_quantity } = req.body;
 
 					const quantityNumber = parseInt(quantity as string, 10);
 					if (isNaN(quantityNumber) || quantityNumber <= 0) {
-						throw new Error("Số lượng câu hỏi không hợp lệ");
+						throw new Error("Số lượng câu hỏi trắc nghiệm không hợp lệ");
 					}
+
+					const essayQuantityNumber = parseInt(essay_quantity as string, 10) || 0;
+					if (essayQuantityNumber < 0) {
+						throw new Error("Số lượng câu hỏi tự luận không hợp lệ");
+					}
+
+					const multipleChoiceQuestions = await questionBankProvider.getRandomQuestionsByType(
+						quantityNumber,
+						QuestionTypes.MULTIPLE_CHOICE,
+					);
+					const essayQuestions = await questionBankProvider.getRandomQuestionsByType(
+						essayQuantityNumber,
+						QuestionTypes.ESSAY,
+					);
 
 					const newTemplate = {
 						name: name,
-						questions: await questionBankProvider.getRandomQuestions(quantityNumber),
+						questions: [...multipleChoiceQuestions, ...essayQuestions],
 					};
 
 					const data = await exam.updateOne({
-						template: newTemplate,
+						$push: { templates: newTemplate },
 						updated_by: userId,
 						updated_at: currentTime,
 					});
-					if (data.modifiedCount <= 0) throw new Error("Tạo đề thi thất bại");
-					return res.sendOk({ data: { message: "Tạo đề thi thành công" } });
+					if (data.modifiedCount <= 0) throw new Error("Thêm đề thi thất bại");
+					return res.sendOk({ data: { message: "Thêm đề thi thành công" } });
 				} catch (error) {
 					return res.sendError({ err: error });
 				}
