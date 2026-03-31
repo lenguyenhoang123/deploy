@@ -19,7 +19,7 @@ export interface IExamParticipant {
 	submit_time?: Date;
 	score?: number;
 	time_taken?: number;
-	shuffled_questions: ObjectId[];
+	questions: ObjectId[];
 	shuffled_answers?: Record<string, any>;
 	answers: IExamParticipantAnswer[];
 	created_at?: Date;
@@ -62,7 +62,7 @@ export const schema = (function () {
 			submit_time: { type: Date },
 			score: { type: Number },
 			time_taken: { type: Number },
-			shuffled_questions: [{ type: Schema.Types.ObjectId, ref: questionBankCollection }],
+			questions: [{ type: Schema.Types.ObjectId, ref: questionBankCollection }],
 			shuffled_answers: { type: Schema.Types.Mixed },
 			answers: { type: [examParticipantAnswerSchema], default: [] },
 		},

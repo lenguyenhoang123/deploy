@@ -107,7 +107,7 @@ export default (_express: Application) => {
 					const questionsMap = new Map(questions.map((q) => [q._id!.toString(), q]));
 
 					// Validate that all questions in answers belong to the exam
-					const examQuestionIds = new Set(participant.shuffled_questions.map((q) => q.toString()));
+					const examQuestionIds = new Set(participant.questions.map((q) => q.toString()));
 					for (const answer of answers) {
 						if (!examQuestionIds.has(answer.question_id)) {
 							throw new Error(`Câu hỏi ${answer.question_id} không thuộc đề thi của bạn`);

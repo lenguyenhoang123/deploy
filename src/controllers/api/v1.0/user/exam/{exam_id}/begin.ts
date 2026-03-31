@@ -91,12 +91,12 @@ export default (_express: Application) => {
 							if (latestAttempt.attempt_number >= maxAttempts) {
 								throw new Error(`Bạn đã sử dụng hết ${maxAttempts} lượt thi cho kỳ thi này`);
 							}
-							// Create new attempt with next attempt_number
+							// Create new attempt
 							const newAttemptNumber = latestAttempt.attempt_number + 1;
 							const templateId = (req.body as any)?.template_id as string | undefined;
 							const shuffleResult = await examProvider.getShuffleQuestionsAndAnswers(examId, templateId);
 
-							const shuffledQuestions = shuffleResult.answers.map((a) => a.question_id as any);
+							const questions = shuffleResult.answers.map((a) => a.question_id as any);
 							const shuffledAnswers: Record<string, any> = {};
 							shuffleResult.answers.forEach((a) => {
 								shuffledAnswers[a.question_id.toString()] = a.question_answers;
@@ -106,7 +106,7 @@ export default (_express: Application) => {
 								exam_id: new mongoose.Types.ObjectId(examId) as any,
 								user_id: new mongoose.Types.ObjectId(userId.toString()) as any,
 								attempt_number: newAttemptNumber,
-								shuffled_questions: shuffledQuestions,
+								questions: questions,
 								shuffled_answers: shuffledAnswers,
 								start_time: new Date(),
 							});
@@ -128,7 +128,7 @@ export default (_express: Application) => {
 							const templateId = (req.body as any)?.template_id as string | undefined;
 							const shuffleResult = await examProvider.getShuffleQuestionsAndAnswers(examId, templateId);
 
-							const shuffledQuestions = shuffleResult.answers.map((a) => a.question_id as any);
+							const questions = shuffleResult.answers.map((a) => a.question_id as any);
 							const shuffledAnswers: Record<string, any> = {};
 							shuffleResult.answers.forEach((a) => {
 								shuffledAnswers[a.question_id.toString()] = a.question_answers;
@@ -136,7 +136,7 @@ export default (_express: Application) => {
 
 							await examParticipantProvider.put(latestAttempt._id!.toString(), {
 								status: "in_progress",
-								shuffled_questions: shuffledQuestions,
+								questions: questions,
 								shuffled_answers: shuffledAnswers,
 								start_time: new Date(),
 							});

@@ -11,10 +11,12 @@ import {
 } from "#services/interfaces/istatistics";
 import { UserProvider } from "#providers/userProvider";
 import { QuestionBankProvider } from "#providers/questionBankProvider";
+import { ExamParticipantProvider } from "#providers/examParticipantProvider";
 import { applyFilters, applyPagination, applySorting, generatePaginationResult } from "#services/statisticsService";
 import { IFile } from "#models/file";
 const userProvider = new UserProvider();
 const questionBankProvider = new QuestionBankProvider();
+const examParticipantProvider = new ExamParticipantProvider();
 
 interface IFormattedQuestion {
 	_id: ObjectId;
@@ -157,6 +159,59 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		return formattedQuestions;
 	}
 
+	private async formatParticipantQuestions(
+		templateQuestions: any[],
+		participantQuestions: any[],
+		participantAnswers: any[],
+		shuffledAnswers?: Record<string, any>,
+	): Promise<IFormattedQuestion[]> {
+		const formattedQuestions: IFormattedQuestion[] = [];
+		const templateQuestionMap = new Map<string, any>();
+
+		templateQuestions.forEach((templateQuestion) => {
+			templateQuestionMap.set(templateQuestion._id.toString(), templateQuestion);
+		});
+
+		// Create answer map for quick lookup
+		const answerMap = new Map<string, any>();
+		if (participantAnswers) {
+			participantAnswers.forEach((answer) => {
+				answerMap.set(answer.question_id.toString(), answer);
+			});
+		}
+
+		for (const questionId of participantQuestions) {
+			const questionIdStr = questionId.toString();
+			const templateQuestion = templateQuestionMap.get(questionIdStr);
+			if (templateQuestion) {
+				// Get shuffled answer order if exists
+				const answerIds = shuffledAnswers?.[questionIdStr] || templateQuestion.answers.map((a: any) => a._id.toString());
+				
+				const answers = answerIds
+					.map((answerId: string) => this.getAnswerById(templateQuestion.answers, answerId as unknown as ObjectId))
+					.filter(Boolean);
+
+				let files = [];
+				if (templateQuestion.files && templateQuestion.files.length > 0) {
+					files = (await questionBankProvider.getQuestionDetails(templateQuestion.id)).files;
+				}
+
+				// Get user answer if exists
+				const userAnswer = answerMap.get(questionIdStr);
+
+				formattedQuestions.push({
+					_id: templateQuestion._id,
+					name: templateQuestion.name,
+					answers,
+					files: files.length > 0 ? files : undefined,
+					user_answer: userAnswer?.user_answer,
+				});
+			}
+		}
+
+		return formattedQuestions;
+	}
+
 	// Exam Statuses
 	async getExamStatus(examId: string, userId: string) {
 		const { participants } = await this.getById(examId);
@@ -173,20 +228,32 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 	// Exam Details
 	async getExamDetailsForParticipant(examId: string, participantId: string) {
 		const exam = await this.getExamDetails(examId);
-		const { name, allowed_time, templates, participants } = exam;
+		const { name, allowed_time, templates } = exam;
 
-		const participant = participants.find((p) => p.user_id.toString() === participantId);
+		// Get participant from exam_participants collection
+		const participant = await examParticipantProvider.getParticipantByExamAndUser(examId, participantId);
 		if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này");
 
-		// Get template based on participant's template_id or random if not set
+		// Get template based on participant's questions (from exam_participant record) or random if not set
 		let template;
-		if (participant.template_id) {
-			template = this.getTemplateById(templates, participant.template_id.toString());
-		} else {
+		if (participant.questions && participant.questions.length > 0) {
+			// Get template by finding which template contains the first question
+			const firstQuestionId = participant.questions[0].toString();
+			template = templates.find((t: any) => 
+				t.questions.some((q: any) => q._id.toString() === firstQuestionId)
+			);
+		}
+		if (!template) {
 			template = this.getRandomTemplate(templates);
 		}
 
-		const formattedQuestions = await this.formatQuestions(template.questions, participant.answers);
+		// Format questions based on participant's question order and shuffled answers
+		const formattedQuestions = await this.formatParticipantQuestions(
+			template.questions,
+			participant.questions,
+			participant.answers,
+			participant.shuffled_answers
+		);
 
 		return {
 			exam_name: name,
@@ -399,5 +466,67 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		}
 
 		return Array.from(districtStatsMap.values());
+	}
+
+	/**
+	 * Shuffle template questions - regenerate random questions for an existing template
+	 * @param examId - Exam ID
+	 * @param templateId - Template ID to shuffle
+	 * @returns Object containing the number of multiple choice and essay questions in the new template
+	 */
+	async shuffleTemplateQuestions(examId: string, templateId: string): Promise<{ multiple_choice_count: number; essay_count: number; old_questions: string[]; new_questions: string[] }> {
+		const exam = await this.getById(examId);
+		if (!exam) throw new Error("Kỳ thi không tồn tại");
+
+		// Find template index first
+		const templateIndex = exam.templates.findIndex((t: any) => t._id.toString() === templateId);
+		if (templateIndex === -1) throw new Error("Không tìm thấy đề thi");
+
+		// Populate questions to count types
+		const populatedExam = await exam.populate({
+			path: "templates.questions",
+			select: "type",
+		});
+		
+		const populatedTemplate = populatedExam.templates[templateIndex];
+		const currentQuestions = populatedTemplate.questions as any[];
+		const oldQuestionIds = currentQuestions.map((q: any) => q._id?.toString() || q.toString());
+
+		// Count current question types
+		const multipleChoiceCount = currentQuestions.filter((q) => q.type === "MULTIPLE_CHOICE").length;
+		const essayCount = currentQuestions.filter((q) => q.type === "ESSAY").length;
+
+		// Get new random questions with same counts
+		const newMultipleChoiceQuestions = await questionBankProvider.getRandomQuestionsByType(
+			multipleChoiceCount,
+			"MULTIPLE_CHOICE" as any,
+		);
+		const newEssayQuestions = essayCount > 0 
+			? await questionBankProvider.getRandomQuestionsByType(essayCount, "ESSAY" as any)
+			: [];
+
+		const newQuestionIds = [
+			...newMultipleChoiceQuestions.map(q => q._id.toString()),
+			...newEssayQuestions.map(q => q._id.toString()),
+		];
+
+		// Update template questions using index - assign ObjectIds directly
+		exam.templates[templateIndex].questions = [
+			...newMultipleChoiceQuestions.map(q => q._id),
+			...newEssayQuestions.map(q => q._id),
+		];
+
+		// Mark templates as modified to ensure Mongoose saves the change
+		exam.markModified('templates');
+
+		// Save the exam
+		await exam.save();
+
+		return {
+			multiple_choice_count: multipleChoiceCount,
+			essay_count: essayCount,
+			old_questions: oldQuestionIds,
+			new_questions: newQuestionIds,
+		};
 	}
 }

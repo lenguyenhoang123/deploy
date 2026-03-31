@@ -530,7 +530,7 @@ Gửi OTP về email để reset password.
 > **✅ Đã xong:** 
 > - Tạo attempt mới trong `exam_participant` collection
 > - Support 3 trạng thái: `registered` → `in_progress` | `in_progress` (tiếp tục) | `submitted` (tạo attempt mới nếu còn lượt)
-> - Tự động shuffle questions và lưu vào `shuffled_questions`
+> - Tự động shuffle questions và lưu vào `questions`
 > - Kiểm tra `max_attempts` từ exam
 
 **Request Body (optional):**
@@ -688,7 +688,12 @@ Gửi OTP về email để reset password.
 
 | Param | Type | Description |
 |-------|------|-------------|
-| `attempt_number` | number | Lượt thi cần xem kết quả (optional, mặc định = lượt mới nhất) |
+| `attempt_number` | number | Lượt thi cần xem kết quả (1, 2, 3...). Optional, mặc định = lượt mới nhất |
+| `currentPage` | number | Trang hiện tại (phân trang câu hỏi) |
+| `pageSize` | number | Số câu hỏi/trang |
+| `filters` | string | Lọc câu hỏi: `type==MULTIPLE_CHOICE` / `type==ESSAY` / `is_correct==true` / `is_correct==false` / `is_correct==null` |
+| `sortField` | string | Trường để sort (ví dụ: `name`, `type`) |
+| `sortOrder` | string | Thứ tự sort: `asc` / `desc` |
 
 **Response 200 (bản cuối):**
 ```json
@@ -705,17 +710,17 @@ Gửi OTP về email để reset password.
     "time_taken": 18.5,
     "start_time": "2026-05-15T09:00:00Z",
     "submit_time": "2026-05-15T09:18:30Z",
-    "user_profile": {
-      "full_name": "Nguyễn Văn A",
-      "email": "nguyen.a@example.com",
-      "phone": "0901234567",
-      "identity_number": "079200012345",
-      "date_of_birth": "2010-05-15",
-      "gender": "Nam",
-      "class_name": "10",
-      "school_name": "THPT Nguyễn Du",
-      "school_address": "Đường Nguyễn Du, Quận 1, TP.HCM"
-    },
+    // "user_profile": {
+    //   "full_name": "Nguyễn Văn A",
+    //   "email": "nguyen.a@example.com",
+    //   "phone": "0901234567",
+    //   "identity_number": "079200012345",
+    //   "date_of_birth": "2010-05-15",
+    //   "gender": "Nam",
+    //   "class_name": "10",
+    //   "school_name": "THPT Nguyễn Du",
+    //   "school_address": "Đường Nguyễn Du, Quận 1, TP.HCM"
+    // },
     "questions": [
       {
         "_id": "ObjectId",
@@ -728,7 +733,13 @@ Gửi OTP về email để reset password.
     "answers": [
       { "question_id": "ObjectId", "user_answer": "ObjectId", "is_correct": true },
       { "question_id": "ObjectId", "text_answer": "...", "is_correct": null }
-    ]
+    ],
+    "pagination": {
+      "count": 21,
+      "pageSize": 10,
+      "currentPage": 1,
+      "totalPages": 3
+    }
   }
 }
 ```
@@ -885,6 +896,13 @@ Gửi OTP về email để reset password.
 ### `GET /exam/{id}` ✅
 🔒 **Yêu cầu auth** — Chi tiết kỳ thi.
 
+**Query params (phân trang participants):**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `participantPage` | number | Trang participants hiện tại (mặc định: 1) |
+| `participantPageSize` | number | Số participants/trang (mặc định: 20, max: 100) |
+
 **Response 200:**
 ```json
 {
@@ -904,14 +922,20 @@ Gửi OTP về email để reset password.
         "questions": ["ObjectId", "ObjectId", "..."]
       }
     ],
-    "participants": [
-      {
-        "user_id": "ObjectId",
-        "start_time": "2026-05-15T09:00:00Z",
-        "submit_time": "2026-05-15T09:18:30Z",
-        "answers": ["..."]
-      }
-    ],
+    "participants": {
+      "rows": [
+        {
+          "user_id": "ObjectId",
+          "start_time": "2026-05-15T09:00:00Z",
+          "submit_time": "2026-05-15T09:18:30Z",
+          "answers": ["..."]
+        }
+      ],
+      "count": 500,
+      "pageSize": 20,
+      "currentPage": 1,
+      "totalPages": 25
+    },
     "created_by": "ObjectId",
     "created_at": "2026-04-01T10:00:00Z"
   }
@@ -1032,6 +1056,29 @@ Gửi OTP về email để reset password.
   }
 }
 ```
+
+---
+
+### `PUT /exam/{id}/templates/{template_id}/shuffle` ✅
+🔒 **Yêu cầu auth** (Admin) — Lấy câu hỏi mới từ ngân hàng cho đề thi.
+
+> **✅ Đã có.** Thay thế toàn bộ câu hỏi trong đề thi bằng câu hỏi mới ngẫu nhiên từ ngân hàng câu hỏi, giữ nguyên số lượng câu trắc nghiệm và tự luận.
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Đổi câu hỏi ngẫu nhiên thành công",
+  "responseData": {
+    "multiple_choice_count": 20,
+    "essay_count": 1,
+    "old_questions": ["ObjectId", "ObjectId", "..."],
+    "new_questions": ["ObjectId", "ObjectId", "..."]
+  }
+}
+```
+
+**Errors:** `500` Kỳ thi đã hoặc đang diễn ra | Không tìm thấy đề thi | Không đủ câu hỏi trong ngân hàng
 
 ---
 
@@ -1967,32 +2014,33 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 25 | Exam | `/exam/{id}` | DELETE | ✅ | |
 | 26 | Exam | `/exam/{id}/templates` | PUT | ⚠️ | Config-driven question count |
 | 27 | Exam | `/exam/{id}/templates` | GET | ⚠️ | Thêm type field |
-| 28 | QB | `/question-bank` | GET | ⚠️ | Thêm type field |
-| 29 | QB | `/question-bank` | POST | ⚠️ | Thêm type, hỗ trợ ESSAY |
-| 30 | QB | `/question-bank/{id}` | GET | ✅ | |
-| 31 | QB | `/question-bank/{id}/copy` | POST | ✅ | |
-| 32 | QB | `/question-bank/{id}/delete` | PUT | ✅ | |
-| 33 | QB | `/question-bank/import` | POST | ❌ | **Mới** — Import Excel |
-| 34 | File | `/file` | GET | ✅ | |
-| 35 | File | `/file/upload` | POST | ✅ | |
-| 36 | File | `/file/{id}` | GET | ✅ | |
-| 37 | File | `/file/{id}` | DELETE | ✅ | |
-| 38 | Config | `/website-config` | GET | ⚠️ | Mở rộng fields |
-| 39 | Config | `/website-config` | PUT | ⚠️ | Mở rộng fields |
-| 40 | Stats | `/statistics/exam/{id}/participant` | GET | ⚠️ | Nhiều lượt, profile fields |
-| 41 | Stats | `/statistics/exam/{id}/participant/{pid}` | GET | ⚠️ | Profile fields |
-| 42 | Stats | `/statistics/exam/{id}/participant/export` | GET | ⚠️ | Tách THCS/THPT |
-| 43 | Stats | `/statistics/exam/{id}/unit` | GET | ⚠️ | Config-driven group by |
-| 44 | Stats | `/statistics/exam/{id}/unit/export` | GET | ⚠️ | Config-driven columns |
-| 45 | Stats | `/statistics/total-participants` | GET | ❌ | **Mới** — Public counter |
-| 46 | CMS | `/content-page` | GET | ❌ | **Mới** |
-| 47 | CMS | `/content-page` | POST | ❌ | **Mới** |
-| 48 | CMS | `/content-page/{id}` | GET | ❌ | **Mới** |
-| 49 | CMS | `/content-page/{id}` | PUT | ❌ | **Mới** |
-| 50 | CMS | `/content-page/{id}` | DELETE | ❌ | **Mới** |
-| 51 | CMS | `/content-page/public` | GET | ❌ | **Mới** — Public |
-| 52 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
+| 28 | Exam | `/exam/{id}/templates/{template_id}/shuffle` | PUT | ✅ | Random lại câu hỏi trong đề thi |
+| 29 | QB | `/question-bank` | GET | ⚠️ | Thêm type field |
+| 30 | QB | `/question-bank` | POST | ⚠️ | Thêm type, hỗ trợ ESSAY |
+| 31 | QB | `/question-bank/{id}` | GET | ✅ | |
+| 32 | QB | `/question-bank/{id}/copy` | POST | ✅ | |
+| 33 | QB | `/question-bank/{id}/delete` | PUT | ✅ | |
+| 34 | QB | `/question-bank/import` | POST | ❌ | **Mới** — Import Excel |
+| 35 | File | `/file` | GET | ✅ | |
+| 36 | File | `/file/upload` | POST | ✅ | |
+| 37 | File | `/file/{id}` | GET | ✅ | |
+| 38 | File | `/file/{id}` | DELETE | ✅ | |
+| 39 | Config | `/website-config` | GET | ⚠️ | Mở rộng fields |
+| 40 | Config | `/website-config` | PUT | ⚠️ | Mở rộng fields |
+| 41 | Stats | `/statistics/exam/{id}/participant` | GET | ⚠️ | Nhiều lượt, profile fields |
+| 42 | Stats | `/statistics/exam/{id}/participant/{pid}` | GET | ⚠️ | Profile fields |
+| 43 | Stats | `/statistics/exam/{id}/participant/export` | GET | ⚠️ | Tách THCS/THPT |
+| 44 | Stats | `/statistics/exam/{id}/unit` | GET | ⚠️ | Config-driven group by |
+| 45 | Stats | `/statistics/exam/{id}/unit/export` | GET | ⚠️ | Config-driven columns |
+| 46 | Stats | `/statistics/total-participants` | GET | ❌ | **Mới** — Public counter |
+| 47 | CMS | `/content-page` | GET | ❌ | **Mới** |
+| 48 | CMS | `/content-page` | POST | ❌ | **Mới** |
+| 49 | CMS | `/content-page/{id}` | GET | ❌ | **Mới** |
+| 50 | CMS | `/content-page/{id}` | PUT | ❌ | **Mới** |
+| 51 | CMS | `/content-page/{id}` | DELETE | ❌ | **Mới** |
+| 52 | CMS | `/content-page/public` | GET | ❌ | **Mới** — Public |
+| 53 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
 
 ---
 
-**Tổng:** 52 endpoints | ✅ 21 hoạt động | ⚠️ 20 cần sửa | ❌ 11 chưa có
+**Tổng:** 53 endpoints | ✅ 22 hoạt động | ⚠️ 20 cần sửa | ❌ 11 chưa có

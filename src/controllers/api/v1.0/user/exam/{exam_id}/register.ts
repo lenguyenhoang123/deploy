@@ -65,7 +65,7 @@ export default (_express: Application) => {
 						user_id: new mongoose.Types.ObjectId(userId.toString()) as any,
 						attempt_number: 1,
 						status: ExamParticipantStatus.REGISTERED,
-						shuffled_questions: [],
+						questions: [],
 						answers: [],
 					});
 
