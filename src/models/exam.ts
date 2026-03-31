@@ -10,9 +10,11 @@ export interface IParticipantAnswer {
 export interface IParticipant {
 	_id: ObjectId;
 	user_id: ObjectId;
+	attempt_count: number;
 	start_time: Date;
 	submit_time: Date;
 	answers: IParticipantAnswer[];
+	template_id?: ObjectId;
 }
 
 export interface ITemplate {
@@ -27,7 +29,8 @@ export interface IExam {
 	start_time: Date;
 	end_time: Date;
 	allowed_time: number;
-	template: ITemplate;
+	max_attempts: number;
+	templates: ITemplate[];
 	participants: IParticipant[];
 	created_at?: Date;
 	created_by?: ObjectId;
@@ -52,9 +55,11 @@ const participantAnswerSchema = new Schema<IParticipantAnswer>(
 const participantSchema = new Schema<IParticipant>(
 	{
 		user_id: { type: Schema.Types.ObjectId, required: true },
+		attempt_count: { type: Number, default: 0, min: 0 },
 		start_time: { type: Date, required: true },
 		submit_time: { type: Date, required: true },
 		answers: { type: [participantAnswerSchema], required: true },
+		template_id: { type: Schema.Types.ObjectId },
 	},
 	{ _id: false },
 );
@@ -79,7 +84,8 @@ export const schema = (function () {
 			start_time: { type: Date, required: true },
 			end_time: { type: Date, required: true },
 			allowed_time: { type: Number, required: true, min: 1 },
-			template: { type: templateSchema },
+			max_attempts: { type: Number, required: true, min: 1 },
+			templates: { type: [templateSchema] },
 			participants: { type: [participantSchema] },
 			created_by: { type: Schema.Types.ObjectId, Ref: collectionName },
 			updated_by: { type: Schema.Types.ObjectId, Ref: collectionName },

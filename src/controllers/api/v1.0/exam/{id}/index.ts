@@ -55,7 +55,8 @@ export default (_express: Application) => {
 							"start_time",
 							"end_time",
 							"allowed_time",
-							"template",
+							"max_attempts",
+							"templates",
 							"participants",
 							"created_by",
 							"updated_by",
@@ -65,8 +66,16 @@ export default (_express: Application) => {
 					});
 					if (!exam) throw new Error("Kỳ thi không tồn tại");
 
+					const responseExam = {
+						...exam.toObject(),
+						templates: exam?.templates?.map((t: any) => ({
+							name: t?.name,
+							question_count: t?.questions?.length || 0,
+						})),
+					};
+
 					return res.sendOk({
-						data: exam,
+						data: responseExam,
 						message: "Lấy thông tin kỳ thi thành công",
 					});
 				} catch (error) {
@@ -108,6 +117,7 @@ export default (_express: Application) => {
 				 *               "start_time": "2024-08-01T09:00:00Z",
 				 *               "end_time": "2024-08-31T09:00:00Z",
 				 *               "allowed_time": 120,
+				 *               "max_attempts": 5
 				 *             }
 				 *     responses:
 				 *       200:
@@ -127,7 +137,7 @@ export default (_express: Application) => {
 
 					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
 					const exam = await provider.getById(examId, {
-						attributes: ["name", "description", "start_time", "end_time", "allowed_time", "updated_by", "updated_at"],
+						attributes: ["name", "description", "start_time", "end_time", "allowed_time", "max_attempts", "updated_by", "updated_at"],
 					});
 					if (!exam) throw new Error("Kỳ thi không tồn tại");
 
@@ -140,6 +150,7 @@ export default (_express: Application) => {
 						start_time: updatedExam.start_time,
 						end_time: updatedExam.end_time,
 						allowed_time: updatedExam.allowed_time,
+						max_attempts: updatedExam.max_attempts,
 						updated_by: userId,
 						updated_at: currentTime,
 					});

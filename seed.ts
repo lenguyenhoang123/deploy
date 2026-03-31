@@ -522,6 +522,7 @@ async function seedExam(adminId: mongoose.Types.ObjectId, questionIds: mongoose.
         start_time: now,
         end_time: endTime,
         allowed_time: 20, // 20 phút
+        max_attempts: 5,
         template: {
             name: "Đề thi mẫu v1",
             questions: questionIds,
@@ -529,7 +530,7 @@ async function seedExam(adminId: mongoose.Types.ObjectId, questionIds: mongoose.
         participants: [],
         created_by: adminId,
     });
-    console.log("✅ Exam: đã tạo kỳ thi thử (20 phút, hết hạn sau 30 ngày)");
+    console.log("✅ Exam: đã tạo kỳ thi thử (20 phút, 5 lượt thi, hết hạn sau 30 ngày)");
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────

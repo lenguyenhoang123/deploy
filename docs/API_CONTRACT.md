@@ -486,8 +486,9 @@ Gửi OTP về email để reset password.
         "start_time": "2026-05-01T00:00:00Z",
         "end_time": "2026-05-31T23:59:59Z",
         "allowed_time": 20,
-        "template_name": "Đề thi chính thức",
-        "question_count": 21,
+        "templates": [
+          { "name": "Đề thi chính thức", "question_count": 21 }
+        ],
         "is_registered": true,
         "is_submitted": false,
         "attempts_used": 2,
@@ -505,10 +506,10 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `PUT /user/exam/{exam_id}/register` ⚠️
+### `PUT /user/exam/{exam_id}/register` ✅
 🔒 **Yêu cầu auth** — Đăng ký tham gia kỳ thi.
 
-> **⚠️ Cần sửa:** Khi tách `ExamParticipant`, logic đăng ký sẽ thay đổi.
+> **✅ Đã xong:** Tạo `ExamParticipant` document với status `registered` trong collection `exam_participant`.
 
 **Response 200:**
 ```json
@@ -523,10 +524,22 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `PUT /user/exam/{exam_id}/begin` ⚠️
-🔒 **Yêu cầu auth** — Bắt đầu làm bài thi (mỗi lần gọi = 1 lượt thi mới).
+### `PUT /user/exam/{exam_id}/begin` ✅
+🔒 **Yêu cầu auth** — Bắt đầu làm bài thi.
 
-> **⚠️ Cần sửa:** Tạo document mới trong `exam_participant` mỗi lượt. Kiểm tra `max_attempts` từ `exam_rules` trong WebsiteConfig.
+> **✅ Đã xong:** 
+> - Tạo attempt mới trong `exam_participant` collection
+> - Support 3 trạng thái: `registered` → `in_progress` | `in_progress` (tiếp tục) | `submitted` (tạo attempt mới nếu còn lượt)
+> - Tự động shuffle questions và lưu vào `shuffled_questions`
+> - Kiểm tra `max_attempts` từ exam
+
+**Request Body (optional):**
+```json
+{
+  "template_id": "ObjectId"
+}
+```
+> Nếu không gửi `template_id`, hệ thống sẽ random chọn 1 đề.
 
 **Response 200 (bản cuối):**
 ```json
@@ -609,10 +622,15 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `PUT /user/exam/{exam_id}/submit` ⚠️
+### `PUT /user/exam/{exam_id}/submit` ✅
 🔒 **Yêu cầu auth** — Nộp bài thi.
 
-> **⚠️ Cần sửa:** Hỗ trợ `text_answer` cho câu tự luận; lưu vào `exam_participant` document; tính `score` và `time_taken`.
+> **✅ Đã xong:** 
+> - Hỗ trợ `text_answer` cho câu tự luận (ESSAY)
+> - Lưu vào `exam_participant` document với status `submitted`
+> - Tự động tính `score` (số câu trắc nghiệm đúng) và `time_taken` (phút)
+> - Validate `attempt_number` và kiểm tra câu hỏi thuộc đề thi
+> - Đánh dấu `is_correct` cho câu trắc nghiệm
 
 **Request (bản cuối):**
 ```json
@@ -640,8 +658,9 @@ Gửi OTP về email để reset password.
 **Validation:**
 - `start_time`: required, ISO 8601, phải >= `exam.start_time`
 - `submit_time`: required, ISO 8601, phải > `start_time`, phải <= `exam.end_time`
+- `attempt_number`: required, integer từ 1-5
 - Thời gian làm bài (`submit_time - start_time`) không vượt quá `allowed_time`
-- `answers`: required, array
+- `answers`: required, array, mỗi phần tử phải có `question_id` và (`user_answer` hoặc `text_answer`)
 
 **Response 200:**
 ```json
@@ -660,10 +679,10 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `GET /user/exam/{exam_id}/result` ⚠️
+### `GET /user/exam/{exam_id}/result` ✅
 🔒 **Yêu cầu auth** — Xem kết quả bài thi.
 
-> **⚠️ Cần sửa:** Trả thêm thông tin cá nhân đầy đủ (profile), lịch sử tất cả lượt thi.
+> **✅ Đã xong:** Query từ `exam_participant` collection. Trả về đầy đủ thông tin câu hỏi, đáp án đúng, và câu trả lời của user.
 
 **Query params (bản cuối):**
 
@@ -677,13 +696,15 @@ Gửi OTP về email để reset password.
   "status": "success",
   "message": "Lấy kết quả bài thi của thí sinh thành công",
   "responseData": {
-    "exam_name": "Vòng thi tìm hiểu đa dạng sinh học",
-    "allowed_time": 20,
-    "template_name": "Đề thi chính thức",
-    "quantity": 21,
-    "correct_count": 15,
-    "time_taken": 18.5,
+    "_id": "ObjectId",
+    "exam_id": { "_id": "ObjectId", "name": "...", "allowed_time": 20 },
+    "user_id": "ObjectId",
     "attempt_number": 3,
+    "status": "submitted",
+    "score": 15,
+    "time_taken": 18.5,
+    "start_time": "2026-05-15T09:00:00Z",
+    "submit_time": "2026-05-15T09:18:30Z",
     "user_profile": {
       "full_name": "Nguyễn Văn A",
       "email": "nguyen.a@example.com",
@@ -698,31 +719,15 @@ Gửi OTP về email để reset password.
     "questions": [
       {
         "_id": "ObjectId",
-        "name": "Loài động vật nào sau đây được liệt kê trong Sách đỏ Việt Nam?",
+        "name": "...",
         "type": "MULTIPLE_CHOICE",
-        "answers": [
-          { "_id": "ObjectId", "value": "Sao la", "is_correct": true },
-          { "_id": "ObjectId", "value": "Gà rừng", "is_correct": false },
-          { "_id": "ObjectId", "value": "Chó nhà", "is_correct": false },
-          { "_id": "ObjectId", "value": "Mèo nhà", "is_correct": false }
-        ],
-        "user_answer": "ObjectId",
-        "is_correct": true
-      },
-      {
-        "_id": "ObjectId",
-        "name": "Hãy nêu ý nghĩa của việc bảo tồn đa dạng sinh học...",
-        "type": "ESSAY",
-        "answers": [],
-        "text_answer": "Bảo tồn đa dạng sinh học giúp...",
-        "essay_score": null,
-        "is_correct": null
+        "answers": [{ "_id": "...", "value": "...", "is_correct": true }],
+        "files": []
       }
     ],
-    "attempt_history": [
-      { "attempt_number": 1, "score": 12, "time_taken": 19.2, "submit_time": "2026-05-15T08:20:00Z" },
-      { "attempt_number": 2, "score": 14, "time_taken": 17.8, "submit_time": "2026-05-15T08:45:00Z" },
-      { "attempt_number": 3, "score": 15, "time_taken": 18.5, "submit_time": "2026-05-15T09:18:30Z" }
+    "answers": [
+      { "question_id": "ObjectId", "user_answer": "ObjectId", "is_correct": true },
+      { "question_id": "ObjectId", "text_answer": "...", "is_correct": null }
     ]
   }
 }
@@ -732,10 +737,10 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `GET /user/exam/{exam_id}/attempts` ❌
+### `GET /user/exam/{exam_id}/attempts` ✅
 🔒 **Yêu cầu auth** — Kiểm tra số lượt thi đã dùng / còn lại.
 
-> **❌ Chưa có.** API mới, cần phát triển khi tách `ExamParticipant`.
+> **✅ Đã xong:** Query từ `exam_participant` collection để đếm số lượt thi.
 
 **Response 200:**
 ```json
@@ -753,10 +758,10 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `GET /user/exam/{exam_id}/history` ❌
+### `GET /user/exam/{exam_id}/history` ✅
 🔒 **Yêu cầu auth** — Lịch sử tất cả lượt thi của user trong 1 kỳ thi.
 
-> **❌ Chưa có.** API mới.
+> **✅ Đã xong:** Query từ `exam_participant` collection, sắp xếp theo `attempt_number`.
 
 **Response 200:**
 ```json
@@ -818,8 +823,9 @@ Gửi OTP về email để reset password.
         "start_time": "2026-05-01T00:00:00Z",
         "end_time": "2026-05-31T23:59:59Z",
         "allowed_time": 20,
-        "template_name": "Đề thi chính thức",
-        "question_count": 21,
+        "templates": [
+          { "name": "Đề thi chính thức", "question_count": 21 }
+        ],
         "created_by": "ObjectId",
         "updated_by": "ObjectId",
         "created_at": "2026-04-01T10:00:00Z",
@@ -891,11 +897,13 @@ Gửi OTP về email để reset password.
     "start_time": "2026-05-01T00:00:00Z",
     "end_time": "2026-05-31T23:59:59Z",
     "allowed_time": 20,
-    "template": {
-      "_id": "ObjectId",
-      "name": "Đề thi chính thức",
-      "questions": ["ObjectId", "ObjectId", "..."]
-    },
+    "templates": [
+      {
+        "_id": "ObjectId",
+        "name": "Đề thi chính thức",
+        "questions": ["ObjectId", "ObjectId", "..."]
+      }
+    ],
     "participants": [
       {
         "user_id": "ObjectId",
@@ -954,27 +962,24 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `PUT /exam/{id}/templates` ✅ → ⚠️
+### `PUT /exam/{id}/templates` ✅
 🔒 **Yêu cầu auth** (Admin) — Tạo đề thi bằng random câu hỏi từ ngân hàng.
 
-> **⚠️ Cần sửa:** Hỗ trợ random theo cấu hình `question_config` (20 MULTIPLE_CHOICE + 1 ESSAY).
+> **✅ Đã xong:** Hỗ trợ chọn số lượng câu trắc nghiệm (`quantity`) và câu tự luận (`essay_quantity`).
 
 **Request:**
 ```json
 {
   "name": "Đề thi chính thức",
-  "quantity": 21
+  "quantity": 20,
+  "essay_quantity": 1
 }
 ```
 
-**Request (bản cuối — Config-First):**
-```json
-{
-  "name": "Đề thi chính thức"
-}
-```
-
-> Bản cuối: `quantity` không cần truyền nữa, đọc từ `exam_rules.question_config` trong WebsiteConfig.
+**Validation:**
+- `name`: required, string
+- `quantity`: required, integer > 0 — số lượng câu hỏi trắc nghiệm (MULTIPLE_CHOICE)
+- `essay_quantity`: optional, integer ≥ 0, default 0 — số lượng câu hỏi tự luận (ESSAY)
 
 **Response 200:**
 ```json
@@ -984,7 +989,7 @@ Gửi OTP về email để reset password.
 }
 ```
 
-**Errors:** `500` Không thể tạo đề thi cho kỳ thi đã hoặc đang diễn ra | Số lượng câu hỏi không hợp lệ
+**Errors:** `500` Không thể tạo đề thi cho kỳ thi đã hoặc đang diễn ra | Số lượng câu hỏi không hợp lệ | Không đủ câu hỏi trong ngân hàng
 
 ---
 
@@ -1948,13 +1953,13 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 11 | User | `/user/myInfo` | GET | ⚠️ | Thêm profile fields |
 | 12 | User | `/user/myInfo` | PUT | ⚠️ | Thêm profile fields |
 | 13 | User | `/user/exam` | GET | ⚠️ | Thêm attempts info |
-| 14 | User | `/user/exam/{exam_id}/register` | PUT | ⚠️ | Tách ExamParticipant |
-| 15 | User | `/user/exam/{exam_id}/begin` | PUT | ⚠️ | Nhiều lượt thi |
+| 14 | User | `/user/exam/{exam_id}/register` | PUT | ✅ | Tách ExamParticipant |
+| 15 | User | `/user/exam/{exam_id}/begin` | PUT | ✅ | Nhiều lượt thi |
 | 16 | User | `/user/exam/{exam_id}/details` | GET | ⚠️ | Thêm câu tự luận |
-| 17 | User | `/user/exam/{exam_id}/submit` | PUT | ⚠️ | Thêm text_answer |
-| 18 | User | `/user/exam/{exam_id}/result` | GET | ⚠️ | Thêm profile + history |
-| 19 | User | `/user/exam/{exam_id}/attempts` | GET | ❌ | **Mới** |
-| 20 | User | `/user/exam/{exam_id}/history` | GET | ❌ | **Mới** |
+| 17 | User | `/user/exam/{exam_id}/submit` | PUT | ✅ | Tính điểm MC + text_answer |
+| 18 | User | `/user/exam/{exam_id}/result` | GET | ✅ | Profile user + chi tiết đúng/sai |
+| 19 | User | `/user/exam/{exam_id}/attempts` | GET | ✅ | Số lượt thi đã dùng/còn lại |
+| 20 | User | `/user/exam/{exam_id}/history` | GET | ✅ | Lịch sử tất cả lượt thi |
 | 21 | Exam | `/exam` | GET | ✅ | |
 | 22 | Exam | `/exam` | POST | ✅ | |
 | 23 | Exam | `/exam/{id}` | GET | ✅ | |
@@ -1990,4 +1995,4 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 ---
 
-**Tổng:** 52 endpoints | ✅ 19 hoạt động | ⚠️ 22 cần sửa | ❌ 11 chưa có
+**Tổng:** 52 endpoints | ✅ 21 hoạt động | ⚠️ 20 cần sửa | ❌ 11 chưa có

@@ -5,23 +5,21 @@ import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import { UserProvider } from "#providers/userProvider";
 import { ExamParticipantProvider } from "#providers/examParticipantProvider";
-import { ExamParticipantStatus } from "#models/examParticipant";
-import mongoose from "mongoose";
 
 export default (_express: Application) => {
 	const examProvider = new ExamProvider();
 	const userProvider = new UserProvider();
 	const examParticipantProvider = new ExamParticipantProvider();
 	return <Resource>{
-		put: {
+		get: {
 			middleware: verify,
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /user/exam/{exam_id}/register:
-				 *   put:
+				 * /user/exam/{exam_id}/attempts:
+				 *   get:
 				 *     tags: [User]
-				 *     description: Register an exam
+				 *     description: Get remaining attempts info for an exam
 				 *     security:
 				 *       - Bearer: []
 				 *     parameters:
@@ -30,7 +28,7 @@ export default (_express: Application) => {
 				 *         schema:
 				 *           type: string
 				 *           example: 6699f4391c7ab023b0a77b5b
-				 *         description: Exam ID to register
+				 *         description: Exam ID
 				 *         required: true
 				 *     responses:
 				 *       200:
@@ -42,34 +40,22 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					const currentTime = new Date();
 					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
-
 					const examId = req.params.exam_id as string;
 					const exam = await examProvider.validateAndFetchExam(examId);
 
-					if (currentTime > exam.end_time) throw new Error("Kỳ thi đã hết hạn đăng ký");
+					const maxAttempts = exam.max_attempts || 1;
+					const usedAttempts = await examParticipantProvider.getAttemptsCount(examId, userId.toString());
+					const remainingAttempts = Math.max(0, maxAttempts - usedAttempts);
 
-					// Check if already registered using new ExamParticipant model
-					const existingParticipant = await examParticipantProvider.getParticipantByExamAndUser(
-						examId,
-						userId.toString()
-					);
-					if (existingParticipant) {
-						throw new Error("Bạn đã đăng ký kỳ thi này trước đó");
-					}
-
-					// Create registered participant
-					await examParticipantProvider.post({
-						exam_id: new mongoose.Types.ObjectId(examId) as any,
-						user_id: new mongoose.Types.ObjectId(userId.toString()) as any,
-						attempt_number: 1,
-						status: ExamParticipantStatus.REGISTERED,
-						shuffled_questions: [],
-						answers: [],
+					return res.sendOk({
+						data: {
+							used: usedAttempts,
+							remaining: remainingAttempts,
+							max: maxAttempts,
+						},
+						message: "Lấy thông tin lượt thi thành công",
 					});
-
-					return res.sendOk({ data: { message: "Đăng ký thi thành công" } });
 				} catch (error) {
 					return res.sendError({ err: error });
 				}

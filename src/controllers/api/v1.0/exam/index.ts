@@ -79,7 +79,8 @@ export default (_express: Application) => {
 							"start_time",
 							"end_time",
 							"allowed_time",
-							"template",
+							"max_attempts",
+							"templates",
 							"created_by",
 							"updated_by",
 							"created_at",
@@ -96,12 +97,15 @@ export default (_express: Application) => {
 						start_time: exam.start_time,
 						end_time: exam.end_time,
 						allowed_time: exam.allowed_time,
+						max_attempts: exam.max_attempts,
 						created_by: exam.created_by,
 						updated_by: exam.updated_by,
 						created_at: exam.created_at,
 						updated_at: exam.updated_at,
-						template_name: exam?.template?.name,
-						question_count: exam?.template?.questions?.length || 0,
+						templates: exam?.templates?.map((t) => ({
+							name: t?.name,
+							question_count: t?.questions?.length || 0,
+						})),
 					}));
 
 					const responsesData = {
@@ -144,6 +148,7 @@ export default (_express: Application) => {
 				 *               "start_time": "2024-08-01T09:00:00Z",
 				 *               "end_time": "2024-08-31T09:00:00Z",
 				 *               "allowed_time": 120,
+				 *               "max_attempts": 5
 				 *             }
 				 *     responses:
 				 *       200:

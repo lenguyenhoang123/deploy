@@ -422,6 +422,7 @@ export default {
 					type: "object",
 					properties: {
 						user_id: { type: "string", format: "uuid" },
+						attempt_count: { type: "number", minimum: 0 },
 						start_time: { type: "string", format: "date-time" },
 						submit_time: { type: "string", format: "date-time" },
 						answers: {
@@ -439,6 +440,7 @@ export default {
 						start_time: { type: "string", format: "date-time" },
 						end_time: { type: "string", format: "date-time" },
 						allowed_time: { type: "number" },
+						max_attempts: { type: "number", minimum: 1, maximum: 5 },
 						template: {
 							type: "object",
 							items: { $ref: "#/components/schemas/Template" },

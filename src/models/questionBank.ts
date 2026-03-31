@@ -29,6 +29,7 @@ function arrayLimit(val: IAnswer[]) {
 }
 
 export interface IQuestionBank {
+	_id?: ObjectId;
 	name: string;
 	type: string;
 	level: string;
