@@ -186,7 +186,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 			if (templateQuestion) {
 				// Get shuffled answer order if exists
 				const answerIds = shuffledAnswers?.[questionIdStr] || templateQuestion.answers.map((a: any) => a._id.toString());
-				
+
 				const answers = answerIds
 					.map((answerId: string) => this.getAnswerById(templateQuestion.answers, answerId as unknown as ObjectId))
 					.filter(Boolean);
@@ -214,13 +214,12 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 
 	// Exam Statuses
 	async getExamStatus(examId: string, userId: string) {
-		const { participants } = await this.getById(examId);
 		let is_registered = false,
 			is_submitted = false;
 
-		const participant = participants.find((p) => p.user_id.toString() === userId);
+		const participant = await examParticipantProvider.getParticipantByExamAndUser(examId, userId);
 		if (participant) is_registered = true;
-		if (participant?.submit_time) is_submitted = true;
+		if (participant?.status === "submitted") is_submitted = true;
 
 		return { is_registered, is_submitted };
 	}
@@ -239,7 +238,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		if (participant.questions && participant.questions.length > 0) {
 			// Get template by finding which template contains the first question
 			const firstQuestionId = participant.questions[0].toString();
-			template = templates.find((t: any) => 
+			template = templates.find((t: any) =>
 				t.questions.some((q: any) => q._id.toString() === firstQuestionId)
 			);
 		}
@@ -487,7 +486,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 			path: "templates.questions",
 			select: "type",
 		});
-		
+
 		const populatedTemplate = populatedExam.templates[templateIndex];
 		const currentQuestions = populatedTemplate.questions as any[];
 		const oldQuestionIds = currentQuestions.map((q: any) => q._id?.toString() || q.toString());
@@ -501,7 +500,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 			multipleChoiceCount,
 			"MULTIPLE_CHOICE" as any,
 		);
-		const newEssayQuestions = essayCount > 0 
+		const newEssayQuestions = essayCount > 0
 			? await questionBankProvider.getRandomQuestionsByType(essayCount, "ESSAY" as any)
 			: [];
 
