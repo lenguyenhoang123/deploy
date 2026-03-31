@@ -79,7 +79,7 @@ export class ExamParticipantProvider extends BaseProvider<IExamParticipant, IExa
 		exam_id: ObjectId;
 		user_id: ObjectId;
 		attempt_number: number;
-		shuffled_questions: ObjectId[];
+		questions: ObjectId[];
 		shuffled_answers?: Record<string, any>;
 		start_time?: Date;
 	}) {
@@ -173,18 +173,13 @@ export class ExamParticipantProvider extends BaseProvider<IExamParticipant, IExa
 	async getParticipantWithPopulatedQuestions(participantId: string) {
 		const participant = await this.getById(participantId, {
 			includes: [
-				{ path: "shuffled_questions", select: "name type answers files" },
+				{ path: "questions", select: "name type answers files" },
 				{ path: "exam_id", select: "name allowed_time" },
 			],
 		});
 		if (!participant) return null;
-		// Convert to plain object and transform
-		const plain = participant.toObject?.() || participant;
-		const { shuffled_questions, shuffled_answers, ...rest } = plain;
-		return {
-			...rest,
-			questions: shuffled_questions,
-		};
+		// Return plain object without internal Mongoose properties
+		return participant.toObject?.() || participant;
 	}
 
 	async getAllAttemptsByExamAndUser(examId: string, userId: string) {

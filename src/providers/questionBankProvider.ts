@@ -105,24 +105,26 @@ export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionB
 				throw new Error(`Số câu hỏi ${questionType} hợp lệ trong ngân hàng là: ${result.count}. Không đủ số câu cần tạo.`);
 
 			const questions = result.rows;
-			const groupedQuestions = this.groupQuestionsByLevel(questions);
+			
+			// Shuffle toàn bộ danh sách trước để đảm bảo random thực sự
+			const shuffledAll = this.shuffleAndSlice(questions, questions.length);
+			
+			const groupedQuestions = this.groupQuestionsByLevel(shuffledAll);
 
 			const numQuestionsPerLevel = Math.floor(quantity / 3);
-			const easyQuestions = this.shuffleAndSlice(groupedQuestions["EASY"], numQuestionsPerLevel);
-			const normalQuestions = this.shuffleAndSlice(groupedQuestions["NORMAL"], numQuestionsPerLevel);
-			const hardQuestions = this.shuffleAndSlice(groupedQuestions["HARD"], numQuestionsPerLevel);
+			const easyQuestions = groupedQuestions["EASY"]?.slice(0, numQuestionsPerLevel) || [];
+			const normalQuestions = groupedQuestions["NORMAL"]?.slice(0, numQuestionsPerLevel) || [];
+			const hardQuestions = groupedQuestions["HARD"]?.slice(0, numQuestionsPerLevel) || [];
 
 			let combinedQuestions = [...easyQuestions, ...normalQuestions, ...hardQuestions] as any[];
 			if (combinedQuestions.length < quantity) {
-				combinedQuestions = await this.fillRemainingQuestions(questions, combinedQuestions, quantity);
+				combinedQuestions = await this.fillRemainingQuestions(shuffledAll, combinedQuestions, quantity);
 			}
 
-			let sortedQuestions = combinedQuestions.sort((a, b) => a._id - b._id);
-			sortedQuestions.forEach((q) => {
-				q.answers.sort((a, b) => a - b);
-			});
+			// Final shuffle to mix levels
+			const finalShuffled = this.shuffleAndSlice(combinedQuestions, combinedQuestions.length);
 
-			return sortedQuestions;
+			return finalShuffled;
 		} catch (error) {
 			throw new Error(`Lấy câu hỏi ngẫu nhiên theo loại thất bại: ${error.message}`);
 		}
