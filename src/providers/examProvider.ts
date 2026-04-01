@@ -102,6 +102,24 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		return template.questions;
 	}
 
+	async getTemplatesList(examId: string) {
+		const exam = await this.getById(examId);
+		if (!exam) throw new Error("Kỳ thi không tồn tại");
+
+		const templates = exam.templates.map((template: any) => ({
+			template_id: template._id,
+			template_name: template.name,
+			question_count: template.questions?.length || 0,
+		}));
+
+		return {
+			exam_id: exam._id,
+			exam_name: exam.name,
+			template_count: templates.length,
+			templates: templates,
+		};
+	}
+
 	async getTemplateDetails(examId: string) {
 		const exam = await this.getExamDetails(examId);
 		const templates = exam.templates;
