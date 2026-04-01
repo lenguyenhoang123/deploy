@@ -155,13 +155,15 @@ export const validateSubmitExam = () => [
 		.withMessage("Số lượt thi phải từ 1 đến 5"),
 
 	body("answers")
-		.notEmpty()
-		.withMessage("Danh sách câu trả lời không được để trống")
 		.isArray()
 		.withMessage("Danh sách câu trả lời phải là một mảng")
 		.custom((answers: any[]) => {
-			if (!Array.isArray(answers) || answers.length === 0) {
-				throw new Error("Danh sách câu trả lời không được để trống");
+			if (!Array.isArray(answers)) {
+				throw new Error("Danh sách câu trả lời phải là một mảng");
+			}
+			// Allow empty answers array - user can submit without answering
+			if (answers.length === 0) {
+				return true;
 			}
 			for (const answer of answers) {
 				// Validate question_id
