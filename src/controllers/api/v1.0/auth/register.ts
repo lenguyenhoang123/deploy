@@ -29,7 +29,7 @@ export default (_express: Application) => {
 
 	return {
 		post: {
-			middleware: validateRegisterUser,
+			middleware: validateRegisterUser(),
 			handler: async (req: Req<IUser, UserRegister>, res: Res) => {
 				/**
 				 * @openapi
@@ -99,7 +99,6 @@ export default (_express: Application) => {
 
 			const user = await userProvider.post({ ...userValues, profile, is_active: false, is_deleted: false });
 			const otp = await generateAndSendOtp(user.id, password, req.body.email);
-
 			if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
 			return res.sendOk({ data: { message: "Đăng ký tài khoản thành công" } });
 		} catch (error) {
@@ -134,7 +133,6 @@ export default (_express: Application) => {
 			middle_name: userValues.middle_name,
 			last_name: userValues.last_name,
 			phone: userValues.phone,
-			unit: userValues.unit,
 			profile: profile,
 		});
 

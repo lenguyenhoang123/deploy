@@ -7,10 +7,6 @@ export interface IUser {
 	last_name: string;
 	email: string;
 	phone: string;
-	unit?: {
-		district: string;
-		ward: string;
-	};
 	profile?: Record<string, any>;
 	is_admin?: boolean;
 	is_active?: boolean;
@@ -57,10 +53,6 @@ export const schema = (function () {
 				unique: true,
 				required: [true, "Vui lòng nhập số điện thoại"],
 				validate: [(value: string) => isMobilePhone(value, "vi-VN"), "Số điện thoại không hợp lệ"],
-			},
-			unit: {
-				district: String,
-				ward: String,
 			},
 			profile: { type: Schema.Types.Mixed },
 			is_active: { type: Boolean, default: false },
