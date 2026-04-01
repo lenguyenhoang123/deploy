@@ -30,12 +30,12 @@ export default (_express: Application) => {
 				 *           example: 6699f4391c7ab023b0a77b5b
 				 *         description: Exam ID
 				 *         required: true
-				 *       - name: participant_id
+				 *       - name: participant_id(userid)
 				 *         in: path
 				 *         schema:
 				 *           type: string
 				 *           example: 6699f4391c7ab023b0a77b5b
-				 *         description: Participant ID
+				 *         description: Participant ID (userid)
 				 *         required: true
 				 *     responses:
 				 *       200:
@@ -55,7 +55,8 @@ export default (_express: Application) => {
 					if (!participantId) throw new Error("Participant ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(participantId)) throw new Error("Participant ID không hợp lệ");
 
-					const result = await provider.generateParticipantStatistics(examId, participantId);
+					const result = await provider.getSingleParticipantStatistics(examId, participantId);
+				if (!result) throw new Error("Không tìm thấy thông tin thí sinh");
 
 					return res.sendOk({
 						data: result,

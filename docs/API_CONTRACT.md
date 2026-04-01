@@ -1587,10 +1587,10 @@ Gửi OTP về email để reset password.
 
 ## 8. Statistics
 
-### `GET /statistics/exam/{exam_id}/participant` ⚠️
+### `GET /statistics/exam/{exam_id}/participant` ✅
 🔒 **Yêu cầu auth** (Admin) — Thống kê theo thí sinh.
 
-> **⚠️ Cần sửa:** Trả thêm profile fields (CCCD, trường, lớp...); tính điểm cao nhất / thời gian thấp nhất trong nhiều lượt; phân loại THCS/THPT.
+> **✅ Đã xong:** Trả profile fields (CCCD, trường, lớp...); tính điểm cao nhất / thời gian thấp nhất trong nhiều lượt; xếp hạng theo điểm và thời gian.
 
 **Query params:**
 
@@ -1637,10 +1637,10 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `GET /statistics/exam/{exam_id}/participant/{participant_id}` ⚠️
+### `GET /statistics/exam/{exam_id}/participant/{participant_id}` ✅
 🔒 **Yêu cầu auth** (Admin) — Thống kê chi tiết 1 thí sinh.
 
-> **⚠️ Cần sửa:** Trả thêm profile fields.
+> **✅ Đã xong:** Trả đầy đủ profile fields và aggregated stats (best_score, total_attempts...).
 
 **Response 200 (bản cuối):**
 ```json
@@ -1674,11 +1674,11 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `GET /statistics/exam/{exam_id}/participant/export` ⚠️
+### `GET /statistics/exam/{exam_id}/participant/export` ✅
 🔒 **Yêu cầu auth** (Admin) — Xuất thống kê thí sinh ra file Excel.
 
-> **⚠️ Cần sửa:** Thêm tất cả columns mới; tách sheet THCS/THPT; điểm cao nhất + thời gian thấp nhất.
-
+> **✅ Đã xong:** Đã thêm tất cả columns mới; tách sheet THCS/THPT; điểm cao nhất + thời gian thấp nhất.
+theo
 **Query params:** Giống `GET /statistics/exam/{exam_id}/participant`
 
 **Response:** File Excel (`.xlsx`)
@@ -1696,10 +1696,10 @@ Content-Disposition: attachment; filename=ThongKeTheoCaNhan.xlsx
 
 ---
 
-### `GET /statistics/exam/{exam_id}/unit` ⚠️
+### `GET /statistics/exam/{exam_id}/unit` ✅
 🔒 **Yêu cầu auth** (Admin) — Thống kê theo đơn vị (trường học).
 
-> **⚠️ Cần sửa:** Group by đọc từ `unit_schema.group_by_field` thay vì hardcode `district`.
+> **✅ Đã xong:** Group by đọc từ `unit_schema.group_by_field` (hỗ trợ: `school_name`, `district`, `ward`, `class_name`).
 
 **Query params:**
 
@@ -2027,10 +2027,10 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 38 | File | `/file/{id}` | DELETE | ✅ | |
 | 39 | Config | `/website-config` | GET | ⚠️ | Mở rộng fields |
 | 40 | Config | `/website-config` | PUT | ⚠️ | Mở rộng fields |
-| 41 | Stats | `/statistics/exam/{id}/participant` | GET | ⚠️ | Nhiều lượt, profile fields |
-| 42 | Stats | `/statistics/exam/{id}/participant/{pid}` | GET | ⚠️ | Profile fields |
-| 43 | Stats | `/statistics/exam/{id}/participant/export` | GET | ⚠️ | Tách THCS/THPT |
-| 44 | Stats | `/statistics/exam/{id}/unit` | GET | ⚠️ | Config-driven group by |
+| 41 | Stats | `/statistics/exam/{id}/participant` | GET | ✅ | Aggregate nhiều lượt, profile fields, xếp hạng |
+| 42 | Stats | `/statistics/exam/{id}/participant/{pid}` | GET | ✅ | Profile fields + aggregated stats |
+| 43 | Stats | `/statistics/exam/{id}/participant/export` | GET | ✅ | Columns mới + 2 sheets THCS/THPT |
+| 44 | Stats | `/statistics/exam/{id}/unit` | GET | ✅ | Config-driven group by |
 | 45 | Stats | `/statistics/exam/{id}/unit/export` | GET | ⚠️ | Config-driven columns |
 | 46 | Stats | `/statistics/total-participants` | GET | ❌ | **Mới** — Public counter |
 | 47 | CMS | `/content-page` | GET | ❌ | **Mới** |

@@ -723,6 +723,9 @@ Mỗi câu MC, đáp án cũng được shuffle:
    │                                   │                              │
    │  GET /user/exam/{exam_id}/result  │                              │
    │  ?attempt_number=3               │                              │
+   │  &currentPage=1&pageSize=10        │  ← Phân trang câu hỏi        │
+   │  &filters=type==MULTIPLE_CHOICE  │  ← Lọc theo loại/đúng sai     │
+   │  &sortField=type&sortOrder=asc   │  ← Sắp xếp                   │
    │──────────────────────────────────▶│                              │
    │                                   │                              │
    │                        ┌──────────┴──────────────────┐           │
@@ -734,48 +737,42 @@ Mỗi câu MC, đáp án cũng được shuffle:
    │                        │    từ question_bank         │           │
    │                        │    → TRẢ is_correct (!)     │           │
    │                        │                             │           │
-   │                        │ 3. Populate user info       │           │
-   │                        │    + profile                │           │
+   │                        │ 3. Apply filters            │           │
+   │                        │    (type, is_correct)       │           │
    │                        │                             │           │
-   │                        │ 4. Query attempt_history    │           │
-   │                        │    (tất cả lượt đã thi)     │──────────▶│
-   │                        │                             │◀──────────│
+   │                        │ 4. Apply sort               │           │
+   │                        │    (sortField, sortOrder)   │           │
+   │                        │                             │           │
+   │                        │ 5. Pagination             │           │
+   │                        │    (slice theo page)        │           │
    │                        └──────────┬──────────────────┘           │
    │                                   │                              │
    │  {                                │                              │
    │    exam_name, allowed_time,       │                              │
    │    correct_count: 15,             │                              │
    │    time_taken: 18.5,              │                              │
-   │    attempt_number: 3,             │                              │
+   │    attempt_number: 3,           │                              │
+   │    // user_profile: {            │  ← Tạm thời comment
+   │    //   full_name, email...      │                              │
+   │    // },                           │                              │
    │                                   │                              │
-   │    user_profile: {                │                              │
-   │      full_name, email, phone,     │                              │
-   │      identity_number,             │                              │
-   │      date_of_birth, gender,       │                              │
-   │      class_name, school_name,     │                              │
-   │      school_address               │                              │
-   │    },                             │                              │
-   │                                   │                              │
-   │    questions: [                   │                              │
+   │    questions: [                    │  ← Đã phân trang              │
    │      {name, type: "MC",           │                              │
-   │       answers: [{value,           │                              │
-   │         is_correct}],             │   ← Giờ TRẢ is_correct       │
-   │       user_answer, is_correct},   │                              │
-   │      {name, type: "ESSAY",        │                              │
-   │       text_answer: "...",         │                              │
-   │       essay_score: null,          │   ← null = chưa chấm         │
-   │       is_correct: null}           │                              │
+   │       answers: [{value,          │                              │
+   │         is_correct}],            │   ← Giờ TRẢ is_correct       │
+   │       user_answer, is_correct},  │                              │
+   │      {name, type: "ESSAY",       │                              │
+   │       text_answer: "...",        │                              │
+   │       essay_score: null,         │   ← null = chưa chấm         │
+   │       is_correct: null}          │                              │
    │    ],                             │                              │
-   │                                   │                              │
-   │    attempt_history: [             │                              │
-   │      {attempt: 1, score: 12,      │                              │
-   │       time_taken: 19.2,           │                              │
-   │       submit_time: "ISO8601"},    │                              │
-   │      {attempt: 2, score: 14,      │                              │
-   │       time_taken: 17.8, ...},     │                              │
-   │      {attempt: 3, score: 15,      │                              │
-   │       time_taken: 18.5, ...}      │                              │
-   │    ]                              │                              │
+   │    answers: [...],                │                              │
+   │    pagination: {                  │  ← Thông tin phân trang       │
+   │      count: 21,                   │                              │
+   │      pageSize: 10,                │                              │
+   │      currentPage: 1,              │                              │
+   │      totalPages: 3               │                              │
+   │    }                              │                              │
    │  }                                │                              │
    │◀──────────────────────────────────│                              │
 ```
@@ -1014,6 +1011,58 @@ Mỗi câu MC, đáp án cũng được shuffle:
 
 ## 14. Thống kê & Export Excel
 
+### Shuffle đề thi (Admin)
+
+#### API: `PUT /exam/{id}/templates/{template_id}/shuffle` 🔒🔑
+
+```
+  Admin                             Backend                         DB
+   │                                   │                              │
+   │  PUT /exam/{id}/templates/{tid}/shuffle                           │
+   │──────────────────────────────────▶│                              │
+   │                                   │                              │
+   │                        ┌──────────┴──────────────────┐           │
+   │                        │ VALIDATE:                   │           │
+   │                        │ • exam tồn tại              │──────────▶│
+   │                        │ • template tồn tại          │◀──────────│
+   │                        │ • now < exam.start_time     │           │
+   │                        │   (chỉ shuffle khi chưa bắt │           │
+   │                        │    đầu)                     │           │
+   │                        └──────────┬──────────────────┘           │
+   │                                   │                              │
+   │                        ┌──────────┴──────────────────┐           │
+   │                        │ ĐẾM câu hỏi hiện tại:       │           │
+   │                        │ • multiple_choice_count     │           │
+   │                        │ • essay_count               │           │
+   │                        └──────────┬──────────────────┘           │
+   │                                   │                              │
+   │                        ┌──────────┴──────────────────┐           │
+   │                        │ RANDOM câu hỏi mới từ       │           │
+   │                        │ question_bank:               │──────────▶│
+   │                        │ • Cùng số lượng MC          │◀──────────│
+   │                        │ • Cùng số lượng ESSAY       │           │
+   │                        │ • Shuffle theo level        │           │
+   │                        └──────────┬──────────────────┘           │
+   │                                   │                              │
+   │                        ┌──────────┴──────────────────┐           │
+   │                        │ UPDATE exam.templates       │──────────▶│
+   │                        │ • exam.markModified('templates')         │
+   │                        │ • exam.save()               │           │
+   │                        └──────────┬──────────────────┘           │
+   │                                   │                              │
+   │  {                                │                              │
+   │    multiple_choice_count: 20,     │                              │
+   │    essay_count: 1,                │                              │
+   │    old_questions: ["id1","id2"], │  ← Câu hỏi cũ (tham khảo)     │
+   │    new_questions: ["id3","id4"]    │  ← Câu hỏi mới               │
+   │  }                                │                              │
+   │◀──────────────────────────────────│                              │
+```
+
+> **Lưu ý:** Chỉ shuffle được khi kỳ thi chưa bắt đầu (`now < start_time`).
+
+---
+
 ### Thống kê theo cá nhân
 
 ```
@@ -1206,13 +1255,14 @@ Mỗi câu MC, đáp án cũng được shuffle:
 | `GET` | `/user/exam/{id}/attempts` | Kiểm tra số lượt thi |
 | `GET` | `/user/exam/{id}/history` | Lịch sử lượt thi |
 
-### Admin (🔒🔑 Bearer Token + isAdmin)
+### Admin ( Bearer Token + isAdmin)
 
 | Method | Path | Mô tả |
 |--------|------|-------|
 | `GET/POST` | `/exam` | CRUD kỳ thi |
 | `GET/PUT/DELETE` | `/exam/{id}` | Chi tiết / Sửa / Xóa kỳ thi |
 | `PUT` | `/exam/{id}/templates` | Tạo đề thi (random) |
+| `PUT` | `/exam/{id}/templates/{tid}/shuffle` | Xào câu hỏi trong đề thi |
 | `GET/POST` | `/question-bank` | CRUD câu hỏi |
 | `POST` | `/question-bank/{id}/copy` | Sửa câu hỏi (copy-on-write) |
 | `PUT` | `/question-bank/{id}/delete` | Xóa mềm câu hỏi |

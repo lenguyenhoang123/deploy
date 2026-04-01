@@ -196,6 +196,39 @@ export class ExamParticipantProvider extends BaseProvider<IExamParticipant, IExa
 		});
 		return result.rows;
 	}
+
+	/**
+	 * Update essay scores for a participant's answers
+	 * @param currentAnswers - Current answers array from participant
+	 * @param essayScores - Array of {question_id, is_correct} for essay questions
+	 * @returns Object with new total score and updated answers array
+	 */
+	updateEssayScores(
+		currentAnswers: IExamParticipantAnswer[],
+		essayScores: { question_id: string; is_correct: boolean }[]
+	): { newScore: number; updatedAnswers: IExamParticipantAnswer[] } {
+		const scoresMap = new Map<string, boolean>();
+		for (const score of essayScores) {
+			scoresMap.set(score.question_id, score.is_correct);
+		}
+
+		// Update answers with essay scores
+		const updatedAnswers = currentAnswers.map((answer) => {
+			const essayScore = scoresMap.get(answer.question_id.toString());
+			if (essayScore !== undefined) {
+				return {
+					...answer,
+					is_correct: essayScore,
+				};
+			}
+			return answer;
+		});
+
+		// Recalculate total score (count all correct answers, both MC and essay)
+		const newScore = updatedAnswers.filter((a) => a.is_correct === true).length;
+
+		return { newScore, updatedAnswers };
+	}
 }
 
 export default ExamParticipantProvider;

@@ -7,7 +7,7 @@ import { queryFilter } from "#middlewares/query-filter";
 import mongoose from "mongoose";
 import { ExcelExportService } from "#services/excelExportService";
 import { participantStatisticsTemplate } from "#templates/excel/statisticsTemplate";
-import { formattedDataToExport } from "#services/statisticsService";
+import { formattedParticipantDataToExport, classifyStudentLevel } from "#services/statisticsService";
 import { UserProvider } from "#providers/userProvider";
 
 export default (_express: Application) => {
@@ -23,7 +23,7 @@ export default (_express: Application) => {
 				 * /statistics/exam/{exam_id}/participant/export:
 				 *   get:
 				 *     tags: [Statistics]
-				 *     description: Get exam statistics by ID.
+				 *     description: Export exam statistics to Excel with THCS and THPT sheets.
 				 *     security:
 				 *       - Bearer: []
 				 *     parameters:
@@ -38,35 +38,19 @@ export default (_express: Application) => {
 				 *         in: query
 				 *         schema:
 				 *           type: string
-				 *         description: Optional filter criteria for the items.
-				 *       - name: pageSize
-				 *         in: query
-				 *         schema:
-				 *           type: integer
-				 *           example: 10
-				 *         description: Number of items per page.
-				 *       - name: currentPage
-				 *         in: query
-				 *         schema:
-				 *           type: integer
-				 *           example: 1
-				 *         description: Current page number for pagination.
+				 *         description: Optional filter criteria.
 				 *       - name: sortBy
 				 *         in: query
 				 *         schema:
 				 *           type: string
-				 *           example: correct_count,desc;time_taken,asc
-				 *         description: Sorting criteria (e.g., "correct_count,desc;time_taken,asc")
-				 *         required: false
+				 *           example: best_score,desc;best_time_taken,asc
+				 *         description: Sorting criteria.
 				 *     responses:
 				 *       200:
 				 *         description: Success
 				 *         content:
-				 *           application/json:
-				 *             schema:
-				 *               $ref: '#/components/schemas/Response'
 				 *           application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
-				 *             description: Excel file
+				 *             description: Excel file with THCS and THPT sheets
 				 */
 
 				try {
@@ -74,20 +58,51 @@ export default (_express: Application) => {
 					const examId = req.params.exam_id as string;
 					if (!examId) throw new Error("ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("ID không hợp lệ");
+
+					// Get all participants (no pagination for export)
 					const queryOptions = {
 						where: req.payload.where,
-						pageSize: req.payload.pageSize,
-						currentPage: req.payload.currentPage,
 						sortBy: req.query.sortBy as string,
 					};
 
-					const result = await provider.getParticipantStatistics(examId, queryOptions);
+					const result = await provider.getParticipantStatistics(examId, {
+						...queryOptions,
+						pageSize: 0,
+						currentPage: 1,
+					});
 
-					const formattedData = formattedDataToExport(result.rows);
-					const excelBuffer = await ExcelExportService.generateExcel(
-						formattedData,
-						participantStatisticsTemplate.headers,
-					);
+					// Split data into THCS and THPT
+					const thcsData: any[] = [];
+					const thptData: any[] = [];
+
+					for (const item of result.rows) {
+						const level = classifyStudentLevel(item.class_name);
+						if (level === "THCS") {
+							thcsData.push(item);
+						} else if (level === "THPT") {
+							thptData.push(item);
+						}
+					}
+
+					// Format data for export
+					const formattedTHCS = formattedParticipantDataToExport(thcsData);
+					const formattedTHPT = formattedParticipantDataToExport(thptData);
+
+					// Generate multi-sheet Excel
+					const sheets = [
+						{
+							sheetName: "THCS",
+							data: formattedTHCS,
+							headers: participantStatisticsTemplate.headers,
+						},
+						{
+							sheetName: "THPT",
+							data: formattedTHPT,
+							headers: participantStatisticsTemplate.headers,
+						},
+					];
+
+					const excelBuffer = await ExcelExportService.generateExcelMultiSheet(sheets);
 					res.setHeader("Content-Disposition", "attachment; filename=ThongKeTheoCaNhan.xlsx");
 					res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 					return res.send(excelBuffer);

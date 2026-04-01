@@ -19,6 +19,7 @@ export type PaginationOption = {
 class BaseProvider<ModelInterface, ModelMethods> {
 	private collection: Model<ModelInterface, {}, ModelMethods>;
 	private logger = new LoggingService();
+	private collectionReady: Promise<void | Model<ModelInterface, {}, ModelMethods>>;
 
 	constructor(
 		collectionInit?: {
@@ -29,11 +30,12 @@ class BaseProvider<ModelInterface, ModelMethods> {
 	) {
 		if (collection) {
 			this.collection = collection;
+			this.collectionReady = Promise.resolve();
 			return;
 		}
 		if (!collectionInit) throw new Error("Provider must either include init attr or a collection");
 		const { collectionName, schema } = collectionInit;
-		connectMongo()
+		this.collectionReady = connectMongo()
 			.then(
 				(db) =>
 					(this.collection = db.model<ModelInterface, Model<ModelInterface, {}, ModelMethods>>(
@@ -49,7 +51,15 @@ class BaseProvider<ModelInterface, ModelMethods> {
 		return;
 	}
 
+	private async ensureCollection() {
+		await this.collectionReady;
+		if (!this.collection) {
+			throw new Error("Database collection not initialized");
+		}
+	}
+
 	async getAll(payload?: BaseQueryOption<ModelInterface> & PaginationOption) {
+		await this.ensureCollection();
 		// Init Query
 		const where = payload?.where ?? {};
 		const limit = payload && payload.pageSize;
@@ -85,12 +95,14 @@ class BaseProvider<ModelInterface, ModelMethods> {
 	}
 
 	async getById(id: string, payload?: Omit<BaseQueryOption<ModelInterface>, "where">) {
+		await this.ensureCollection();
 		const attributes = payload?.attributes;
 		const populates = payload?.includes ?? [];
 		return await this.collection.findById(id, attributes).populate(populates);
 	}
 
 	async getOne(payload: BaseQueryOption<ModelInterface>) {
+		await this.ensureCollection();
 		const where = payload?.where ?? {};
 		const attributes = payload?.attributes;
 		const populates = payload?.includes ?? [];

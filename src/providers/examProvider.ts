@@ -13,6 +13,7 @@ import { UserProvider } from "#providers/userProvider";
 import { QuestionBankProvider } from "#providers/questionBankProvider";
 import { ExamParticipantProvider } from "#providers/examParticipantProvider";
 import { applyFilters, applyPagination, applySorting, generatePaginationResult } from "#services/statisticsService";
+import { WebsiteConfigProvider } from "#providers/websiteConfigProvider"
 import { IFile } from "#models/file";
 const userProvider = new UserProvider();
 const questionBankProvider = new QuestionBankProvider();
@@ -377,18 +378,178 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		return question.answers.some((a) => a._id.toString() === userAnswer?.toString() && a.is_correct);
 	}
 
-	async generateParticipantStatistics(examId: string, participantId: string): Promise<IParticipantStatistics> {
+	/**
+	 * Get all submitted exam participants for an exam
+	 */
+	async getAllSubmittedParticipants(examId: string) {
+		return await examParticipantProvider.getAll({
+			where: {
+				exam_id: new mongoose.Types.ObjectId(examId),
+				status: "submitted",
+			},
+			pageSize: 10000,
+			currentPage: 1,
+		});
+	}
+
+	/**
+	 * Aggregate participant statistics by user_id
+	 * For each user, calculate: total_attempts, best_score, best_time_taken, best_submit_time
+	 */
+	private async aggregateParticipantStats(examId: string): Promise<Map<string, IParticipantStatistics>> {
+		const participantsResult = await this.getAllSubmittedParticipants(examId);
+		const participants = participantsResult.rows;
+
+		const userStatsMap = new Map<string, any>();
+
+		// Group attempts by user_id
+		for (const participant of participants) {
+			const userId = participant.user_id.toString();
+
+			if (!userStatsMap.has(userId)) {
+				userStatsMap.set(userId, {
+					attempts: [],
+				});
+			}
+
+			const userData = userStatsMap.get(userId);
+			userData.attempts.push({
+				attempt_number: participant.attempt_number,
+				score: participant.score || 0,
+				time_taken: participant.time_taken || 0,
+				submit_time: participant.submit_time,
+			});
+		}
+
+		// Calculate aggregated stats for each user
+		const result = new Map<string, IParticipantStatistics>();
+
+		for (const [userId, data] of userStatsMap.entries()) {
+			const user = await userProvider.getById(userId);
+			if (!user) continue;
+
+			const attempts = data.attempts;
+			const totalAttempts = attempts.length;
+
+			// Find best attempt (highest score, if tie then shortest time)
+			const bestAttempt = attempts.reduce((best: any, current: any) => {
+				if (current.score > best.score) return current;
+				if (current.score === best.score && current.time_taken < best.time_taken) return current;
+				return best;
+			}, attempts[0]);
+
+			const profile = user.profile || {};
+
+			result.set(userId, {
+				_id: userId,
+				first_name: user.first_name,
+				middle_name: user.middle_name,
+				last_name: user.last_name,
+				identity_number: profile.identity_number,
+				date_of_birth: profile.date_of_birth,
+				gender: profile.gender,
+				class_name: profile.class_name,
+				school_name: profile.school_name,
+				school_address: profile.school_address,
+				phone: user.phone,
+				classification: profile.classification,
+				district: user.unit?.district,
+				ward: user.unit?.ward,
+				total_attempts: totalAttempts,
+				best_score: bestAttempt.score,
+				best_time_taken: bestAttempt.time_taken,
+				best_submit_time: bestAttempt.submit_time,
+			});
+		}
+
+		return result;
+	}
+
+	/**
+	 * Calculate rank for each participant based on best_score (desc) and best_time_taken (asc)
+	 */
+	private calculateRanks(participantStats: IParticipantStatistics[]): IParticipantStatistics[] {
+		// Sort by best_score desc, then by best_time_taken asc
+		const sorted = [...participantStats].sort((a, b) => {
+			if (b.best_score !== a.best_score) {
+				return b.best_score - a.best_score; // Higher score first
+			}
+			return a.best_time_taken - b.best_time_taken; // Lower time first
+		});
+
+		// Assign ranks
+		let currentRank = 1;
+		let prevScore = -1;
+		let prevTime = -1;
+
+		return sorted.map((stat, index) => {
+			// If same score and same time, same rank
+			if (stat.best_score === prevScore && stat.best_time_taken === prevTime) {
+				stat.rank = currentRank;
+			} else {
+				stat.rank = index + 1;
+				currentRank = index + 1;
+				prevScore = stat.best_score;
+				prevTime = stat.best_time_taken;
+			}
+			return stat;
+		});
+	}
+
+	/**
+	 * Get aggregated statistics for a single participant by user_id
+	 * Includes attempts array for detailed view
+	 */
+	async getSingleParticipantStatistics(examId: string, participantId: string): Promise<IParticipantStatistics & { attempts?: any[] } | null> {
+		// Get all submitted participants for this exam
+		const participantsResult = await this.getAllSubmittedParticipants(examId);
+		const participants = participantsResult.rows;
+
+		// Filter attempts for this specific user
+		const userAttempts = participants
+			.filter((p: any) => p.user_id.toString() === participantId)
+			.map((p: any) => ({
+				attempt_number: p.attempt_number,
+				score: p.score || 0,
+				time_taken: p.time_taken || 0,
+				submit_time: p.submit_time,
+			}));
+
+		if (userAttempts.length === 0) return null;
+
+		// Get user info
 		const user = await userProvider.getById(participantId);
-		const { correct_count, time_taken } = await this.getExamResultForParticipant(examId, participantId);
+		if (!user) return null;
+
+		// Calculate best attempt (highest score, if tie then shortest time)
+		const bestAttempt = userAttempts.reduce((best: any, current: any) => {
+			if (current.score > best.score) return current;
+			if (current.score === best.score && current.time_taken < best.time_taken) return current;
+			return best;
+		}, userAttempts[0]);
+
+		const profile = user.profile || {};
+
 		return {
-			_id: user?.id,
-			first_name: user?.first_name,
-			middle_name: user?.middle_name,
-			last_name: user?.last_name,
-			district: user?.unit?.district,
-			ward: user?.unit?.ward,
-			correct_count,
-			time_taken,
+			_id: participantId,
+			first_name: user.first_name,
+			middle_name: user.middle_name,
+			last_name: user.last_name,
+			identity_number: profile.identity_number,
+			date_of_birth: profile.date_of_birth,
+			gender: profile.gender,
+			class_name: profile.class_name,
+			school_name: profile.school_name,
+			school_address: profile.school_address,
+			phone: user.phone,
+			classification: profile.classification,
+			district: user.unit?.district,
+			ward: user.unit?.ward,
+			total_attempts: userAttempts.length,
+			best_score: bestAttempt.score,
+			best_time_taken: bestAttempt.time_taken,
+			best_submit_time: bestAttempt.submit_time,
+			attempts: userAttempts,
 		};
 	}
 
@@ -398,10 +559,14 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		const exam = await this.getById(examId);
 		if (!exam) throw new Error("Kỳ thi không tồn tại");
 
-		const validParticipants = this.filterValidParticipants(exam.participants);
+		// Get aggregated participant stats from exam_participant collection
+		const aggregatedStats = await this.aggregateParticipantStats(examId);
+		let participantStats = Array.from(aggregatedStats.values());
 
-		let participantStats = await this.generateParticipantStats(examId, validParticipants);
+		// Calculate ranks before filtering/pagination
+		participantStats = this.calculateRanks(participantStats);
 
+		// Apply filters, sorting, and pagination
 		participantStats = applyFilters(participantStats, where);
 		participantStats = applySorting(participantStats, sortBy);
 		participantStats = applyPagination(participantStats, pageSize, currentPage);
@@ -415,57 +580,128 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		const exam = await this.getById(examId);
 		if (!exam) throw new Error("Kỳ thi không tồn tại");
 
-		const validParticipants = this.filterValidParticipants(exam.participants);
+		// Get unit_schema from WebsiteConfig to determine group_by_field
+		const websiteConfigProvider = new WebsiteConfigProvider();
+		let config: any = null;
+		try {
+			// Retry a few times to allow MongoDB connection to establish
+			for (let i = 0; i < 3; i++) {
+				config = await websiteConfigProvider.getOne({ where: {} });
+				if (config) break;
+				await new Promise((resolve) => setTimeout(resolve, 100));
+			}
+		} catch (e) {
+			// Fallback if WebsiteConfig is not available
+			console.log("WebsiteConfig not available, using default group_by_field");
+		}
+		const unitSchema = config?.unit_schema || { group_by_field: "school_name" };
+		const groupByField = unitSchema.group_by_field || "school_name";
 
-		let districtStats = await this.generateDistrictStats(examId, validParticipants);
+		// Get aggregated participant stats from exam_participant collection
+		const aggregatedStats = await this.aggregateParticipantStats(examId);
+		let unitStats = this.generateUnitStatsFromAggregated(Array.from(aggregatedStats.values()), groupByField);
 
-		districtStats = applyFilters(districtStats, where);
-		districtStats = applySorting(districtStats, sortBy);
-		districtStats = applyPagination(districtStats, pageSize, currentPage);
+		// Calculate ranks before filtering/pagination
+		unitStats = this.calculateUnitRanks(unitStats);
 
-		return generatePaginationResult(districtStats, pageSize, currentPage);
+		unitStats = applyFilters(unitStats, where);
+		unitStats = applySorting(unitStats, sortBy);
+		unitStats = applyPagination(unitStats, pageSize, currentPage);
+
+		return generatePaginationResult(unitStats, pageSize, currentPage);
 	}
 
-	private filterValidParticipants(participants: IParticipant[]): IParticipant[] {
-		return participants.filter((p) => p.start_time && p.submit_time);
-	}
+	/**
+	 * Generate unit statistics from aggregated participant data
+	 * @param participantStats - Array of participant statistics
+	 * @param groupByField - Field to group by (e.g., 'school_name', 'district', 'ward')
+	 */
+	private generateUnitStatsFromAggregated(participantStats: IParticipantStatistics[], groupByField: string = "school_name"): IUnitStatistics[] {
+		const unitStatsMap = new Map<string, IUnitStatistics>();
 
-	private async generateParticipantStats(
-		examId: string,
-		participants: IParticipant[],
-	): Promise<IParticipantStatistics[]> {
-		const stats = await Promise.all(
-			participants.map(async (participant) =>
-				this.generateParticipantStatistics(examId, participant.user_id.toString()),
-			),
-		);
-		return stats.filter(Boolean);
-	}
+		for (const stat of participantStats) {
+			// Get group value based on groupByField
+			let groupValue: string;
+			let unitAddress: string;
 
-	private async generateDistrictStats(examId: string, participants: IParticipant[]): Promise<IUnitStatistics[]> {
-		const districtStatsMap = new Map<string, IUnitStatistics>();
+			if (groupByField === "school_name") {
+				groupValue = stat.school_name || "Không xác định";
+				unitAddress = stat.school_address || "";
+			} else if (groupByField === "district") {
+				groupValue = stat.district || "Không xác định";
+				unitAddress = stat.ward || "";
+			} else if (groupByField === "ward") {
+				groupValue = stat.ward || "Không xác định";
+				unitAddress = stat.district || "";
+			} else if (groupByField === "class_name") {
+				groupValue = stat.class_name || "Không xác định";
+				unitAddress = stat.school_name || "";
+			} else {
+				// Default fallback
+				groupValue = (stat as any)[groupByField] || "Không xác định";
+				unitAddress = "";
+			}
 
-		for (const participant of participants) {
-			const user = await userProvider.getById(participant.user_id.toString());
-			const { district } = user.unit;
-			const { correct_count, time_taken } = await this.getExamResultForParticipant(
-				examId,
-				participant.user_id.toString(),
-			);
-
-			const stats = districtStatsMap.get(district) || {
-				district,
+			const existing = unitStatsMap.get(groupValue) || {
+				unit_name: groupValue,
+				unit_address: unitAddress,
+				district: stat.district,
+				ward: stat.ward,
+				participant_count: 0,
 				correct_count: 0,
 				time_taken: 0,
-				participant_count: 0,
 			};
-			stats.correct_count += correct_count;
-			stats.time_taken += time_taken;
-			stats.participant_count += 1;
-			districtStatsMap.set(district, stats);
+
+			existing.participant_count += 1;
+			existing.correct_count += stat.best_score;
+			existing.time_taken += stat.best_time_taken;
+			unitStatsMap.set(groupValue, existing);
 		}
 
-		return Array.from(districtStatsMap.values());
+		// Calculate averages
+		return Array.from(unitStatsMap.values()).map((stat) => ({
+			...stat,
+			avg_correct_count: stat.participant_count > 0 ? stat.correct_count / stat.participant_count : 0,
+			avg_time_taken: stat.participant_count > 0 ? stat.time_taken / stat.participant_count : 0,
+		}));
+	}
+
+	/**
+	 * Calculate rank for each unit based on avg_correct_count (desc) and avg_time_taken (asc)
+	 */
+	private calculateUnitRanks(unitStats: IUnitStatistics[]): IUnitStatistics[] {
+		// Sort by avg_correct_count desc, then by avg_time_taken asc
+		const sorted = [...unitStats].sort((a: any, b: any) => {
+			const aAvg = a.avg_correct_count || 0;
+			const bAvg = b.avg_correct_count || 0;
+			if (bAvg !== aAvg) {
+				return bAvg - aAvg; // Higher avg score first
+			}
+			const aTime = a.avg_time_taken || 0;
+			const bTime = b.avg_time_taken || 0;
+			return aTime - bTime; // Lower avg time first
+		});
+
+		// Assign ranks
+		let currentRank = 1;
+		let prevAvg = -1;
+		let prevTime = -1;
+
+		return sorted.map((stat: any, index) => {
+			const avgCorrect = stat.avg_correct_count || 0;
+			const avgTime = stat.avg_time_taken || 0;
+
+			// If same avg score and same avg time, same rank
+			if (avgCorrect === prevAvg && avgTime === prevTime) {
+				stat.rank = currentRank;
+			} else {
+				stat.rank = index + 1;
+				currentRank = index + 1;
+				prevAvg = avgCorrect;
+				prevTime = avgTime;
+			}
+			return stat;
+		});
 	}
 
 	/**
