@@ -23,7 +23,6 @@ export const validateUpdateUserInfo = () => [
 	...validateFirstName(),
 	...validateMiddleName(),
 	...validateLastName(),
-	...validateUnit(),
 	body("profile").optional().isObject().withMessage("Profile phải là một object"),
 ];
 

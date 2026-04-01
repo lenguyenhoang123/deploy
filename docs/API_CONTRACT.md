@@ -109,10 +109,6 @@ Authorization: Bearer <access_token>
   "last_name": "Nguyễn",
   "email": "nguyen.a@example.com",
   "phone": "0901234567",
-  "unit": {
-    "district": "Quận 1",
-    "ward": "Phường Bến Nghé"
-  },
   "password": "12345678"
 }
 ```
@@ -1784,14 +1780,16 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 ---
 
-## 9. Content Page (CMS) ❌
+## 9. Content Page (CMS) ✅
 
-> **❌ Toàn bộ module chưa có.** Quản lý nội dung trang: thể lệ, tài liệu tham khảo, thông báo kết quả, liên hệ...
+> **✅ Đã hoàn thành.** Quản lý nội dung trang: thể lệ, tài liệu tham khảo, thông báo kết quả, liên hệ...
 
 > **Type values:** `exam_rules` | `reference_docs` | `results` | `contact` | `announcement`
 
-### `GET /content-page` ❌
+### `GET /content-page` ✅
 🔒 **Yêu cầu auth** (Admin) — Danh sách trang nội dung.
+
+> **✅ Hoàn thành:** Hỗ trợ query param `slug` để get single page public.
 
 **Query params:** `currentPage`, `pageSize`, `sortField`, `sortOrder`, `filters`  
 **Common filters:**
@@ -1836,7 +1834,7 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 ---
 
-### `POST /content-page` ❌
+### `POST /content-page` ✅
 🔒 **Yêu cầu auth** (Admin) — Tạo trang nội dung mới.
 
 **Request:**
@@ -1854,7 +1852,7 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 **Validation:**
 - `title`: required, string, min 1, max 255
-- `slug`: required, string, unique, URL-safe
+- `slug`: optional, string, unique, URL-safe — **tự động tạo từ title nếu không nhập**
 - `type`: required, enum `[exam_rules, reference_docs, results, contact, announcement]`
 - `content`: required, string (HTML)
 - `sort_order`: optional, number, default 0
@@ -1872,7 +1870,7 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 ---
 
-### `GET /content-page/{id}` ❌
+### `GET /content-page/{id}` ✅
 🔒 **Yêu cầu auth** (Admin)
 
 **Response 200:** Trả về object content page (cùng schema với row trong list).  
@@ -1880,8 +1878,10 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 ---
 
-### `PUT /content-page/{id}` ❌
+### `PUT /content-page/{id}` ✅
 🔒 **Yêu cầu auth** (Admin) — Cập nhật trang nội dung. Tất cả fields optional.
+
+> **✅ Hoàn thành:** Slug tự động regenerate từ title mới nếu không nhập slug.
 
 **Request:** (subset của POST body)
 ```json
@@ -1903,7 +1903,7 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 ---
 
-### `DELETE /content-page/{id}` ❌
+### `DELETE /content-page/{id}` ✅
 🔒 **Yêu cầu auth** (Admin)
 
 **Response 200:**
@@ -1917,7 +1917,7 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 ---
 
-### `GET /content-page/public` ❌
+### `GET /content-page/public` ✅
 **Không yêu cầu auth** — Lấy danh sách trang nội dung public (cho FE user).
 
 **Query params:**
@@ -2033,14 +2033,14 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 44 | Stats | `/statistics/exam/{id}/unit` | GET | ✅ | Config-driven group by |
 | 45 | Stats | `/statistics/exam/{id}/unit/export` | GET | ⚠️ | Config-driven columns |
 | 46 | Stats | `/statistics/total-participants` | GET | ❌ | **Mới** — Public counter |
-| 47 | CMS | `/content-page` | GET | ❌ | **Mới** |
-| 48 | CMS | `/content-page` | POST | ❌ | **Mới** |
-| 49 | CMS | `/content-page/{id}` | GET | ❌ | **Mới** |
-| 50 | CMS | `/content-page/{id}` | PUT | ❌ | **Mới** |
-| 51 | CMS | `/content-page/{id}` | DELETE | ❌ | **Mới** |
-| 52 | CMS | `/content-page/public` | GET | ❌ | **Mới** — Public |
+| 47 | CMS | `/content-page` | GET | ✅ | **Mới** — Hỗ trợ query slug public |
+| 48 | CMS | `/content-page` | POST | ✅ | **Mới** — Slug optional, auto-generate |
+| 49 | CMS | `/content-page/{id}` | GET | ✅ | **Mới** |
+| 50 | CMS | `/content-page/{id}` | PUT | ✅ | **Mới** — Slug auto-regenerate from title |
+| 51 | CMS | `/content-page/{id}` | DELETE | ✅ | **Mới** |
+| 52 | CMS | `/content-page/public` | GET | ✅ | **Mới** — Public |
 | 53 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
 
 ---
 
-**Tổng:** 53 endpoints | ✅ 22 hoạt động | ⚠️ 20 cần sửa | ❌ 11 chưa có
+**Tổng:** 53 endpoints | ✅ 28 hoạt động | ⚠️ 20 cần sửa | ❌ 5 chưa có

@@ -160,13 +160,6 @@ export default {
 						last_name: { type: "string" },
 						email: { type: "string" },
 						phone: { type: "string" },
-						unit: {
-							type: "object",
-							properties: {
-								district: { type: "string" },
-								ward: { type: "string" },
-							},
-						},
 					},
 				},
 				updateUserInfo: {
@@ -175,13 +168,6 @@ export default {
 						first_name: { type: "string" },
 						middle_name: { type: "string" },
 						last_name: { type: "string" },
-						unit: {
-							type: "object",
-							properties: {
-								district: { type: "string" },
-								ward: { type: "string" },
-							},
-						},
 						profile: {
 							type: "object",
 							description: "Dynamic profile fields based on profile_schema from WebsiteConfig",
