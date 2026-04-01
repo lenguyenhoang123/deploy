@@ -124,6 +124,45 @@ export function formattedDataToExport(array: any[]): any[] {
 	}));
 }
 
+// New formatter for participant export with profile fields
+export function formattedParticipantDataToExport(array: any[]): any[] {
+	return array.map((item, index) => ({
+		index: index + 1,
+		full_name: getFullName(item),
+		identity_number: item.identity_number || "",
+		date_of_birth: item.date_of_birth || "",
+		gender: item.gender || "",
+		class_name: item.class_name || "",
+		school_name: item.school_name || "",
+		school_address: item.school_address || "",
+		phone: item.phone || "",
+		total_attempts: item.total_attempts || 0,
+		best_score: item.best_score || 0,
+		formatted_time: item.best_time_taken ? convertMinutesToHM(item.best_time_taken) : "",
+		best_submit_date: item.best_submit_time ? formatDate(item.best_submit_time) : "",
+	}));
+}
+
+// Helper to classify student as THCS or THPT based on class_name
+export function classifyStudentLevel(className: string): "THCS" | "THPT" | "OTHER" {
+	if (!className) return "OTHER";
+	
+	// Normalize class name
+	const normalized = className.toString().toLowerCase().trim();
+	
+	// THCS: Lớp 6, 7, 8, 9
+	if (/^[6-9]$/.test(normalized) || normalized.includes("lớp 6") || normalized.includes("lớp 7") || normalized.includes("lớp 8") || normalized.includes("lớp 9")) {
+		return "THCS";
+	}
+	
+	// THPT: Lớp 10, 11, 12
+	if (/^1[0-2]$/.test(normalized) || normalized.includes("lớp 10") || normalized.includes("lớp 11") || normalized.includes("lớp 12")) {
+		return "THPT";
+	}
+	
+	return "OTHER";
+}
+
 function getFullName(stat: any) {
 	return [stat.last_name, stat.middle_name, stat.first_name].filter((val) => val).join(" ");
 }
@@ -139,4 +178,24 @@ function convertMinutesToHMS(minutes: number): string {
 	const seconds = totalSeconds % 60;
 
 	return `${hours}h ${minutesLeft}m ${seconds}s`;
+}
+
+function convertMinutesToHM(minutes: number): string {
+	const totalSeconds = Math.round(minutes * 60);
+	const mins = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+
+	return `${mins}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function formatDate(dateString: string | Date): string {
+	if (!dateString) return "";
+	const date = new Date(dateString);
+	if (isNaN(date.getTime())) return "";
+	
+	const day = date.getDate().toString().padStart(2, "0");
+	const month = (date.getMonth() + 1).toString().padStart(2, "0");
+	const year = date.getFullYear();
+	
+	return `${day}/${month}/${year}`;
 }
