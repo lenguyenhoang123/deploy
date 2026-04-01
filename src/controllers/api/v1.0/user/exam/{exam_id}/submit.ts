@@ -69,37 +69,35 @@ export default (_express: Application) => {
 
 				try {
 					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
-					let { start_time, submit_time, attempt_number, answers } = req.body;
-					start_time = new Date(start_time);
-					submit_time = new Date(submit_time);
+					let { answers } = req.body;
 
 					const examId = req.params.exam_id as string;
 					const exam = await examProvider.validateAndFetchExam(examId);
 
-					// Validate time constraints
-					if (start_time < exam.start_time)
-						throw new Error("Thời gian bắt đầu không hợp lệ. Không thể bắt đầu làm bài trước khi diễn ra kỳ thi.");
-					if (submit_time > exam.end_time)
-						throw new Error("Thời gian nộp bài không hợp lệ. Không thể nộp bài khi kỳ thi đã kết thúc.");
-
-					const timeTaken = examParticipantProvider.calculateTimeTakenInMinutes(start_time, submit_time);
-					if (timeTaken > exam.allowed_time)
-						throw new Error("Thời gian làm bài không thể lớn hơn thời gian cho phép.");
-
-					// Find participant record using new ExamParticipant model
-					const participant = await examParticipantProvider.validateAndFetchParticipant(
-						examId,
-						userId.toString(),
-						attempt_number
-					);
+					// B4 Fix: Find the current in_progress participant instead of relying on client-sent attempt_number
+					const participant = await examParticipantProvider.getOne({
+						where: {
+							exam_id: new mongoose.Types.ObjectId(examId),
+							user_id: new mongoose.Types.ObjectId(userId.toString()),
+							status: ExamParticipantStatus.IN_PROGRESS,
+						},
+					});
 
 					if (!participant) throw new Error("Bạn chưa đăng ký kỳ thi này hoặc lượt thi không tồn tại");
 
-					// Check if exam is already in progress or submitted
-					if (participant.status === ExamParticipantStatus.REGISTERED)
-						throw new Error("Bạn chưa bắt đầu bài thi. Không thể nộp bài.");
-					if (participant.status === ExamParticipantStatus.SUBMITTED)
-						throw new Error("Bạn đã hoàn thành bài thi. Không thể nộp bài.");
+					// Check if exam is already in progress or submitted (status is guaranteed IN_PROGRESS by query above)
+
+					// B3 Fix: Use server-side times — never trust client start_time/submit_time
+					const serverStartTime = participant.start_time!;
+					const serverSubmitTime = new Date();
+
+					// Validate time constraints using server times
+					if (serverStartTime < exam.start_time)
+						throw new Error("Thời gian bắt đầu không hợp lệ. Không thể bắt đầu làm bài trước khi diễn ra kỳ thi.");
+					if (serverSubmitTime > exam.end_time)
+						throw new Error("Thời gian nộp bài không hợp lệ. Không thể nộp bài khi kỳ thi đã kết thúc.");
+
+					const timeTaken = examParticipantProvider.calculateTimeTakenInMinutes(serverStartTime, serverSubmitTime);
 
 					// Get questions details for score calculation
 					const questionIds = answers.map((a: any) => a.question_id);
@@ -157,8 +155,8 @@ export default (_express: Application) => {
 					// Update participant record
 					const updateData = {
 						status: ExamParticipantStatus.SUBMITTED,
-						start_time,
-						submit_time,
+						start_time: serverStartTime,
+						submit_time: serverSubmitTime,
 						time_taken: timeTaken,
 						score,
 						answers: processedAnswers,

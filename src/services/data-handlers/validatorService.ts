@@ -141,26 +141,17 @@ export const validateExam = () => [
 
 export const validateSubmitExam = () => [
 	body("start_time")
+		.optional()
 		.isISO8601()
-		.withMessage("Thời gian bắt đầu phải là định dạng ngày giờ hợp lệ")
-		.notEmpty()
-		.withMessage("Thời gian bắt đầu không được để trống"),
+		.withMessage("Thời gian bắt đầu phải là định dạng ngày giờ hợp lệ"),
 
 	body("submit_time")
+		.optional()
 		.isISO8601()
-		.withMessage("Thời gian nộp bài phải là định dạng ngày giờ hợp lệ")
-		.notEmpty()
-		.withMessage("Thời gian nộp bài không được để trống")
-		.custom((submit_time, { req }) => {
-			if (new Date(submit_time) <= new Date(req.body.start_time)) {
-				throw new Error("Thời gian nộp bài phải sau thời gian bắt đầu");
-			}
-			return true;
-		}),
+		.withMessage("Thời gian nộp bài phải là định dạng ngày giờ hợp lệ"),
 
 	body("attempt_number")
-		.notEmpty()
-		.withMessage("Số lượt thi không được để trống")
+		.optional()
 		.isInt({ min: 1, max: 5 })
 		.withMessage("Số lượt thi phải từ 1 đến 5"),
 

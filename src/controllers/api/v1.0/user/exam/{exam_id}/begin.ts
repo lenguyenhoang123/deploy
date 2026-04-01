@@ -70,7 +70,7 @@ export default (_express: Application) => {
 
 					// Check if there's an existing in-progress attempt
 					const latestAttempt = await examParticipantProvider.getLatestAttempt(examId, userId.toString());
-					
+
 					if (latestAttempt) {
 						// If already in progress, return existing attempt
 						if (latestAttempt.status === "in_progress") {
@@ -102,14 +102,36 @@ export default (_express: Application) => {
 								shuffledAnswers[a.question_id.toString()] = a.question_answers;
 							});
 
-							await examParticipantProvider.createNewAttempt({
-								exam_id: new mongoose.Types.ObjectId(examId) as any,
-								user_id: new mongoose.Types.ObjectId(userId.toString()) as any,
-								attempt_number: newAttemptNumber,
-								questions: questions,
-								shuffled_answers: shuffledAnswers,
-								start_time: new Date(),
-							});
+							try {
+								await examParticipantProvider.createNewAttempt({
+									exam_id: new mongoose.Types.ObjectId(examId) as any,
+									user_id: new mongoose.Types.ObjectId(userId.toString()) as any,
+									attempt_number: newAttemptNumber,
+									questions: questions,
+									shuffled_answers: shuffledAnswers,
+									start_time: new Date(),
+								});
+							} catch (err: any) {
+								// Race condition: another request already created this attempt (duplicate key)
+								if (err.code === 11000) {
+									const existingAttempt = await examParticipantProvider.getParticipantByExamAndUser(
+										examId, userId.toString(), newAttemptNumber
+									);
+									if (existingAttempt && existingAttempt.status === "in_progress") {
+										return res.sendOk({
+											data: {
+												message: "Tiếp tục làm bài thi",
+												attempt_number: existingAttempt.attempt_number,
+												start_time: existingAttempt.start_time,
+												allowed_time: exam.allowed_time,
+												exam_name: exam.name,
+												remaining_attempts: maxAttempts - existingAttempt.attempt_number,
+											},
+										});
+									}
+								}
+								throw err;
+							}
 
 							return res.sendOk({
 								data: {

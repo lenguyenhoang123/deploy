@@ -56,7 +56,7 @@ export default (_express: Application) => {
 						userId.toString()
 					);
 					if (existingParticipant) {
-						throw new Error("Bạn đã đăng ký kỳ thi này trước đó");
+						return res.sendOk({ data: { message: "Bạn đã đăng ký kỳ thi này trước đó" } });
 					}
 
 					// Create registered participant
