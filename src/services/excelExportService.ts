@@ -10,6 +10,7 @@ export class ExcelExportService {
 	static async generateExcel(
 		data: any[],
 		headers: { header: string; key: string; width: number }[],
+		highlightField?: string, // field to check for highlighting (e.g., 'is_top')
 	): Promise<Buffer | any> {
 		const workbook = new ExcelJS.Workbook();
 		const worksheet = workbook.addWorksheet("Data");
@@ -21,7 +22,18 @@ export class ExcelExportService {
 		}));
 
 		data.forEach((item) => {
-			worksheet.addRow(item);
+			const row = worksheet.addRow(item);
+			
+			// Highlight top rows with yellow background
+			if (highlightField && item[highlightField] === true) {
+				row.eachCell((cell) => {
+					cell.fill = {
+						type: 'pattern',
+						pattern: 'solid',
+						fgColor: { argb: 'FFFF00' }, // Yellow
+					};
+				});
+			}
 		});
 
 		const buffer = await workbook.xlsx.writeBuffer();

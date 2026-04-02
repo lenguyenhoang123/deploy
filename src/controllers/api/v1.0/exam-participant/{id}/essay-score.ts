@@ -37,7 +37,7 @@ export default (_express: Application) => {
 				 *         schema:
 				 *           type: string
 				 *           example: 6699f4391c7ab023b0a77b5b
-				 *         description: Exam Participant ID
+				 *         description: Exam Participant ID (ResutlID)
 				 *         required: true
 				 *     requestBody:
 				 *       description: Essay scores array

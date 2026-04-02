@@ -175,6 +175,7 @@ export class ExamParticipantProvider extends BaseProvider<IExamParticipant, IExa
 			includes: [
 				{ path: "questions", select: "name type answers files" },
 				{ path: "exam_id", select: "name allowed_time" },
+				{ path: "user_id", select: "first_name last_name middle_name email phone" },
 			],
 		});
 		if (!participant) return null;

@@ -461,10 +461,10 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `GET /user/exam` ⚠️
+### `GET /user/exam` ✅
 🔒 **Yêu cầu auth** — Danh sách kỳ thi dành cho thí sinh.
 
-> **⚠️ Cần sửa:** Trả thêm `attempts_used`, `attempts_remaining` khi đã tách `ExamParticipant`.
+> **✅ Đã xong:** Trả thêm `attempts_used`, `attempts_remaining` trong mỗi kỳ thi.
 
 **Query params:** `currentPage`, `pageSize`, `sortField`, `sortOrder`, `filters`
 
@@ -741,27 +741,6 @@ Gửi OTP về email để reset password.
 ```
 
 **Errors:** `500` Bạn chưa đăng ký kỳ thi này | Bạn chưa nộp bài thi
-
----
-
-### `GET /user/exam/{exam_id}/attempts` ✅
-🔒 **Yêu cầu auth** — Kiểm tra số lượt thi đã dùng / còn lại.
-
-> **✅ Đã xong:** Query từ `exam_participant` collection để đếm số lượt thi.
-
-**Response 200:**
-```json
-{
-  "status": "success",
-  "message": "Lấy thông tin lượt thi thành công",
-  "responseData": {
-    "exam_id": "ObjectId",
-    "used": 3,
-    "remaining": 2,
-    "max": 5
-  }
-}
-```
 
 ---
 
@@ -1695,7 +1674,7 @@ Content-Disposition: attachment; filename=ThongKeTheoCaNhan.xlsx
 ### `GET /statistics/exam/{exam_id}/unit` ✅
 🔒 **Yêu cầu auth** (Admin) — Thống kê theo đơn vị (trường học).
 
-> **✅ Đã xong:** Group by đọc từ `unit_schema.group_by_field` (hỗ trợ: `school_name`, `district`, `ward`, `class_name`).
+> **✅ Đã xong:** Group by `school_name`, phân loại THCS/THPT, highlight top 3 trường (`is_top: true`).
 
 **Query params:**
 
@@ -1716,22 +1695,50 @@ Content-Disposition: attachment; filename=ThongKeTheoCaNhan.xlsx
       {
         "unit_name": "THPT Nguyễn Du",
         "unit_address": "Quận 1, TP.HCM",
+        "school_type": "THPT",
         "participant_count": 120,
         "total_correct_count": 1800,
         "avg_correct_count": 15.0,
         "total_time_taken": 2100.5,
         "avg_time_taken": 17.5,
-        "rank": 1
+        "rank": 1,
+        "is_top": true
       },
       {
-        "unit_name": "THCS Trần Hưng Đạo",
+        "unit_name": "THPT Trần Hưng Đạo",
         "unit_address": "Quận 3, TP.HCM",
+        "school_type": "THPT",
         "participant_count": 95,
         "total_correct_count": 1200,
         "avg_correct_count": 12.6,
         "total_time_taken": 1710.0,
         "avg_time_taken": 18.0,
-        "rank": 2
+        "rank": 2,
+        "is_top": true
+      },
+      {
+        "unit_name": "THCS Lê Lợi",
+        "unit_address": "Quận 5, TP.HCM",
+        "school_type": "THCS",
+        "participant_count": 80,
+        "total_correct_count": 960,
+        "avg_correct_count": 12.0,
+        "total_time_taken": 1440.0,
+        "avg_time_taken": 18.0,
+        "rank": 3,
+        "is_top": true
+      },
+      {
+        "unit_name": "THCS Nguyễn Trãi",
+        "unit_address": "Quận 10, TP.HCM",
+        "school_type": "THCS",
+        "participant_count": 60,
+        "total_correct_count": 660,
+        "avg_correct_count": 11.0,
+        "total_time_taken": 1080.0,
+        "avg_time_taken": 18.0,
+        "rank": 4,
+        "is_top": false
       }
     ],
     "count": 50,
@@ -1743,10 +1750,10 @@ Content-Disposition: attachment; filename=ThongKeTheoCaNhan.xlsx
 
 ---
 
-### `GET /statistics/exam/{exam_id}/unit/export` ⚠️
+### `GET /statistics/exam/{exam_id}/unit/export` ✅
 🔒 **Yêu cầu auth** (Admin) — Xuất thống kê theo đơn vị ra file Excel.
 
-> **⚠️ Cần sửa:** Columns đọc từ `unit_schema`; highlight đơn vị top.
+> **✅ Đã xong:** Columns đọc từ `unit_schema`, highlight đơn vị top 3 (màu vàng), có cột `school_type` phân loại THCS/THPT.
 
 **Response:** File Excel (`.xlsx`)
 ```
@@ -1756,8 +1763,12 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 **Columns Excel (bản cuối):**
 
-| STT | Trường học | Địa chỉ | Số lượt tham gia | Tổng điểm đúng | Điểm TB | Tổng thời gian (phút) | Thời gian TB |
-|-----|-----------|---------|-----------------|----------------|---------|----------------------|-------------|
+| STT | Trường học | Loại trường | Địa chỉ | Số lượt tham gia | Tổng điểm đúng | Điểm TB | Tổng thời gian (phút) | Thời gian TB | Xếp hạng |
+|-----|-----------|-------------|---------|-----------------|----------------|---------|----------------------|-------------|---------|
+
+> **Highlight:** Top 3 trường có xếp hạng cao nhất được tô màu vàng nổi bật.
+
+> **Lọc theo loại trường:** Có thể lọc cột "Loại trường" để xem riêng THCS hoặc THPT.
 
 ---
 
@@ -1774,6 +1785,88 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
   "responseData": {
     "total_participants": 15230,
     "total_attempts": 42500
+  }
+}
+```
+
+---
+
+### `GET /exam-participant/{id}/essay-answers` ✅
+🔒 **Yêu cầu auth** (Admin) — Xem câu trả lời tự luận để chấm điểm.
+
+> **✅ Mới:** Trả danh sách câu hỏi tự luận + câu trả lời của thí sinh, trạng thái chấm điểm.
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Lấy câu trả lời tự luận thành công",
+  "responseData": {
+    "participant_id": "ObjectId",
+    "exam_id": "ObjectId",
+    "exam_name": "Vòng thi tìm hiểu đa dạng sinh học",
+    "user_id": "ObjectId",
+    "user_name": "Nguyễn Văn A",
+    "user_email": "nguyenvana@example.com",
+    "attempt_number": 1,
+    "score": 85,
+    "status": "submitted",
+    "essay_count": 3,
+    "graded_count": 1,
+    "pending_count": 2,
+    "essay_questions": [
+      {
+        "question_id": "ObjectId",
+        "question_content": "Hãy trình bày vai trò của đa dạng sinh học...",
+        "text_answer": "Đa dạng sinh học giúp cân bằng hệ sinh thái...",
+        "is_correct": true
+      },
+      {
+        "question_id": "ObjectId",
+        "question_content": "Liệt kê các biện pháp bảo vệ môi trường...",
+        "text_answer": "Tái chế rác thải, trồng cây xanh...",
+        "is_correct": null
+      }
+    ]
+  }
+}
+```
+
+---
+
+### `PATCH /exam-participant/{id}/essay-score` ✅
+🔒 **Yêu cầu auth** (Admin) — Chấm điểm câu trả lời tự luận.
+
+> **✅ Đã có:** Cập nhật điểm cho câu trả lời tự luận, tính lại tổng điểm.
+
+**Request:**
+```json
+{
+  "scores": [
+    {
+      "question_id": "ObjectId",
+      "is_correct": true
+    },
+    {
+      "question_id": "ObjectId",
+      "is_correct": false
+    }
+  ]
+}
+```
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Chấm điểm tự luận thành công",
+  "responseData": {
+    "message": "Chấm điểm thành công",
+    "exam": { "_id": "ObjectId", "name": "Vòng thi..." },
+    "user": { "_id": "ObjectId", "first_name": "..." },
+    "attempt_number": 1,
+    "new_score": 90,
+    "graded_essays": 2
   }
 }
 ```
@@ -1999,48 +2092,49 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 10 | User | `/user/{id}/delete` | PUT | ✅ | |
 | 11 | User | `/user/myInfo` | GET | ⚠️ | Thêm profile fields |
 | 12 | User | `/user/myInfo` | PUT | ⚠️ | Thêm profile fields |
-| 13 | User | `/user/exam` | GET | ⚠️ | Thêm attempts info |
+| 13 | User | `/user/exam` | GET | ✅ | Trả attempts_used, attempts_remaining |
 | 14 | User | `/user/exam/{exam_id}/register` | PUT | ✅ | Tách ExamParticipant |
 | 15 | User | `/user/exam/{exam_id}/begin` | PUT | ✅ | Nhiều lượt thi |
 | 16 | User | `/user/exam/{exam_id}/details` | GET | ⚠️ | Thêm câu tự luận |
 | 17 | User | `/user/exam/{exam_id}/submit` | PUT | ✅ | Tính điểm MC + text_answer |
 | 18 | User | `/user/exam/{exam_id}/result` | GET | ✅ | Profile user + chi tiết đúng/sai |
-| 19 | User | `/user/exam/{exam_id}/attempts` | GET | ✅ | Số lượt thi đã dùng/còn lại |
-| 20 | User | `/user/exam/{exam_id}/history` | GET | ✅ | Lịch sử tất cả lượt thi |
-| 21 | Exam | `/exam` | GET | ✅ | |
-| 22 | Exam | `/exam` | POST | ✅ | |
-| 23 | Exam | `/exam/{id}` | GET | ✅ | |
-| 24 | Exam | `/exam/{id}` | PUT | ✅ | |
-| 25 | Exam | `/exam/{id}` | DELETE | ✅ | |
-| 26 | Exam | `/exam/{id}/templates` | PUT | ⚠️ | Config-driven question count |
-| 27 | Exam | `/exam/{id}/templates` | GET | ⚠️ | Thêm type field |
-| 28 | Exam | `/exam/{id}/templates/{template_id}/shuffle` | PUT | ✅ | Random lại câu hỏi trong đề thi |
-| 29 | QB | `/question-bank` | GET | ⚠️ | Thêm type field |
-| 30 | QB | `/question-bank` | POST | ⚠️ | Thêm type, hỗ trợ ESSAY |
-| 31 | QB | `/question-bank/{id}` | GET | ✅ | |
-| 32 | QB | `/question-bank/{id}/copy` | POST | ✅ | |
-| 33 | QB | `/question-bank/{id}/delete` | PUT | ✅ | |
-| 34 | QB | `/question-bank/import` | POST | ❌ | **Mới** — Import Excel |
-| 35 | File | `/file` | GET | ✅ | |
-| 36 | File | `/file/upload` | POST | ✅ | |
-| 37 | File | `/file/{id}` | GET | ✅ | |
-| 38 | File | `/file/{id}` | DELETE | ✅ | |
-| 39 | Config | `/website-config` | GET | ⚠️ | Mở rộng fields |
-| 40 | Config | `/website-config` | PUT | ⚠️ | Mở rộng fields |
-| 41 | Stats | `/statistics/exam/{id}/participant` | GET | ✅ | Aggregate nhiều lượt, profile fields, xếp hạng |
-| 42 | Stats | `/statistics/exam/{id}/participant/{pid}` | GET | ✅ | Profile fields + aggregated stats |
-| 43 | Stats | `/statistics/exam/{id}/participant/export` | GET | ✅ | Columns mới + 2 sheets THCS/THPT |
-| 44 | Stats | `/statistics/exam/{id}/unit` | GET | ✅ | Config-driven group by |
-| 45 | Stats | `/statistics/exam/{id}/unit/export` | GET | ⚠️ | Config-driven columns |
-| 46 | Stats | `/statistics/total-participants` | GET | ❌ | **Mới** — Public counter |
-| 47 | CMS | `/content-page` | GET | ✅ | **Mới** — Hỗ trợ query slug public |
-| 48 | CMS | `/content-page` | POST | ✅ | **Mới** — Slug optional, auto-generate |
-| 49 | CMS | `/content-page/{id}` | GET | ✅ | **Mới** |
-| 50 | CMS | `/content-page/{id}` | PUT | ✅ | **Mới** — Slug auto-regenerate from title |
-| 51 | CMS | `/content-page/{id}` | DELETE | ✅ | **Mới** |
-| 52 | CMS | `/content-page/public` | GET | ✅ | **Mới** — Public |
-| 53 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
+| 19 | User | `/user/exam/{exam_id}/history` | GET | ✅ | Lịch sử tất cả lượt thi |
+| 20 | Exam | `/exam` | GET | ✅ | |
+| 21 | Exam | `/exam` | POST | ✅ | |
+| 22 | Exam | `/exam/{id}` | GET | ✅ | |
+| 23 | Exam | `/exam/{id}` | PUT | ✅ | |
+| 24 | Exam | `/exam/{id}` | DELETE | ✅ | |
+| 25 | Exam | `/exam/{id}/templates` | PUT | ⚠️ | Config-driven question count |
+| 26 | Exam | `/exam/{id}/templates` | GET | ⚠️ | Thêm type field |
+| 27 | Exam | `/exam/{id}/templates/{template_id}/shuffle` | PUT | ✅ | Random lại câu hỏi trong đề thi |
+| 28 | QB | `/question-bank` | GET | ⚠️ | Thêm type field |
+| 29 | QB | `/question-bank` | POST | ⚠️ | Thêm type, hỗ trợ ESSAY |
+| 30 | QB | `/question-bank/{id}` | GET | ✅ | |
+| 31 | QB | `/question-bank/{id}/copy` | POST | ✅ | |
+| 32 | QB | `/question-bank/{id}/delete` | PUT | ✅ | |
+| 33 | QB | `/question-bank/import` | POST | ❌ | **Mới** — Import Excel |
+| 34 | File | `/file` | GET | ✅ | |
+| 35 | File | `/file/upload` | POST | ✅ | |
+| 36 | File | `/file/{id}` | GET | ✅ | |
+| 37 | File | `/file/{id}` | DELETE | ✅ | |
+| 38 | Config | `/website-config` | GET | ⚠️ | Mở rộng fields |
+| 39 | Config | `/website-config` | PUT | ⚠️ | Mở rộng fields |
+| 40 | Stats | `/statistics/exam/{id}/participant` | GET | ✅ | Aggregate nhiều lượt, profile fields, xếp hạng |
+| 41 | Stats | `/statistics/exam/{id}/participant/{pid}` | GET | ✅ | Profile fields + aggregated stats |
+| 42 | Stats | `/statistics/exam/{id}/participant/export` | GET | ✅ | Columns mới + 2 sheets THCS/THPT |
+| 43 | Stats | `/statistics/exam/{id}/unit` | GET | ✅ | Group by trường + THCS/THPT + highlight top |
+| 44 | Stats | `/statistics/exam/{id}/unit/export` | GET | ✅ | Excel + highlight top 3 + cột school_type |
+| 45 | Stats | `/statistics/total-participants` | GET | ❌ | **Mới** — Public counter |
+| 46 | Admin | `/exam-participant/{id}/essay-answers` | GET | ✅ | **Mới** — Xem câu trả lời tự luận |
+| 47 | Admin | `/exam-participant/{id}/essay-score` | PATCH | ✅ | Chấm điểm câu tự luận |
+| 48 | CMS | `/content-page` | GET | ✅ | **Mới** — Hỗ trợ query slug public |
+| 49 | CMS | `/content-page` | POST | ✅ | **Mới** — Slug optional, auto-generate |
+| 50 | CMS | `/content-page/{id}` | GET | ✅ | **Mới** |
+| 51 | CMS | `/content-page/{id}` | PUT | ✅ | **Mới** — Slug auto-regenerate from title |
+| 52 | CMS | `/content-page/{id}` | DELETE | ✅ | **Mới** |
+| 53 | CMS | `/content-page/public` | GET | ✅ | **Mới** — Public |
+| 54 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
 
 ---
 
-**Tổng:** 53 endpoints | ✅ 28 hoạt động | ⚠️ 20 cần sửa | ❌ 5 chưa có
+**Tổng:** 54 endpoints | ✅ 30 hoạt động | ⚠️ 19 cần sửa | ❌ 5 chưa có

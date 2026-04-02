@@ -3,6 +3,7 @@ export interface IUnitStatistics {
 	unit_address?: string;
 	district?: string;
 	ward?: string;
+	school_type?: "THCS" | "THPT" | "Khác"; // Phân loại trường
 	participant_count: number;
 	total_correct_count?: number;
 	avg_correct_count?: number;
@@ -11,6 +12,7 @@ export interface IUnitStatistics {
 	correct_count?: number;
 	time_taken?: number;
 	rank?: number;
+	is_top?: boolean; // Highlight trường top
 }
 
 export interface IParticipantStatistics {

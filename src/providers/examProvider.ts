@@ -655,11 +655,23 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 				unitAddress = "";
 			}
 
+			// Xác định loại trường THCS/THPT dựa vào classification hoặc school_name
+			let schoolType: "THCS" | "THPT" | "Khác" = "Khác";
+			const classification = stat.classification?.toUpperCase() || "";
+			const schoolName = stat.school_name?.toUpperCase() || "";
+			
+			if (classification.includes("THCS") || schoolName.includes("THCS") || schoolName.includes("TRUNG HỌC CƠ SỞ")) {
+				schoolType = "THCS";
+			} else if (classification.includes("THPT") || schoolName.includes("THPT") || schoolName.includes("TRUNG HỌC PHỔ THÔNG") || schoolName.includes("TRƯỜNG THPT")) {
+				schoolType = "THPT";
+			}
+
 			const existing = unitStatsMap.get(groupValue) || {
 				unit_name: groupValue,
 				unit_address: unitAddress,
 				district: stat.district,
 				ward: stat.ward,
+				school_type: schoolType,
 				participant_count: 0,
 				correct_count: 0,
 				time_taken: 0,
@@ -681,6 +693,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 
 	/**
 	 * Calculate rank for each unit based on avg_correct_count (desc) and avg_time_taken (asc)
+	 * Also mark top 3 schools with is_top flag
 	 */
 	private calculateUnitRanks(unitStats: IUnitStatistics[]): IUnitStatistics[] {
 		// Sort by avg_correct_count desc, then by avg_time_taken asc
@@ -695,7 +708,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 			return aTime - bTime; // Lower avg time first
 		});
 
-		// Assign ranks
+		// Assign ranks and mark top schools
 		let currentRank = 1;
 		let prevAvg = -1;
 		let prevTime = -1;
@@ -713,6 +726,10 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 				prevAvg = avgCorrect;
 				prevTime = avgTime;
 			}
+			
+			// Mark top 3 schools
+			stat.is_top = stat.rank <= 3;
+			
 			return stat;
 		});
 	}
