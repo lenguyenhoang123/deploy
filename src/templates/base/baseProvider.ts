@@ -38,11 +38,11 @@ class BaseProvider<ModelInterface, ModelMethods> {
 		this.collectionReady = connectMongo()
 			.then(
 				(db) =>
-					(this.collection = db.model<ModelInterface, Model<ModelInterface, {}, ModelMethods>>(
-						collectionName,
-						schema,
-						collectionName,
-					)),
+				(this.collection = db.model<ModelInterface, Model<ModelInterface, {}, ModelMethods>>(
+					collectionName,
+					schema,
+					collectionName,
+				)),
 			)
 			.catch((err) => {
 				this.logger.logDBAsync("Cannot connect to database");
@@ -66,7 +66,7 @@ class BaseProvider<ModelInterface, ModelMethods> {
 		const attributes = payload?.attributes;
 		// Init Pagination
 		const skip = (payload.currentPage - 1) * (limit ?? 0) || 0;
-		const populates = payload?.attributes ?? [];
+		const populates = payload?.includes ?? [];
 		const sort = payload?.sortField && {
 			[payload.sortField]: ((sortOrder: string) => {
 				switch (sortOrder.toLowerCase()) {

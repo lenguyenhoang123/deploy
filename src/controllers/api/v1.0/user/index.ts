@@ -73,7 +73,6 @@ export default (_express: Application) => {
 							"last_name",
 							"email",
 							"phone",
-							"unit",
 							"profile",
 							"is_active",
 							"is_admin",

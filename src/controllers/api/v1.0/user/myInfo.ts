@@ -38,7 +38,6 @@ export default (_express: Application) => {
 							"last_name",
 							"email",
 							"phone",
-							"unit",
 							"profile",
 							"is_admin",
 							"is_active",
@@ -106,7 +105,7 @@ export default (_express: Application) => {
 						const websiteConfigProvider = new WebsiteConfigProvider();
 						const websiteConfig = await websiteConfigProvider.getOne({ where: { is_default: true } });
 						const profileSchema = websiteConfig?.profile_schema || [];
-						
+
 						if (profileSchema.length > 0) {
 							const validationError = validateProfile(updatedUser.profile, profileSchema);
 							if (validationError) throw new Error(validationError);
