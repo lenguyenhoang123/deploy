@@ -106,25 +106,9 @@ export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionB
 
 			const questions = result.rows;
 			
-			// Shuffle toàn bộ danh sách trước để đảm bảo random thực sự
-			const shuffledAll = this.shuffleAndSlice(questions, questions.length);
-			
-			const groupedQuestions = this.groupQuestionsByLevel(shuffledAll);
-
-			const numQuestionsPerLevel = Math.floor(quantity / 3);
-			const easyQuestions = groupedQuestions["EASY"]?.slice(0, numQuestionsPerLevel) || [];
-			const normalQuestions = groupedQuestions["NORMAL"]?.slice(0, numQuestionsPerLevel) || [];
-			const hardQuestions = groupedQuestions["HARD"]?.slice(0, numQuestionsPerLevel) || [];
-
-			let combinedQuestions = [...easyQuestions, ...normalQuestions, ...hardQuestions] as any[];
-			if (combinedQuestions.length < quantity) {
-				combinedQuestions = await this.fillRemainingQuestions(shuffledAll, combinedQuestions, quantity);
-			}
-
-			// Final shuffle to mix levels
-			const finalShuffled = this.shuffleAndSlice(combinedQuestions, combinedQuestions.length);
-
-			return finalShuffled;
+			// Random trực tiếp từ toàn bộ ngân hàng, không chia level
+			const shuffled = this.shuffleAndSlice(questions, quantity);
+			return shuffled;
 		} catch (error) {
 			throw new Error(`Lấy câu hỏi ngẫu nhiên theo loại thất bại: ${error.message}`);
 		}

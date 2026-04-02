@@ -4,11 +4,13 @@ import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import { queryFilter, requiredFilters } from "#middlewares/query-filter";
+import { ExamParticipantProvider } from "#providers/examParticipantProvider";
 import { UserProvider } from "#providers/userProvider";
 
 export default (_express: Application) => {
 	const provider = new ExamProvider();
 	const userProvider = new UserProvider();
+	const examParticipantProvider = new ExamParticipantProvider();
 	return <Resource>{
 		get: {
 			middleware: [verify, queryFilter, requiredFilters(["currentPage", "pageSize"])],
@@ -75,6 +77,7 @@ export default (_express: Application) => {
 							"start_time",
 							"end_time",
 							"allowed_time",
+							"max_attempts",
 							"templates",
 							"created_by",
 							"updated_by",
@@ -88,6 +91,10 @@ export default (_express: Application) => {
 					const exams = await Promise.all(
 						data.rows.map(async (exam) => {
 							const { is_registered, is_submitted } = await provider.getExamStatus(exam.id, userId);
+							const maxAttempts = exam.max_attempts || 1;
+							const usedAttempts = await examParticipantProvider.getAttemptsCount(exam.id, userId.toString());
+							const remainingAttempts = Math.max(0, maxAttempts - usedAttempts);
+
 							return {
 								_id: exam._id,
 								name: exam.name,
@@ -105,6 +112,8 @@ export default (_express: Application) => {
 								})),
 								is_registered: is_registered || false,
 								is_submitted: is_submitted || false,
+								attempts_used: usedAttempts,
+								attempts_remaining: remainingAttempts,
 							};
 						}),
 					);

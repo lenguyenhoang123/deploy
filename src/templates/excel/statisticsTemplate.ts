@@ -18,11 +18,15 @@ export const participantStatisticsTemplate = {
 
 export const unitStatisticsTemplate = {
 	headers: [
-		{ header: "STT", key: "index", width: 10 },
-		{ header: "Tên đơn vị", key: "district", width: 25 },
-		{ header: "Số lượng cán bộ tham gia", key: "participant_count", width: 25 },
-		{ header: "Tổng số câu trả lời đúng", key: "correct_count", width: 25 },
-		{ header: "Tổng thời gian hoàn thành", key: "formatted_time_taken", width: 25 },
-		{ header: "Vị trí xếp hạng", key: "rank", width: 15 },
+		{ header: "STT", key: "index", width: 8 },
+		{ header: "Trường học", key: "unit_name", width: 35 },
+		{ header: "Loại trường", key: "school_type", width: 15 },
+		{ header: "Địa chỉ", key: "unit_address", width: 40 },
+		{ header: "Số lượt tham gia", key: "participant_count", width: 18 },
+		{ header: "Tổng điểm đúng", key: "correct_count", width: 18 },
+		{ header: "Điểm TB", key: "avg_correct_count", width: 12 },
+		{ header: "Tổng thời gian (phút)", key: "formatted_time_taken", width: 22 },
+		{ header: "Thời gian TB (phút)", key: "avg_time_taken", width: 20 },
+		{ header: "Xếp hạng", key: "rank", width: 12 },
 	],
 };
