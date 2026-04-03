@@ -110,6 +110,10 @@ class BaseProvider<ModelInterface, ModelMethods> {
 		return await this.collection.findOne(where, attributes).populate(populates);
 	}
 
+	protected getCollection() {
+		return this.collection;
+	}
+
 	async bulkCreate(body: ModelInterface[]) {
 		this.logger.logDBAsync(`Bulk creating ${JSON.stringify(body)}`);
 		return await this.collection.insertMany(body);

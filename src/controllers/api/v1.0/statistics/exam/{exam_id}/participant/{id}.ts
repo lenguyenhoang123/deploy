@@ -16,7 +16,7 @@ export default (_express: Application) => {
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /statistics/exam/{exam_id}/participant/{participant_id}:
+				 * /statistics/exam/{exam_id}/participant/{id}:
 				 *   get:
 				 *     tags: [Statistics]
 				 *     description: Get exam statistics by ID.
@@ -30,12 +30,12 @@ export default (_express: Application) => {
 				 *           example: 6699f4391c7ab023b0a77b5b
 				 *         description: Exam ID
 				 *         required: true
-				 *       - name: participant_id(userid)
+				 *       - name: id
 				 *         in: path
 				 *         schema:
 				 *           type: string
 				 *           example: 6699f4391c7ab023b0a77b5b
-				 *         description: Participant ID (userid)
+				 *         description: Participant ID (user ID)
 				 *         required: true
 				 *     responses:
 				 *       200:
@@ -49,7 +49,7 @@ export default (_express: Application) => {
 				try {
 					await userProvider.validateUserId(req.user.id as string);
 					const examId = req.params.exam_id as string;
-					const participantId = req.params.participant_id as string;
+					const participantId = req.params.id as string;
 					if (!examId) throw new Error("Exam ID không được để trống");
 					if (!mongoose.Types.ObjectId.isValid(examId)) throw new Error("Exam ID không hợp lệ");
 					if (!participantId) throw new Error("Participant ID không được để trống");

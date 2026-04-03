@@ -199,6 +199,26 @@ export class ExamParticipantProvider extends BaseProvider<IExamParticipant, IExa
 	}
 
 	/**
+	 * Get total participants and attempts statistics
+	 * Returns unique user count and total attempts count
+	 */
+	async getTotalParticipantsStats(): Promise<{ total_participants: number; total_attempts: number }> {
+		const collection = this.getCollection();
+
+		// Count total unique users (participants)
+		const uniqueUsersResult = await collection.distinct("user_id", { status: "submitted" });
+		const total_participants = uniqueUsersResult.length;
+
+		// Count total submitted attempts
+		const total_attempts = await collection.countDocuments({ status: "submitted" });
+
+		return {
+			total_participants,
+			total_attempts,
+		};
+	}
+
+	/**
 	 * Update essay scores for a participant's answers
 	 * @param currentAnswers - Current answers array from participant
 	 * @param essayScores - Array of {question_id, is_correct} for essay questions
