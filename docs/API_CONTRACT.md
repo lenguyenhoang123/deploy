@@ -1259,10 +1259,10 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `POST /question-bank/import` ❌
+### `POST /question-bank/import` ✅
 🔒 **Yêu cầu auth** (Admin) — Import câu hỏi hàng loạt từ file Excel.
 
-> **❌ Chưa có.** API mới, cho phép import 200 câu hỏi từ file Excel.
+> **✅ Đã có.** Import MC + Essay questions từ Excel. Validate data trước khi bulk create.
 
 **Request:** `multipart/form-data`
 
@@ -1272,10 +1272,19 @@ Gửi OTP về email để reset password.
 
 **Format file Excel:**
 
+> **Lưu ý:** Cột STT chỉ để tham khảo, không bắt buộc nhập. Hệ thống sẽ bỏ qua cột này khi import.
+
 | STT | Câu hỏi | Đáp án A | Đáp án B | Đáp án C | Đáp án D | Đáp án đúng | Loại | Độ khó |
 |-----|---------|----------|----------|----------|----------|-------------|------|--------|
 | 1 | Loài nào trong Sách đỏ? | Sao la | Gà rừng | Chó nhà | Mèo nhà | A | MULTIPLE_CHOICE | EASY |
 | 2 | Nêu ý nghĩa bảo tồn... | | | | | | ESSAY | HARD |
+
+**Giải thích cột:**
+- **Câu hỏi**: Nội dung câu hỏi (bắt buộc)
+- **Đáp án A-D**: Các đáp án cho câu trắc nghiệm (để trống nếu là ESSAY)
+- **Đáp án đúng**: A/B/C/D cho MC, để trống cho ESSAY
+- **Loại**: `MULTIPLE_CHOICE` hoặc `ESSAY`
+- **Độ khó**: `EASY`, `NORMAL`, `HARD`
 
 **Response 200:**
 ```json
@@ -1612,7 +1621,7 @@ Gửi OTP về email để reset password.
 
 ---
 
-### `GET /statistics/exam/{exam_id}/participant/{participant_id}` ✅
+### `GET /statistics/exam/{exam_id}/participant/{id}` ✅
 🔒 **Yêu cầu auth** (Admin) — Thống kê chi tiết 1 thí sinh.
 
 > **✅ Đã xong:** Trả đầy đủ profile fields và aggregated stats (best_score, total_attempts...).
@@ -1772,10 +1781,10 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 ---
 
-### `GET /statistics/total-participants` ❌
+### `GET /statistics/total-participants` ✅
 **Không yêu cầu auth** — API public đếm tổng lượt tham gia cuộc thi.
 
-> **❌ Chưa có.** Hiển thị counter trên góc website.
+> **✅ Đã có.** Hiển thị counter trên góc website.
 
 **Response 200:**
 ```json
@@ -2112,7 +2121,7 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 30 | QB | `/question-bank/{id}` | GET | ✅ | |
 | 31 | QB | `/question-bank/{id}/copy` | POST | ✅ | |
 | 32 | QB | `/question-bank/{id}/delete` | PUT | ✅ | |
-| 33 | QB | `/question-bank/import` | POST | ❌ | **Mới** — Import Excel |
+| 33 | QB | `/question-bank/import` | POST | ✅ | Import Excel (MC + Essay) |
 | 34 | File | `/file` | GET | ✅ | |
 | 35 | File | `/file/upload` | POST | ✅ | |
 | 36 | File | `/file/{id}` | GET | ✅ | |
@@ -2120,11 +2129,11 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 38 | Config | `/website-config` | GET | ⚠️ | Mở rộng fields |
 | 39 | Config | `/website-config` | PUT | ⚠️ | Mở rộng fields |
 | 40 | Stats | `/statistics/exam/{id}/participant` | GET | ✅ | Aggregate nhiều lượt, profile fields, xếp hạng |
-| 41 | Stats | `/statistics/exam/{id}/participant/{pid}` | GET | ✅ | Profile fields + aggregated stats |
+| 41 | Stats | `/statistics/exam/{id}/participant/{id}` | GET | ✅ | Profile fields + aggregated stats |
 | 42 | Stats | `/statistics/exam/{id}/participant/export` | GET | ✅ | Columns mới + 2 sheets THCS/THPT |
 | 43 | Stats | `/statistics/exam/{id}/unit` | GET | ✅ | Group by trường + THCS/THPT + highlight top |
 | 44 | Stats | `/statistics/exam/{id}/unit/export` | GET | ✅ | Excel + highlight top 3 + cột school_type |
-| 45 | Stats | `/statistics/total-participants` | GET | ❌ | **Mới** — Public counter |
+| 45 | Stats | `/statistics/total-participants` | GET | ✅ | Public counter - unique users + total attempts |
 | 46 | Admin | `/exam-participant/{id}/essay-answers` | GET | ✅ | **Mới** — Xem câu trả lời tự luận |
 | 47 | Admin | `/exam-participant/{id}/essay-score` | PATCH | ✅ | Chấm điểm câu tự luận |
 | 48 | CMS | `/content-page` | GET | ✅ | **Mới** — Hỗ trợ query slug public |
