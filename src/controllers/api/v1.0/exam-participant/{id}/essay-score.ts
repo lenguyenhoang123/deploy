@@ -8,7 +8,8 @@ import mongoose from "mongoose";
 
 interface EssayScoreEntry {
 	question_id: string;
-	is_correct: boolean;
+	score: number;
+	is_correct?: boolean;
 }
 
 interface EssayScoreRequest {
@@ -40,7 +41,7 @@ export default (_express: Application) => {
 				 *         description: Exam Participant ID (ResutlID)
 				 *         required: true
 				 *     requestBody:
-				 *       description: Essay scores array
+				 *       description: Essay scores array with specific points
 				 *       required: true
 				 *       content:
 				 *         application/json:
@@ -55,14 +56,18 @@ export default (_express: Application) => {
 				 *                     question_id:
 				 *                       type: string
 				 *                       description: Question ID
+				 *                     score:
+				 *                       type: number
+				 *                       description: "Điểm từ 0 đến 1 (ví dụ: 0, 0.5, 1)"
 				 *                     is_correct:
 				 *                       type: boolean
-				 *                       description: true = correct, false = incorrect
+				 *                       description: "true nếu có điểm > 0 (tùy chọn)"
 				 *           example:
 				 *             {
 				 *               "scores": [
 				 *                 {
 				 *                   "question_id": "6699f4391c7ab023b0a77b5b",
+				 *                   "score": 1,
 				 *                   "is_correct": true
 				 *                 }
 				 *               ]
@@ -98,8 +103,8 @@ export default (_express: Application) => {
 						if (!mongoose.Types.ObjectId.isValid(score.question_id)) {
 							throw new Error(`question_id ${score.question_id} không hợp lệ`);
 						}
-						if (typeof score.is_correct !== "boolean") {
-							throw new Error("is_correct phải là true hoặc false");
+						if (typeof score.score !== "number" || score.score < 0 || score.score > 1) {
+							throw new Error("score phải là số từ 0 đến 1");
 						}
 					}
 
