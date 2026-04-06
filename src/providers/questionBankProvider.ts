@@ -48,6 +48,7 @@ export class QuestionBankProvider extends BaseProvider<IQuestionBank, IQuestionB
 		const question = await this.getById(questionId, {
 			attributes: [
 				"name",
+				"type",
 				"level",
 				"priority",
 				"files",
