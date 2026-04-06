@@ -90,19 +90,28 @@ export const validateQuestionBank = () => [
 	body("answers")
 		.isArray()
 		.withMessage("Đáp án phải là một mảng")
-		.custom((value) => value.length >= 2 && value.length <= 4)
-		.withMessage("Mỗi câu hỏi phải có từ 2 đến 4 đáp án")
-		.custom((answers: any[]) => {
+		.custom((value, { req }) => {
+			// Skip validation for essay questions
+			if (req.body.type === "ESSAY") return true;
+			// For multiple choice, require 2-4 answers
+			return value.length >= 2 && value.length <= 4;
+		})
+		.withMessage("Mỗi câu hỏi trắc nghiệm phải có từ 2 đến 4 đáp án")
+		.custom((answers: any[], { req }) => {
+			// Skip validation for essay questions
+			if (req.body.type === "ESSAY") return true;
 			return answers.every(
 				(answer) => answer.value && typeof answer.value === "string" && typeof answer.is_correct === "boolean",
 			);
 		})
 		.withMessage("Mỗi đáp án phải có giá trị (chuỗi ký tự), is_correct (boolean)")
-		.custom((answers: any[]) => {
+		.custom((answers: any[], { req }) => {
+			// Skip validation for essay questions
+			if (req.body.type === "ESSAY") return true;
 			const correctAnswers = answers.filter((answer) => answer.is_correct);
 			return correctAnswers.length === 1;
 		})
-		.withMessage("Mỗi câu hỏi chỉ có 1 đáp án đúng"),
+		.withMessage("Mỗi câu trắc nghiệm chỉ có 1 đáp án đúng"),
 ];
 
 export const validateExam = () => [
