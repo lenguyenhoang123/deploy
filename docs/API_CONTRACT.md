@@ -1555,8 +1555,11 @@ Gửi OTP về email để reset password.
 
 **Validation:**
 - `email`: optional, email format
-- `logo`, `guide_video`: optional, ObjectId phải tồn tại trong collection file
-- `banners`: optional, mảng ObjectId (mỗi ID phải tồn tại trong collection file)
+- `logo`, `banner`, `guide_video`: optional, phải là ObjectId hợp lệ và tồn tại trong collection file
+- `banners`: optional, mảng ObjectId (mỗi ID phải hợp lệ và tồn tại trong collection file)
+- `profile_schema`: optional, mảng object với `key` (string), `label` (string), `type` (text/date/select/number)
+- `exam_rules`: optional, object với `max_attempts`, `time_minutes`, `question_config[]`, `essay_grading`
+- `unit_schema`: optional, object với `group_by_field`, `group_label`, `classification_field`, `classification_rules[]`
 
 **Response 200:**
 ```json
@@ -2116,8 +2119,8 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 25 | Exam | `/exam/{id}/templates` | PUT | ⚠️ | Config-driven question count |
 | 26 | Exam | `/exam/{id}/templates` | GET | ⚠️ | Thêm type field |
 | 27 | Exam | `/exam/{id}/templates/{template_id}/shuffle` | PUT | ✅ | Random lại câu hỏi trong đề thi |
-| 28 | QB | `/question-bank` | GET | ⚠️ | Thêm type field |
-| 29 | QB | `/question-bank` | POST | ⚠️ | Thêm type, hỗ trợ ESSAY |
+| 28 | QB | `/question-bank` | GET | ✅ | Trả field `type` (MULTIPLE_CHOICE/ESSAY) |
+| 29 | QB | `/question-bank` | POST | ✅ | Hỗ trợ `type`: MULTIPLE_CHOICE hoặc ESSAY |
 | 30 | QB | `/question-bank/{id}` | GET | ✅ | |
 | 31 | QB | `/question-bank/{id}/copy` | POST | ✅ | |
 | 32 | QB | `/question-bank/{id}/delete` | PUT | ✅ | |
@@ -2126,8 +2129,8 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 35 | File | `/file/upload` | POST | ✅ | |
 | 36 | File | `/file/{id}` | GET | ✅ | |
 | 37 | File | `/file/{id}` | DELETE | ✅ | |
-| 38 | Config | `/website-config` | GET | ⚠️ | Mở rộng fields |
-| 39 | Config | `/website-config` | PUT | ⚠️ | Mở rộng fields |
+| 38 | Config | `/website-config` | GET | ✅ | Trả đầy đủ banners[], guide_video, Config-First fields |
+| 39 | Config | `/website-config` | PUT | ✅ | Validation đầy đủ các fields mới |
 | 40 | Stats | `/statistics/exam/{id}/participant` | GET | ✅ | Aggregate nhiều lượt, profile fields, xếp hạng |
 | 41 | Stats | `/statistics/exam/{id}/participant/{id}` | GET | ✅ | Profile fields + aggregated stats |
 | 42 | Stats | `/statistics/exam/{id}/participant/export` | GET | ✅ | Columns mới + 2 sheets THCS/THPT |

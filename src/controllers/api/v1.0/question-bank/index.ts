@@ -78,6 +78,7 @@ export default (_express: Application) => {
 						sortOrder: req.payload.sortOrder,
 						attributes: [
 							"name",
+							"type",
 							"level",
 							"priority",
 							"files",
