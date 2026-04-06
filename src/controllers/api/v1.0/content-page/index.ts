@@ -16,25 +16,22 @@ export default (_express: Application) => {
 
 	return <Resource>{
 		get: {
-			middleware: [queryFilter, requiredFilters(["currentPage", "pageSize"])],
+			middleware: [verify, verifyAdmin, queryFilter, requiredFilters(["currentPage", "pageSize"])],
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
 				 * /content-page:
 				 *   get:
 				 *     tags: [Content Page]
-				 *     description: Admin - list with pagination, or Public - get by slug query param.
+				 *     description: Admin - list with pagination and filters.
+				 *     security:
+				 *       - Bearer: []
 				 *     parameters:
-				 *       - name: slug
-				 *         in: query
-				 *         schema:
-				 *           type: string
-				 *         description: Get single page by slug (public, no auth required if page is active)
 				 *       - name: filters
 				 *         in: query
 				 *         schema:
 				 *           type: string
-				 *         description: Filter by type, is_active (admin only)
+				 *         description: Filter by type, is_active
 				 *       - name: pageSize
 				 *         in: query
 				 *         schema:
@@ -64,31 +61,6 @@ export default (_express: Application) => {
 				 */
 
 				try {
-					const slug = req.query.slug as string;
-
-					// If slug provided, get single page (public access for active pages)
-					if (slug) {
-						const data = await provider.getBySlug(slug, { populateFiles: true });
-						if (!data) throw new Error("Trang nội dung không tồn tại");
-						if (!data.is_active && !req.user?.isAdmin) {
-							throw new Error("Trang nội dung không tồn tại");
-						}
-						return res.sendOk({
-							data,
-							message: "Lấy thông tin trang nội dung thành công",
-						});
-					}
-
-					// Otherwise, require admin for list
-					if (!req.user?.isAdmin) {
-						return res.sendErrorStatus({
-							status: 401,
-							message: "Yêu cầu đăng nhập",
-							message_en: "Authentication required",
-							err: new Error("No token provided"),
-						});
-					}
-
 					await userProvider.validateUserId(req.user.id as string);
 
 					const queryOptions = {

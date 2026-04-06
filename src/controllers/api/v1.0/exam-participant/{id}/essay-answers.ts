@@ -66,6 +66,7 @@ export default (_express: Application) => {
 								question_content: q.content,
 								text_answer: answer?.text_answer || null,
 								is_correct: answer?.is_correct ?? null,
+								score: answer?.score ?? null, // Điểm số chi tiết
 							};
 						});
 

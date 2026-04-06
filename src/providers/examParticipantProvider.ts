@@ -221,32 +221,45 @@ export class ExamParticipantProvider extends BaseProvider<IExamParticipant, IExa
 	/**
 	 * Update essay scores for a participant's answers
 	 * @param currentAnswers - Current answers array from participant
-	 * @param essayScores - Array of {question_id, is_correct} for essay questions
+	 * @param essayScores - Array of {question_id, score, is_correct?} for essay questions
 	 * @returns Object with new total score and updated answers array
 	 */
 	updateEssayScores(
 		currentAnswers: IExamParticipantAnswer[],
-		essayScores: { question_id: string; is_correct: boolean }[]
+		essayScores: { question_id: string; score: number; is_correct?: boolean }[]
 	): { newScore: number; updatedAnswers: IExamParticipantAnswer[] } {
-		const scoresMap = new Map<string, boolean>();
-		for (const score of essayScores) {
-			scoresMap.set(score.question_id, score.is_correct);
+		const scoresMap = new Map<string, { score: number; is_correct?: boolean }>();
+		for (const s of essayScores) {
+			scoresMap.set(s.question_id, {
+				score: s.score,
+				is_correct: s.is_correct ?? s.score > 0, // Mặc định true nếu có điểm > 0
+			});
 		}
 
 		// Update answers with essay scores
 		const updatedAnswers = currentAnswers.map((answer) => {
-			const essayScore = scoresMap.get(answer.question_id.toString());
-			if (essayScore !== undefined) {
+			const essayScoreData = scoresMap.get(answer.question_id.toString());
+			if (essayScoreData !== undefined) {
 				return {
 					...answer,
-					is_correct: essayScore,
+					score: essayScoreData.score,
+					is_correct: essayScoreData.is_correct,
 				};
 			}
 			return answer;
 		});
 
-		// Recalculate total score (count all correct answers, both MC and essay)
-		const newScore = updatedAnswers.filter((a) => a.is_correct === true).length;
+		// Recalculate total score (MC questions: 1 điểm nếu đúng, Essay: theo score nhập vào)
+		let newScore = 0;
+		for (const answer of updatedAnswers) {
+			if (answer.score !== undefined) {
+				// Câu tự luận: cộng theo điểm đã nhập
+				newScore += answer.score;
+			} else if (answer.is_correct === true) {
+				// Câu trắc nghiệm: 1 điểm nếu đúng
+				newScore += 1;
+			}
+		}
 
 		return { newScore, updatedAnswers };
 	}

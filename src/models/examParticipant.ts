@@ -8,6 +8,7 @@ export interface IExamParticipantAnswer {
 	user_answer?: ObjectId;
 	text_answer?: string;
 	is_correct?: boolean;
+	score?: number; // Điểm số cụ thể cho câu tự luận (ví dụ: 0.5, 1.5, 2)
 }
 
 export interface IExamParticipant {
@@ -41,6 +42,7 @@ const examParticipantAnswerSchema = new Schema<IExamParticipantAnswer>(
 		user_answer: { type: Schema.Types.ObjectId },
 		text_answer: { type: String },
 		is_correct: { type: Boolean },
+		score: { type: Number, min: 0 }, // Điểm số cho câu tự luận
 	},
 	{ _id: false },
 );
