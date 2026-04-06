@@ -26,7 +26,46 @@ export const validateUpdateUserInfo = () => [
 	body("profile").optional().isObject().withMessage("Profile phải là một object"),
 ];
 
-export const validateUpdateWebsiteConfig = () => [body("email").optional().isEmail().withMessage("Email không hợp lệ")];
+export const validateUpdateWebsiteConfig = () => [
+	body("email").optional().isEmail().withMessage("Email không hợp lệ"),
+	body("logo").optional().isMongoId().withMessage("Logo phải là một ID hợp lệ"),
+	body("banner").optional().isMongoId().withMessage("Banner phải là một ID hợp lệ"),
+	body("banners")
+		.optional()
+		.isArray()
+		.withMessage("Banners phải là một mảng")
+		.custom((value: any[]) => {
+			if (!Array.isArray(value)) return true;
+			for (const id of value) {
+				if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+					throw new Error(`ID banner ${id} không hợp lệ`);
+				}
+			}
+			return true;
+		}),
+	body("guide_video").optional().isMongoId().withMessage("Guide video phải là một ID hợp lệ"),
+	body("profile_schema")
+		.optional()
+		.isArray()
+		.withMessage("Profile schema phải là một mảng")
+		.custom((value: any[]) => {
+			if (!Array.isArray(value)) return true;
+			for (const field of value) {
+				if (!field.key || typeof field.key !== "string") {
+					throw new Error("Mỗi field trong profile_schema phải có key là chuỗi ký tự");
+				}
+				if (!field.label || typeof field.label !== "string") {
+					throw new Error("Mỗi field trong profile_schema phải có label là chuỗi ký tự");
+				}
+				if (!field.type || !["text", "date", "select", "number"].includes(field.type)) {
+					throw new Error("Mỗi field trong profile_schema phải có type là text, date, select hoặc number");
+				}
+			}
+			return true;
+		}),
+	body("exam_rules").optional().isObject().withMessage("Exam rules phải là một object"),
+	body("unit_schema").optional().isObject().withMessage("Unit schema phải là một object"),
+];
 
 export const validateEmail = () => [
 	body("email", "Email không được để trống").notEmpty(),

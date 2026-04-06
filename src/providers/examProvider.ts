@@ -431,6 +431,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 
 			const userData = userStatsMap.get(userId);
 			userData.attempts.push({
+				participant_id: participant._id.toString(),
 				attempt_number: participant.attempt_number,
 				score: participant.score || 0,
 				time_taken: participant.time_taken || 0,
@@ -459,6 +460,7 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 
 			result.set(userId, {
 				_id: userId,
+				latest_participant_id: bestAttempt.participant_id,
 				first_name: user.first_name,
 				middle_name: user.middle_name,
 				last_name: user.last_name,
