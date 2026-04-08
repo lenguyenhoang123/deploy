@@ -99,7 +99,7 @@ export default (_express: Application) => {
 
 			const user = await userProvider.post({ ...userValues, profile, is_active: false, is_deleted: false });
 			const otp = await generateAndSendOtp(user.id, password, req.body.email);
-			if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
+			// if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
 			return res.sendOk({ data: { message: "Đăng ký tài khoản thành công" } });
 		} catch (error) {
 			return res.sendError({ err: error });
@@ -153,7 +153,7 @@ export default (_express: Application) => {
 
 		await sendOtpEmail(userValues.email, otp);
 
-		if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
+		// if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
 		return res.sendOk({ data: { message: "Đăng ký tài khoản thành công" } });
 	}
 
