@@ -142,26 +142,18 @@ Authorization: Bearer <access_token>
 - `password`: required, min 8 ký tự, không chứa khoảng trắng
 - `profile.*`: validate dynamic theo `profile_schema` trong WebsiteConfig (required, unique, type check...)
 
-**Response 200:** (dev environment trả thêm OTP)
+**Response 200:**
 ```json
 {
   "status": "success",
   "message": "Đăng ký tài khoản thành công",
   "responseData": {
-    "otp": "123456"
-  }
-}
-```
-
-**Response 200:** (production — không trả OTP)
-```json
-{
-  "status": "success",
-  "responseData": {
     "message": "Đăng ký tài khoản thành công"
   }
 }
 ```
+
+> **ℹ️ Lưu ý:** OTP được gửi qua email, không trả về trong response.
 
 **Errors:** `500` Email đã được đăng ký | SĐT đã được đăng ký | Tài khoản đã bị xóa
 
@@ -1034,6 +1026,57 @@ Gửi OTP về email để reset password.
 
 ---
 
+### `PUT /exam/{id}/templates/{template_id}` ✅
+🔒 **Yêu cầu auth** (Admin) — Sửa đề thi (tên, số lượng câu hỏi, hoặc danh sách câu hỏi cụ thể).
+
+> **✅ Đã có.** Cho phép:
+> - Sửa tên đề thi
+> - Thay đổi số lượng câu hỏi (tự động lấy random từ ngân hàng theo số lượng mới)
+> - Thay đổi danh sách câu hỏi cụ thể bằng ID
+
+**Request (sửa tên + số lượng câu hỏi):**
+```json
+{
+  "name": "Đề 1 - Cập nhật",
+  "quantity": 25,
+  "essay_quantity": 5
+}
+```
+
+**Request (sửa danh sách câu hỏi cụ thể):**
+```json
+{
+  "name": "Đề 1 - Cập nhật",
+  "questions": [
+    "6699f4391c7ab023b0a77b5c",
+    "6699f4391c7ab023b0a77b5d",
+    "..."
+  ]
+}
+```
+
+**Validation:**
+- `name`: optional, không được để trống nếu cung cấp
+- `quantity`: optional, số lượng câu hỏi trắc nghiệm mới (tự động random từ ngân hàng)
+- `essay_quantity`: optional, số lượng câu hỏi tự luận mới (tự động random từ ngân hàng)
+- `questions`: optional, mảng ID câu hỏi cụ thể (ưu tiên cao hơn `quantity`/`essay_quantity`)
+- Ít nhất một field phải được cung cấp
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Cập nhật đề thi thành công",
+  "responseData": {
+    "message": "Cập nhật đề thi thành công"
+  }
+}
+```
+
+**Errors:** `500` Kỳ thi đã hoặc đang diễn ra | Không tìm thấy đề thi | Không tìm thấy câu hỏi trong ngân hàng | Không đủ câu hỏi trong ngân hàng | Không có thông tin để cập nhật
+
+---
+
 ### `PUT /exam/{id}/templates/{template_id}/shuffle` ✅
 🔒 **Yêu cầu auth** (Admin) — Lấy câu hỏi mới từ ngân hàng cho đề thi.
 
@@ -1877,11 +1920,15 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
     "exam": { "_id": "ObjectId", "name": "Vòng thi..." },
     "user": { "_id": "ObjectId", "first_name": "..." },
     "attempt_number": 1,
+    "status": "submitted",
+    "is_graded": true,
     "new_score": 90,
     "graded_essays": 2
   }
 }
 ```
+
+> **ℹ️ Thông tin thêm:** `status` và `is_graded` giúp FE xác định trạng thái bài thi để hiển thị UI phù hợp.
 
 ---
 
@@ -2118,35 +2165,36 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 24 | Exam | `/exam/{id}` | DELETE | ✅ | |
 | 25 | Exam | `/exam/{id}/templates` | PUT | ⚠️ | Config-driven question count |
 | 26 | Exam | `/exam/{id}/templates` | GET | ⚠️ | Thêm type field |
-| 27 | Exam | `/exam/{id}/templates/{template_id}/shuffle` | PUT | ✅ | Random lại câu hỏi trong đề thi |
-| 28 | QB | `/question-bank` | GET | ✅ | Trả field `type` (MULTIPLE_CHOICE/ESSAY) |
-| 29 | QB | `/question-bank` | POST | ✅ | Hỗ trợ `type`: MULTIPLE_CHOICE hoặc ESSAY |
-| 30 | QB | `/question-bank/{id}` | GET | ✅ | |
-| 31 | QB | `/question-bank/{id}/copy` | POST | ✅ | |
-| 32 | QB | `/question-bank/{id}/delete` | PUT | ✅ | |
-| 33 | QB | `/question-bank/import` | POST | ✅ | Import Excel (MC + Essay) |
-| 34 | File | `/file` | GET | ✅ | |
-| 35 | File | `/file/upload` | POST | ✅ | |
-| 36 | File | `/file/{id}` | GET | ✅ | |
-| 37 | File | `/file/{id}` | DELETE | ✅ | |
-| 38 | Config | `/website-config` | GET | ✅ | Trả đầy đủ banners[], guide_video, Config-First fields |
-| 39 | Config | `/website-config` | PUT | ✅ | Validation đầy đủ các fields mới |
-| 40 | Stats | `/statistics/exam/{id}/participant` | GET | ✅ | Aggregate nhiều lượt, profile fields, xếp hạng |
-| 41 | Stats | `/statistics/exam/{id}/participant/{id}` | GET | ✅ | Profile fields + aggregated stats |
-| 42 | Stats | `/statistics/exam/{id}/participant/export` | GET | ✅ | Columns mới + 2 sheets THCS/THPT |
-| 43 | Stats | `/statistics/exam/{id}/unit` | GET | ✅ | Group by trường + THCS/THPT + highlight top |
-| 44 | Stats | `/statistics/exam/{id}/unit/export` | GET | ✅ | Excel + highlight top 3 + cột school_type |
-| 45 | Stats | `/statistics/total-participants` | GET | ✅ | Public counter - unique users + total attempts |
-| 46 | Admin | `/exam-participant/{id}/essay-answers` | GET | ✅ | **Mới** — Xem câu trả lời tự luận |
-| 47 | Admin | `/exam-participant/{id}/essay-score` | PATCH | ✅ | Chấm điểm câu tự luận |
-| 48 | CMS | `/content-page` | GET | ✅ | **Mới** — Hỗ trợ query slug public |
-| 49 | CMS | `/content-page` | POST | ✅ | **Mới** — Slug optional, auto-generate |
-| 50 | CMS | `/content-page/{id}` | GET | ✅ | **Mới** |
-| 51 | CMS | `/content-page/{id}` | PUT | ✅ | **Mới** — Slug auto-regenerate from title |
-| 52 | CMS | `/content-page/{id}` | DELETE | ✅ | **Mới** |
-| 53 | CMS | `/content-page/public` | GET | ✅ | **Mới** — Public |
-| 54 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
+| 27 | Exam | `/exam/{id}/templates/{template_id}` | PUT | ✅ | Sửa đề thi (tên và/hoặc câu hỏi) |
+| 28 | Exam | `/exam/{id}/templates/{template_id}/shuffle` | PUT | ✅ | Random lại câu hỏi trong đề thi |
+| 29 | QB | `/question-bank` | GET | ✅ | Trả field `type` (MULTIPLE_CHOICE/ESSAY) |
+| 30 | QB | `/question-bank` | POST | ✅ | Hỗ trợ `type`: MULTIPLE_CHOICE hoặc ESSAY |
+| 31 | QB | `/question-bank/{id}` | GET | ✅ | |
+| 32 | QB | `/question-bank/{id}/copy` | POST | ✅ | |
+| 33 | QB | `/question-bank/{id}/delete` | PUT | ✅ | |
+| 34 | QB | `/question-bank/import` | POST | ✅ | Import Excel (MC + Essay) |
+| 35 | File | `/file` | GET | ✅ | |
+| 36 | File | `/file/upload` | POST | ✅ | |
+| 37 | File | `/file/{id}` | GET | ✅ | |
+| 38 | File | `/file/{id}` | DELETE | ✅ | |
+| 39 | Config | `/website-config` | GET | ✅ | Trả đầy đủ banners[], guide_video, Config-First fields |
+| 40 | Config | `/website-config` | PUT | ✅ | Validation đầy đủ các fields mới |
+| 41 | Stats | `/statistics/exam/{id}/participant` | GET | ✅ | Aggregate nhiều lượt, profile fields, xếp hạng |
+| 42 | Stats | `/statistics/exam/{id}/participant/{id}` | GET | ✅ | Profile fields + aggregated stats |
+| 43 | Stats | `/statistics/exam/{id}/participant/export` | GET | ✅ | Columns mới + 2 sheets THCS/THPT |
+| 44 | Stats | `/statistics/exam/{id}/unit` | GET | ✅ | Group by trường + THCS/THPT + highlight top |
+| 45 | Stats | `/statistics/exam/{id}/unit/export` | GET | ✅ | Excel + highlight top 3 + cột school_type |
+| 46 | Stats | `/statistics/total-participants` | GET | ✅ | Public counter - unique users + total attempts |
+| 47 | Admin | `/exam-participant/{id}/essay-answers` | GET | ✅ | **Mới** — Xem câu trả lời tự luận |
+| 48 | Admin | `/exam-participant/{id}/essay-score` | PATCH | ✅ | Chấm điểm câu tự luận |
+| 49 | CMS | `/content-page` | GET | ✅ | **Mới** — Hỗ trợ query slug public |
+| 50 | CMS | `/content-page` | POST | ✅ | **Mới** — Slug optional, auto-generate |
+| 51 | CMS | `/content-page/{id}` | GET | ✅ | **Mới** |
+| 52 | CMS | `/content-page/{id}` | PUT | ✅ | **Mới** — Slug auto-regenerate from title |
+| 53 | CMS | `/content-page/{id}` | DELETE | ✅ | **Mới** |
+| 54 | CMS | `/content-page/public` | GET | ✅ | **Mới** — Public |
+| 55 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
 
 ---
 
-**Tổng:** 54 endpoints | ✅ 30 hoạt động | ⚠️ 19 cần sửa | ❌ 5 chưa có
+**Tổng:** 55 endpoints | ✅ 31 hoạt động | ⚠️ 19 cần sửa | ❌ 5 chưa có
