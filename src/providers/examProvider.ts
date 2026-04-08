@@ -124,15 +124,20 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 		const exam = await this.getExamDetails(examId);
 		const templates = exam.templates;
 
-		const formattedTemplates = templates.map((template: any) => ({
-			template_id: template._id,
-			template_name: template.name,
-			quantity: template.questions.length,
-			questions: template.questions.map((question: any) => ({
-				...question.toObject(),
-				answers: this.extractAnswerValues(question.answers),
-			})),
-		}));
+		const formattedTemplates = templates.map((template: any) => {
+			const multipleChoiceCount = template.questions.filter((q: any) => q.type === "MULTIPLE_CHOICE").length;
+			const essayCount = template.questions.filter((q: any) => q.type === "ESSAY").length;
+			return {
+				template_id: template._id,
+				template_name: template.name,
+				multiple_choice_quantity: multipleChoiceCount,
+				essay_quantity: essayCount,
+				questions: template.questions.map((question: any) => ({
+					...question.toObject(),
+					answers: this.extractAnswerValues(question.answers),
+				})),
+			};
+		});
 
 		return {
 			exam_name: exam.name,
@@ -331,11 +336,15 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 			});
 		}
 
+		const multipleChoiceCount = template.questions.filter((q: any) => q.type === "MULTIPLE_CHOICE").length;
+		const essayCount = template.questions.filter((q: any) => q.type === "ESSAY").length;
+
 		return {
 			exam_name: name,
 			allowed_time,
 			template_name: template.name,
-			quantity: template.questions.length,
+			multiple_choice_quantity: multipleChoiceCount,
+			essay_quantity: essayCount,
 			correct_count,
 			time_taken: this.getTimeTaken(participant),
 			questions: includeQuestions ? formattedQuestions : undefined,
