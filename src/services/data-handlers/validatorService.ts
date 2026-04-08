@@ -75,6 +75,7 @@ export const validateEmail = () => [
 export const validateFirstName = () => [
 	body("first_name", "Tên không được để trống").notEmpty(),
 	body("first_name", "Tên không hợp lệ").isAlpha("vi-VN"),
+	body("first_name", "Tên không được ít hơn 3 và nhiều hơn 20 ký tự").isLength({ min:3,max: 20 }),
 ];
 
 export const validateMiddleName = () => [body("middle_name", "Tên lót không hợp lệ").matches(/^[a-zA-ZÀ-ỹ\s]*$/)];
@@ -82,11 +83,17 @@ export const validateMiddleName = () => [body("middle_name", "Tên lót không h
 export const validateLastName = () => [
 	body("last_name", "Họ không được để trống").notEmpty(),
 	body("last_name", "Họ không hợp lệ").isAlpha("vi-VN"),
+	body("last_name", "Họ không được ít hơn 3 và nhiều hơn 20 ký tự").isLength({ min:3,max: 20 }),
 ];
 
 export const validatePhone = () => [
 	body("phone", "Số điện thoại không được để trống").notEmpty(),
 	body("phone", "Số điện thoại không hợp lệ").isMobilePhone("vi-VN"),
+	body("phone")
+		.isLength({ min: 10, max: 11 })
+		.withMessage("Số điện thoại phải có 10 hoặc 11 chữ số")
+		.isNumeric()
+		.withMessage("Số điện thoại chỉ được chứa số"),
 ];
 
 export const validateUnit = () => [
@@ -252,6 +259,18 @@ export function validateProfile(profile: Record<string, any> | undefined, profil
 
 		// Skip validation if value is empty and not required
 		if (!value && !field.required) continue;
+
+		// Special validation for identity_number (CCCD/CMND)
+		if (field.key === "identity_number" && value) {
+			const idStr = String(value).trim();
+			if (!/^\d+$/.test(idStr)) {
+				return `${field.label} chỉ được chứa số`;
+			}
+			if (idStr.length !== 9 && idStr.length !== 12) {
+				return `${field.label} phải có 9 số (CMND cũ) hoặc 12 số (CCCD)`;
+			}
+			continue;
+		}
 
 		// Type validation
 		switch (field.type) {

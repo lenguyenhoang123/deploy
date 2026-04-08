@@ -51,7 +51,7 @@ export default (_express: Application) => {
 				 *                 type: string
 				 *                 example: Đề 1 - Cập nhật
 				 *                 description: Tên đề thi mới (optional)
-				 *               quantity:
+				 *               multiple_choice_quantity:
 				 *                 type: integer
 				 *                 example: 25
 				 *                 description: Số lượng câu hỏi trắc nghiệm mới (optional, auto-random từ ngân hàng)
@@ -61,7 +61,7 @@ export default (_express: Application) => {
 				 *                 description: Số lượng câu hỏi tự luận mới (optional, auto-random từ ngân hàng)
 				 *               questions:
 				 *                 type: array
-				 *                 description: Danh sách ID câu hỏi cụ thể (optional, ưu tiên cao hơn quantity)
+				 *                 description: Danh sách ID câu hỏi cụ thể (optional, ưu tiên cao hơn multiple_choice_quantity/essay_quantity)
 				 *                 items:
 				 *                   type: string
 				 *                   example: 6699f4391c7ab023b0a77b5c
@@ -98,7 +98,7 @@ export default (_express: Application) => {
 					const templateIndex = exam.templates.findIndex((t: any) => t._id.toString() === templateId);
 					if (templateIndex === -1) throw new Error("Không tìm thấy đề thi");
 
-					const { name, questions, quantity, essay_quantity } = req.body;
+					const { name, questions, multiple_choice_quantity, essay_quantity } = req.body;
 					const updateFields: any = {};
 
 					// Validate and update name if provided
@@ -133,12 +133,12 @@ export default (_express: Application) => {
 						}
 
 						updateFields[`templates.${templateIndex}.questions`] = validQuestionIds;
-					} else if (quantity !== undefined || essay_quantity !== undefined) {
+					} else if (multiple_choice_quantity !== undefined || essay_quantity !== undefined) {
 						// Auto-fetch random questions from question bank
-						const quantityNumber = quantity !== undefined ? parseInt(quantity as string, 10) : 0;
+						const quantityNumber = multiple_choice_quantity !== undefined ? parseInt(multiple_choice_quantity as string, 10) : 0;
 						const essayQuantityNumber = essay_quantity !== undefined ? parseInt(essay_quantity as string, 10) : 0;
 
-						if (quantity !== undefined && (isNaN(quantityNumber) || quantityNumber < 0)) {
+						if (multiple_choice_quantity !== undefined && (isNaN(quantityNumber) || quantityNumber < 0)) {
 							throw new Error("Số lượng câu hỏi trắc nghiệm không hợp lệ");
 						}
 

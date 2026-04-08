@@ -571,7 +571,8 @@ Gửi OTP về email để reset password.
     "exam_name": "Vòng thi tìm hiểu đa dạng sinh học",
     "allowed_time": 20,
     "template_name": "Đề thi chính thức",
-    "quantity": 21,
+    "multiple_choice_quantity": 20,
+    "essay_quantity": 1,
     "attempt_number": 3,
     "questions": [
       {
@@ -956,20 +957,20 @@ Gửi OTP về email để reset password.
 ### `PUT /exam/{id}/templates` ✅
 🔒 **Yêu cầu auth** (Admin) — Tạo đề thi bằng random câu hỏi từ ngân hàng.
 
-> **✅ Đã xong:** Hỗ trợ chọn số lượng câu trắc nghiệm (`quantity`) và câu tự luận (`essay_quantity`).
+> **✅ Đã xong:** Hỗ trợ chọn số lượng câu trắc nghiệm (`multiple_choice_quantity`) và câu tự luận (`essay_quantity`).
 
 **Request:**
 ```json
 {
   "name": "Đề thi chính thức",
-  "quantity": 20,
+  "multiple_choice_quantity": 20,
   "essay_quantity": 1
 }
 ```
 
 **Validation:**
 - `name`: required, string
-- `quantity`: required, integer > 0 — số lượng câu hỏi trắc nghiệm (MULTIPLE_CHOICE)
+- `multiple_choice_quantity`: required, integer > 0 — số lượng câu hỏi trắc nghiệm (MULTIPLE_CHOICE)
 - `essay_quantity`: optional, integer ≥ 0, default 0 — số lượng câu hỏi tự luận (ESSAY)
 
 **Response 200:**
@@ -998,7 +999,8 @@ Gửi OTP về email để reset password.
     "exam_name": "Vòng thi tìm hiểu đa dạng sinh học",
     "allowed_time": 20,
     "template_name": "Đề thi chính thức",
-    "quantity": 21,
+    "multiple_choice_quantity": 20,
+    "essay_quantity": 1,
     "questions": [
       {
         "_id": "ObjectId",
@@ -1029,21 +1031,15 @@ Gửi OTP về email để reset password.
 ### `PUT /exam/{id}/templates/{template_id}` ✅
 🔒 **Yêu cầu auth** (Admin) — Sửa đề thi (tên, số lượng câu hỏi, hoặc danh sách câu hỏi cụ thể).
 
-> **✅ Đã có.** Cho phép:
-> - Sửa tên đề thi
-> - Thay đổi số lượng câu hỏi (tự động lấy random từ ngân hàng theo số lượng mới)
-> - Thay đổi danh sách câu hỏi cụ thể bằng ID
-
 **Request (sửa tên + số lượng câu hỏi):**
 ```json
 {
   "name": "Đề 1 - Cập nhật",
-  "quantity": 25,
+  "multiple_choice_quantity": 25,
   "essay_quantity": 5
 }
 ```
 
-**Request (sửa danh sách câu hỏi cụ thể):**
 ```json
 {
   "name": "Đề 1 - Cập nhật",
@@ -1057,9 +1053,9 @@ Gửi OTP về email để reset password.
 
 **Validation:**
 - `name`: optional, không được để trống nếu cung cấp
-- `quantity`: optional, số lượng câu hỏi trắc nghiệm mới (tự động random từ ngân hàng)
+- `multiple_choice_quantity`: optional, số lượng câu hỏi trắc nghiệm mới (tự động random từ ngân hàng)
 - `essay_quantity`: optional, số lượng câu hỏi tự luận mới (tự động random từ ngân hàng)
-- `questions`: optional, mảng ID câu hỏi cụ thể (ưu tiên cao hơn `quantity`/`essay_quantity`)
+- `questions`: optional, mảng ID câu hỏi cụ thể (ưu tiên cao hơn `multiple_choice_quantity`/`essay_quantity`)
 - Ít nhất một field phải được cung cấp
 
 **Response 200:**

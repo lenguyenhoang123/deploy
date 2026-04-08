@@ -43,7 +43,7 @@ export default (_express: Application) => {
 				 *               name:
 				 *                 type: string
 				 *                 example: Đề 1
-				 *               quantity:
+				 *               multiple_choice_quantity:
 				 *                 type: integer
 				 *                 example: 20
 				 *                 description: Số lượng câu hỏi trắc nghiệm
@@ -72,9 +72,9 @@ export default (_express: Application) => {
 
 					if (currentTime >= exam.start_time) throw new Error("Không thể tạo đề thi cho kỳ thi đã hoặc đang diễn ra");
 
-					const { name, quantity, essay_quantity } = req.body;
+					const { name, multiple_choice_quantity, essay_quantity } = req.body;
 
-					const quantityNumber = parseInt(quantity as string, 10);
+					const quantityNumber = parseInt(multiple_choice_quantity as string, 10);
 					if (isNaN(quantityNumber) || quantityNumber <= 0) {
 						throw new Error("Số lượng câu hỏi trắc nghiệm không hợp lệ");
 					}

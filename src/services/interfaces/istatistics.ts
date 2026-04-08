@@ -42,7 +42,8 @@ export interface IResult {
 	exam_name: string;
 	allowed_time: number;
 	template_name: string;
-	quantity: number;
+	multiple_choice_quantity: number;
+	essay_quantity: number;
 	correct_count: number;
 	time_taken: number;
 	questions?: any[];
