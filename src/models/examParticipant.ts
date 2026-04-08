@@ -16,6 +16,7 @@ export interface IExamParticipant {
 	user_id: ObjectId;
 	attempt_number: number;
 	status: string;
+	is_graded?: boolean;
 	start_time?: Date;
 	submit_time?: Date;
 	score?: number;
@@ -62,6 +63,7 @@ export const schema = (function () {
 			},
 			start_time: { type: Date },
 			submit_time: { type: Date },
+			is_graded: { type: Boolean, default: false },
 			score: { type: Number },
 			time_taken: { type: Number },
 			questions: [{ type: Schema.Types.ObjectId, ref: questionBankCollection }],
