@@ -3,6 +3,7 @@ import {
 	IExamParticipant,
 	IExamParticipantMethods,
 	IExamParticipantAnswer,
+	IExamParticipantAnswerDocument,
 	collectionName,
 	schema,
 	ExamParticipantStatus,
@@ -171,16 +172,15 @@ export class ExamParticipantProvider extends BaseProvider<IExamParticipant, IExa
 	}
 
 	async getParticipantWithPopulatedQuestions(participantId: string) {
-		const participant = await this.getById(participantId, {
-			includes: [
+		const participant = await this.getCollection()
+			.findById(participantId)
+			.populate([
 				{ path: "questions", select: "name type answers files" },
 				{ path: "exam_id", select: "name allowed_time" },
 				{ path: "user_id", select: "first_name last_name middle_name email phone" },
-			],
-		});
-		if (!participant) return null;
-		// Return plain object without internal Mongoose properties
-		return participant.toObject?.() || participant;
+			])
+			.lean<IExamParticipant>();
+		return participant || null;
 	}
 
 	async getAllAttemptsByExamAndUser(examId: string, userId: string) {
@@ -236,17 +236,27 @@ export class ExamParticipantProvider extends BaseProvider<IExamParticipant, IExa
 			});
 		}
 
+		// Helper function to convert Mongoose subdocument to plain object
+		const toPlainObject = (answer: IExamParticipantAnswer | IExamParticipantAnswerDocument): IExamParticipantAnswer => {
+			// Check if it's a Mongoose subdocument with toObject method
+			if ("toObject" in answer) {
+				return (answer as IExamParticipantAnswerDocument).toObject();
+			}
+			return { ...answer };
+		};
+
 		// Update answers with essay scores
 		const updatedAnswers = currentAnswers.map((answer) => {
-			const essayScoreData = scoresMap.get(answer.question_id.toString());
+			const plainAnswer = toPlainObject(answer);
+			const essayScoreData = scoresMap.get(plainAnswer.question_id.toString());
 			if (essayScoreData !== undefined) {
 				return {
-					...answer,
+					...plainAnswer,
 					score: essayScoreData.score,
 					is_correct: essayScoreData.is_correct,
 				};
 			}
-			return answer;
+			return plainAnswer;
 		});
 
 		// Recalculate total score (MC questions: 1 điểm nếu đúng, Essay: theo score nhập vào)

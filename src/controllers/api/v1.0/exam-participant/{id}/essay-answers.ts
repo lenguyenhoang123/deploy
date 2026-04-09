@@ -30,6 +30,13 @@ export default (_express: Application) => {
 				 *           example: 6699f4391c7ab023b0a77b5b
 				 *         description: Exam Participant ID(resutl ID)
 				 *         required: true
+				 *       - name: filter
+				 *         in: query
+				 *         schema:
+				 *           type: string
+				 *           enum: [all, graded, pending]
+				 *           default: all
+				 *         description: Lọc câu hỏi (all = tất cả, graded = đã chấm, pending = chưa chấm)
 				 *     responses:
 				 *       200:
 				 *         description: Success
@@ -54,8 +61,11 @@ export default (_express: Application) => {
 						throw new Error("Không tìm thấy thông tin lượt thi");
 					}
 
+					// Get filter from query
+					const filter = (req.query.filter as string) || "all";
+
 					// Get essay questions with answers
-					const essayQuestions = (participant.questions || [])
+					let essayQuestions = (participant.questions || [])
 						.filter((q: any) => q.type === "ESSAY")
 						.map((q: any) => {
 							const answer = participant.answers?.find(
@@ -69,6 +79,14 @@ export default (_express: Application) => {
 								score: answer?.score ?? null, // Điểm số chi tiết
 							};
 						});
+
+					// Apply filter
+					const totalEssayCount = essayQuestions.length;
+					if (filter === "graded") {
+						essayQuestions = essayQuestions.filter((q: any) => q.is_correct !== null);
+					} else if (filter === "pending") {
+						essayQuestions = essayQuestions.filter((q: any) => q.is_correct === null);
+					}
 
 					const examData = participant.exam_id || {};
 					const userData = participant.user_id || {};
@@ -87,9 +105,11 @@ export default (_express: Application) => {
 							score: participant.score,
 							status: participant.status,
 							essay_questions: essayQuestions,
-							essay_count: essayQuestions.length,
+							total_essay_count: totalEssayCount,
+							filtered_count: essayQuestions.length,
 							graded_count: essayQuestions.filter((q: any) => q.is_correct !== null).length,
 							pending_count: essayQuestions.filter((q: any) => q.is_correct === null).length,
+							filter_applied: filter,
 						},
 						message: "Lấy câu trả lời tự luận thành công",
 					});
