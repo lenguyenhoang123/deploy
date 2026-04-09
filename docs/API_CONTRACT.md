@@ -1907,6 +1907,79 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 ---
 
+### `GET /exam/{exam_id}/participants-essay` ✅
+🔒 **Yêu cầu auth** (Admin) — Lấy danh sách thí sinh với trạng thái chấm tự luận.
+
+> **✅ Mới:** Hỗ trợ lọc theo trạng thái chấm điểm tự luận (graded/pending/partial).
+
+**Query params:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `essay_status` | string | No | Lọc theo trạng thái: `all` (default), `graded`, `pending`, `partial` |
+| `filters` | string | No | Filter bổ sung (VD: `school_name==THPT Chuyên`) |
+| `pageSize` | integer | No | Số item mỗi trang (default: 10) |
+| `currentPage` | integer | No | Trang hiện tại (default: 1) |
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Lấy danh sách thí sinh với trạng thái chấm tự luận thành công",
+  "responseData": {
+    "count": 50,
+    "rows": [
+      {
+        "_id": "ObjectId",
+        "participant_id": "ObjectId",
+        "first_name": "Nguyễn Văn",
+        "last_name": "A",
+        "identity_number": "0123456789",
+        "class_name": "10A1",
+        "school_name": "THPT Chuyên",
+        "attempt_number": 1,
+        "score": 85,
+        "is_graded": true,
+        "submit_time": "2026-03-27T10:00:00Z",
+        "essay_total": 3,
+        "essay_graded": 3,
+        "essay_pending": 0,
+        "essay_status": "graded"
+      },
+      {
+        "_id": "ObjectId",
+        "participant_id": "ObjectId",
+        "first_name": "Trần Thị",
+        "last_name": "B",
+        "school_name": "THPT Chuyên",
+        "attempt_number": 1,
+        "score": 70,
+        "is_graded": false,
+        "submit_time": "2026-03-27T10:30:00Z",
+        "essay_total": 3,
+        "essay_graded": 0,
+        "essay_pending": 3,
+        "essay_status": "pending"
+      }
+    ],
+    "pageSize": 10,
+    "currentPage": 1,
+    "totalPages": 5
+  }
+}
+```
+
+**Trạng thái `essay_status`:**
+
+| Status | Ý nghĩa |
+|--------|---------|
+| `graded` | Đã chấm hết tất cả câu tự luận |
+| `pending` | Chưa chấm câu tự luận nào |
+| `partial` | Chấm một phần (chấm theo đợt) |
+| `no_essay` | Bài thi không có câu tự luận |
+
+---
+
 ### `PATCH /exam-participant/{id}/essay-score` ✅
 🔒 **Yêu cầu auth** (Admin) — Chấm điểm câu trả lời tự luận.
 

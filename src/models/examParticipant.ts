@@ -11,6 +11,11 @@ export interface IExamParticipantAnswer {
 	score?: number; // Điểm số cụ thể cho câu tự luận (ví dụ: 0.5, 1.5, 2)
 }
 
+// Mongoose subdocument version with document methods
+export interface IExamParticipantAnswerDocument extends IExamParticipantAnswer {
+	toObject(): IExamParticipantAnswer;
+}
+
 export interface IExamParticipant {
 	exam_id: ObjectId;
 	user_id: ObjectId;

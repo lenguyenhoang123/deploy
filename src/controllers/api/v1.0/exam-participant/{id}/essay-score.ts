@@ -129,6 +129,17 @@ export default (_express: Application) => {
 						throw new Error("Bài thi đã được chấm điểm, không thể chấm lại");
 					}
 
+					// Validate that all question_ids exist in participant's answers
+					const validQuestionIds = participant.answers.map((a: any) => a.question_id?.toString());
+					const invalidScores = scores.filter(
+						(s) => !validQuestionIds.includes(s.question_id)
+					);
+					if (invalidScores.length > 0) {
+						throw new Error(
+							`Question ID không hợp lệ: ${invalidScores.map((s) => s.question_id).join(", ")}. Các ID hợp lệ: ${validQuestionIds.join(", ")}`
+						);
+					}
+
 					// Update essay scores
 					const { newScore, updatedAnswers } = examParticipantProvider.updateEssayScores(
 						participant.answers,
@@ -265,6 +276,17 @@ export default (_express: Application) => {
 					// Check if submitted
 					if (participant.status !== "submitted") {
 						throw new Error("Chỉ có thể sửa điểm sau khi thí sinh đã nộp bài");
+					}
+
+					// Validate that all question_ids exist in participant's answers
+					const validQuestionIds = participant.answers.map((a: any) => a.question_id?.toString());
+					const invalidScores = scores.filter(
+						(s) => !validQuestionIds.includes(s.question_id)
+					);
+					if (invalidScores.length > 0) {
+						throw new Error(
+							`Question ID không hợp lệ: ${invalidScores.map((s) => s.question_id).join(", ")}. Các ID hợp lệ: ${validQuestionIds.join(", ")}`
+						);
 					}
 
 					// Update essay scores

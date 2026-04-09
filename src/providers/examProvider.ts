@@ -806,4 +806,101 @@ export class ExamProvider extends BaseProvider<IExam, IExamMethods> {
 			new_questions: newQuestionIds,
 		};
 	}
+
+	/**
+	 * Get participants with essay grading status
+	 * @param examId - Exam ID
+	 * @param queryOptions - Query options for pagination
+	 * @param statusFilter - Filter by status: all, graded, pending, partial
+	 */
+	async getParticipantsWithEssayStatus(
+		examId: string,
+		queryOptions: IQueryOptions,
+		statusFilter: string = "all"
+	): Promise<IPaginationResult> {
+		const { where, pageSize, currentPage } = queryOptions;
+
+		const exam = await this.getById(examId);
+		if (!exam) throw new Error("Kỳ thi không tồn tại");
+
+		// Get all submitted participants with populated answers and questions
+		const participantsResult = await examParticipantProvider.getAll({
+			where: {
+				exam_id: new mongoose.Types.ObjectId(examId),
+				status: "submitted",
+			},
+			pageSize: 10000,
+			currentPage: 1,
+		});
+
+		const participants = participantsResult.rows;
+
+		// Calculate essay status for each participant
+		const participantsWithStatus = await Promise.all(
+			participants.map(async (participant: any) => {
+				// Get user info
+				const user = await userProvider.getById(participant.user_id.toString());
+				if (!user) return null;
+
+				const profile = user.profile || {};
+
+				// Count essay questions in answers
+				const essayAnswers = (participant.answers || []).filter(
+					(a: any) => a.text_answer !== undefined && a.text_answer !== null
+				);
+
+				const totalEssay = essayAnswers.length;
+				const gradedEssay = essayAnswers.filter((a: any) => a.is_correct !== null && a.is_correct !== undefined).length;
+				const pendingEssay = totalEssay - gradedEssay;
+
+				// Determine status
+				let essayStatus: "graded" | "pending" | "partial" | "no_essay";
+				if (totalEssay === 0) {
+					essayStatus = "no_essay";
+				} else if (pendingEssay === 0) {
+					essayStatus = "graded";
+				} else if (gradedEssay === 0) {
+					essayStatus = "pending";
+				} else {
+					essayStatus = "partial";
+				}
+
+				return {
+					_id: user._id?.toString(),
+					participant_id: participant._id?.toString(),
+					first_name: user.first_name,
+					middle_name: user.middle_name,
+					last_name: user.last_name,
+					identity_number: profile.identity_number,
+					date_of_birth: profile.date_of_birth,
+					gender: profile.gender,
+					class_name: profile.class_name,
+					school_name: profile.school_name,
+					phone: user.phone,
+					classification: profile.classification,
+					attempt_number: participant.attempt_number,
+					score: participant.score,
+					is_graded: participant.is_graded,
+					submit_time: participant.submit_time,
+					essay_total: totalEssay,
+					essay_graded: gradedEssay,
+					essay_pending: pendingEssay,
+					essay_status: essayStatus,
+				};
+			})
+		);
+
+		// Filter out nulls and apply status filter
+		let filteredParticipants = participantsWithStatus.filter((p): p is NonNullable<typeof p> => p !== null);
+
+		if (statusFilter !== "all") {
+			filteredParticipants = filteredParticipants.filter((p) => p.essay_status === statusFilter);
+		}
+
+		// Apply additional filters
+		filteredParticipants = applyFilters(filteredParticipants, where);
+
+		// Paginate
+		return generatePaginationResult(filteredParticipants, pageSize, currentPage);
+	}
 }
