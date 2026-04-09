@@ -5,10 +5,11 @@ import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import { queryFilter } from "#middlewares/query-filter";
 import mongoose from "mongoose";
-import { ExcelExportService } from "#services/excelExportService";
 import { participantStatisticsTemplate } from "#templates/excel/statisticsTemplate";
 import { formattedParticipantDataToExport, classifyStudentLevel } from "#services/statisticsService";
 import { UserProvider } from "#providers/userProvider";
+import { ExcelExportService } from "#services/excelExportService";
+
 
 export default (_express: Application) => {
 	const provider = new ExamProvider();
@@ -88,22 +89,31 @@ export default (_express: Application) => {
 					const formattedTHCS = formattedParticipantDataToExport(thcsData);
 					const formattedTHPT = formattedParticipantDataToExport(thptData);
 
-					// Generate multi-sheet Excel
-					const sheets = [
-						{
+					// Generate styled multi-sheet Excel
+					const configs = [];
+					if (formattedTHCS.length > 0) {
+						configs.push({
 							sheetName: "THCS",
+							title: "THỐNG KÊ CÁ NHÂN - THCS",
+							titleBgColor: "1F6FEB",
 							data: formattedTHCS,
 							headers: participantStatisticsTemplate.headers,
-						},
-						{
+							highlightTop3: true,
+						});
+					}
+					if (formattedTHPT.length > 0) {
+						configs.push({
 							sheetName: "THPT",
+							title: "THỐNG KÊ CÁ NHÂN - THPT",
+							titleBgColor: "9333EA",
 							data: formattedTHPT,
 							headers: participantStatisticsTemplate.headers,
-						},
-					];
-
-					const excelBuffer = await ExcelExportService.generateExcelMultiSheet(sheets);
-					res.setHeader("Content-Disposition", "attachment; filename=ThongKeTheoCaNhan.xlsx");
+							highlightTop3: true,
+						});
+					}
+					const excelBuffer = await ExcelExportService.generateStyledMultiSheet(configs);
+					const timestamp = new Date().toISOString().split("T")[0];
+					res.setHeader("Content-Disposition", `attachment; filename="ThongKeTheoCaNhan_${timestamp}.xlsx"`);
 					res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 					return res.send(excelBuffer);
 				} catch (error) {

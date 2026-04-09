@@ -1344,6 +1344,28 @@ Gửi OTP về email để reset password.
 
 ---
 
+### `GET /question-bank/export` ✅
+🔒 **Yêu cầu auth** (Admin) — Export ngân hàng câu hỏi ra file Excel.
+
+> **✅ Đã có.** Export toàn bộ câu hỏi (MC + Essay) ra Excel, có hỗ trợ filter.
+
+**Query params:** `filters` (optional) — Lọc theo level, type, v.v.
+
+**Response 200:** File Excel `NgânHàngCâuHỏi.xlsx`
+
+| Cột | Mô tả |
+|-----|-------|
+| STT | Số thứ tự |
+| Câu hỏi | Nội dung câu hỏi |
+| Loại | Trắc nghiệm / Tự luận |
+| Độ khó | EASY / NORMAL / HARD |
+| Ưu tiên | Priority number |
+| Các đáp án | A. xxx\nB. yyy... (chỉ cho MC) |
+| Đáp án đúng | Nội dung đáp án đúng (chỉ cho MC) |
+| Ngày tạo | Ngày tạo câu hỏi |
+
+---
+
 ## 6. File Management
 
 ### `GET /file` ✅
@@ -2169,28 +2191,29 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 32 | QB | `/question-bank/{id}/copy` | POST | ✅ | |
 | 33 | QB | `/question-bank/{id}/delete` | PUT | ✅ | |
 | 34 | QB | `/question-bank/import` | POST | ✅ | Import Excel (MC + Essay) |
-| 35 | File | `/file` | GET | ✅ | |
-| 36 | File | `/file/upload` | POST | ✅ | |
-| 37 | File | `/file/{id}` | GET | ✅ | |
-| 38 | File | `/file/{id}` | DELETE | ✅ | |
-| 39 | Config | `/website-config` | GET | ✅ | Trả đầy đủ banners[], guide_video, Config-First fields |
-| 40 | Config | `/website-config` | PUT | ✅ | Validation đầy đủ các fields mới |
-| 41 | Stats | `/statistics/exam/{id}/participant` | GET | ✅ | Aggregate nhiều lượt, profile fields, xếp hạng |
-| 42 | Stats | `/statistics/exam/{id}/participant/{id}` | GET | ✅ | Profile fields + aggregated stats |
-| 43 | Stats | `/statistics/exam/{id}/participant/export` | GET | ✅ | Columns mới + 2 sheets THCS/THPT |
-| 44 | Stats | `/statistics/exam/{id}/unit` | GET | ✅ | Group by trường + THCS/THPT + highlight top |
-| 45 | Stats | `/statistics/exam/{id}/unit/export` | GET | ✅ | Excel + highlight top 3 + cột school_type |
-| 46 | Stats | `/statistics/total-participants` | GET | ✅ | Public counter - unique users + total attempts |
-| 47 | Admin | `/exam-participant/{id}/essay-answers` | GET | ✅ | **Mới** — Xem câu trả lời tự luận |
-| 48 | Admin | `/exam-participant/{id}/essay-score` | PATCH | ✅ | Chấm điểm câu tự luận |
-| 49 | CMS | `/content-page` | GET | ✅ | **Mới** — Hỗ trợ query slug public |
-| 50 | CMS | `/content-page` | POST | ✅ | **Mới** — Slug optional, auto-generate |
-| 51 | CMS | `/content-page/{id}` | GET | ✅ | **Mới** |
-| 52 | CMS | `/content-page/{id}` | PUT | ✅ | **Mới** — Slug auto-regenerate from title |
-| 53 | CMS | `/content-page/{id}` | DELETE | ✅ | **Mới** |
-| 54 | CMS | `/content-page/public` | GET | ✅ | **Mới** — Public |
-| 55 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
+| 35 | QB | `/question-bank/export` | GET | ✅ | **Mới** — Export Excel (MC + Essay) |
+| 36 | File | `/file` | GET | ✅ | |
+| 37 | File | `/file/upload` | POST | ✅ | |
+| 38 | File | `/file/{id}` | GET | ✅ | |
+| 39 | File | `/file/{id}` | DELETE | ✅ | |
+| 40 | Config | `/website-config` | GET | ✅ | Trả đầy đủ banners[], guide_video, Config-First fields |
+| 41 | Config | `/website-config` | PUT | ✅ | Validation đầy đủ các fields mới |
+| 42 | Stats | `/statistics/exam/{id}/participant` | GET | ✅ | Aggregate nhiều lượt, profile fields, xếp hạng |
+| 43 | Stats | `/statistics/exam/{id}/participant/{id}` | GET | ✅ | Profile fields + aggregated stats |
+| 44 | Stats | `/statistics/exam/{id}/participant/export` | GET | ✅ | Columns mới + 2 sheets THCS/THPT |
+| 45 | Stats | `/statistics/exam/{id}/unit` | GET | ✅ | Group by trường + THCS/THPT + highlight top |
+| 46 | Stats | `/statistics/exam/{id}/unit/export` | GET | ✅ | Excel + highlight top 3 + cột school_type |
+| 47 | Stats | `/statistics/total-participants` | GET | ✅ | Public counter - unique users + total attempts |
+| 48 | Admin | `/exam-participant/{id}/essay-answers` | GET | ✅ | **Mới** — Xem câu trả lời tự luận |
+| 49 | Admin | `/exam-participant/{id}/essay-score` | PATCH | ✅ | Chấm điểm câu tự luận |
+| 50 | CMS | `/content-page` | GET | ✅ | **Mới** — Hỗ trợ query slug public |
+| 51 | CMS | `/content-page` | POST | ✅ | **Mới** — Slug optional, auto-generate |
+| 52 | CMS | `/content-page/{id}` | GET | ✅ | **Mới** |
+| 53 | CMS | `/content-page/{id}` | PUT | ✅ | **Mới** — Slug auto-regenerate from title |
+| 54 | CMS | `/content-page/{id}` | DELETE | ✅ | **Mới** |
+| 55 | CMS | `/content-page/public` | GET | ✅ | **Mới** — Public |
+| 56 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
 
 ---
 
-**Tổng:** 55 endpoints | ✅ 31 hoạt động | ⚠️ 19 cần sửa | ❌ 5 chưa có
+**Tổng:** 56 endpoints | ✅ 32 hoạt động | ⚠️ 19 cần sửa | ❌ 5 chưa có

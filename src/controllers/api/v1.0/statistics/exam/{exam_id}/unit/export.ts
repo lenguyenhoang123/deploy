@@ -5,9 +5,9 @@ import { Req, Res } from "#services/interfaces/iapi";
 import { ExamProvider } from "#providers/examProvider";
 import { queryFilter } from "#middlewares/query-filter";
 import mongoose from "mongoose";
-import { ExcelExportService } from "#services/excelExportService";
 import { unitStatisticsTemplate } from "#templates/excel/statisticsTemplate";
 import { UserProvider } from "#providers/userProvider";
+import { ExcelExportService } from "#services/excelExportService";
 
 // Format time in minutes to MM:SS or HH:MM:SS
 function formatTimeMinutes(minutes: number): string {
@@ -37,6 +37,7 @@ function formatUnitDataToExport(array: any[]): any[] {
 		is_top: item.is_top || false,
 	}));
 }
+
 
 export default (_express: Application) => {
 	const provider = new ExamProvider();
@@ -116,13 +117,16 @@ export default (_express: Application) => {
 						);
 					}
 
-					// Generate Excel với highlight top 3 (is_top = true)
-					const excelBuffer = await ExcelExportService.generateExcel(
-						formattedData,
-						unitStatisticsTemplate.headers,
-						'is_top' // truyền field để highlight
-					);
-					res.setHeader("Content-Disposition", "attachment; filename=ThongKeTheoDonVi.xlsx");
+					// Generate styled Excel with highlight top 3
+					const excelBuffer = await ExcelExportService.generateStyledMultiSheet([{
+						sheetName: "Thống kê đơn vị",
+						title: "THỐNG KÊ THEO ĐƠN VỊ",
+						data: formattedData,
+						headers: unitStatisticsTemplate.headers,
+						badgeColumn: "school_type",
+					}]);
+					const timestamp = new Date().toISOString().split("T")[0];
+					res.setHeader("Content-Disposition", `attachment; filename="ThongKeTheoDonVi_${timestamp}.xlsx"`);
 					res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 					return res.send(excelBuffer);
 				} catch (error) {
