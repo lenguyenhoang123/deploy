@@ -152,7 +152,9 @@ export default (_express: Application) => {
 
 			if (!name || !type) return;
 
-			const questionType = type.toString().toUpperCase() === "ESSAY" ? QuestionTypes.ESSAY : QuestionTypes.MULTIPLE_CHOICE;
+			const typeUpper = type.toString().toUpperCase().trim();
+			const isEssay = typeUpper === "ESSAY" || typeUpper === "TỰ LUẬN" || typeUpper === "TU Luan";
+			const questionType = isEssay ? QuestionTypes.ESSAY : QuestionTypes.MULTIPLE_CHOICE;
 
 			const answers: { value: string; is_correct: boolean }[] = [];
 			if (questionType === QuestionTypes.MULTIPLE_CHOICE) {
