@@ -33,6 +33,7 @@ function formatQuestionData(questions: any[]): any[] {
 	});
 }
 
+// Headers for data export (read-friendly)
 const questionHeaders = [
 	{ header: "STT", key: "stt", width: 8 },
 	{ header: "Câu hỏi", key: "question", width: 60 },
@@ -42,6 +43,19 @@ const questionHeaders = [
 	{ header: "Các đáp án", key: "answer_options", width: 50 },
 	{ header: "Đáp án đúng", key: "correct_answer", width: 30 },
 	{ header: "Ngày tạo", key: "created_at", width: 15 },
+];
+
+// Headers for import template (matches import structure)
+const templateHeaders = [
+	{ header: "STT", key: "stt", width: 8 },
+	{ header: "Câu hỏi", key: "question", width: 60 },
+	{ header: "Đáp án A", key: "answer_a", width: 30 },
+	{ header: "Đáp án B", key: "answer_b", width: 30 },
+	{ header: "Đáp án C", key: "answer_c", width: 30 },
+	{ header: "Đáp án D", key: "answer_d", width: 30 },
+	{ header: "Đáp án đúng", key: "correct_answer", width: 15 },
+	{ header: "Loại", key: "type", width: 12 },
+	{ header: "Độ khó", key: "level", width: 12 },
 ];
 
 export default (_express: Application) => {
@@ -57,7 +71,7 @@ export default (_express: Application) => {
 				 * /question-bank/export:
 				 *   get:
 				 *     tags: [Question Bank]
-				 *     description: Export question bank to Excel
+				 *     description: Export question bank to Excel. Use template=true for empty template file.
 				 *     security:
 				 *       - Bearer: []
 				 *     parameters:
@@ -66,6 +80,18 @@ export default (_express: Application) => {
 				 *         schema:
 				 *           type: string
 				 *         description: Optional filter criteria for the questions (level, type, etc.)
+				 *       - name: template
+				 *         in: query
+				 *         schema:
+				 *           type: boolean
+				 *           default: false
+				 *         description: If true, returns empty template file with headers only
+				 *       - name: includeDeleted
+				 *         in: query
+				 *         schema:
+				 *           type: boolean
+				 *           default: false
+				 *         description: If true, includes soft-deleted questions in export
 				 *     responses:
 				 *       200:
 				 *         description: Success
@@ -77,38 +103,84 @@ export default (_express: Application) => {
 				try {
 					await userProvider.validateUserId(req.user.id as string);
 
-					// Get all questions without pagination for export
-					const queryOptions = {
-						where: req.payload.where,
-						pageSize: 10000, // Large number to get all
-						currentPage: 1,
-						attributes: [
-							"name",
-							"type",
-							"level",
-							"priority",
-							"answers",
-							"created_at",
-						],
-					};
+					// Check if template export (empty file with headers only)
+					const isTemplate = req.query.template === "true";
+					const includeDeleted = req.query.includeDeleted === "true";
+					let formattedData: any[] = [];
 
-					const result = await provider.getAll(queryOptions);
-					const questions = result.rows || [];
+					// Sample data for template
+					if (isTemplate) {
+						formattedData = [
+							{
+								stt: 1,
+								question: "Câu hỏi trắc nghiệm mẫu?",
+								answer_a: "Đáp án A",
+								answer_b: "Đáp án B",
+								answer_c: "Đáp án C",
+								answer_d: "Đáp án D",
+								correct_answer: "A",
+								type: "MC(Trắc nghiệm)",
+								level: "EASY",
+							},
+							{
+								stt: 2,
+								question: "Câu hỏi tự luận mẫu?",
+								answer_a: "",
+								answer_b: "",
+								answer_c: "",
+								answer_d: "",
+								correct_answer: "",
+								type: "ESSAY(Tự luận)",
+								level: "NORMAL",
+							},
+						];
+					}
 
-					// Format data for Excel
-					const formattedData = formatQuestionData(questions);
+					if (!isTemplate) {
+						// Build where clause - filter deleted unless includeDeleted=true
+						const whereClause = includeDeleted
+							? req.payload.where
+							: {
+									...req.payload.where,
+									$or: [{ is_deleted: false }, { is_deleted: undefined }],
+							  };
+
+						// Get all questions without pagination for export
+						const queryOptions = {
+							where: whereClause,
+							pageSize: 10000, // Large number to get all
+							currentPage: 1,
+							attributes: [
+								"name",
+								"type",
+								"level",
+								"priority",
+								"answers",
+								"created_at",
+							],
+						};
+
+						const result = await provider.getAll(queryOptions);
+						const questions = result.rows || [];
+
+						// Format data for Excel
+						formattedData = formatQuestionData(questions);
+					}
 
 					// Generate styled Excel using service
+					const useTemplate = isTemplate;
 					const excelBuffer = await ExcelExportService.generateStyledMultiSheet([{
 						sheetName: "Question Bank",
-						title: "NGÂN HÀNG CÂU HỎI",
+						title: useTemplate ? undefined : "NGÂN HÀNG CÂU HỎI",  // Template không có title
 						data: formattedData,
-						headers: questionHeaders,
-						badgeColumn: "type",
+						headers: useTemplate ? templateHeaders : questionHeaders,
+						badgeColumn: useTemplate ? undefined : "type",
 					}]);
 
 					const timestamp = new Date().toISOString().split("T")[0];
-					const filename = `QuestionBank_Export_${timestamp}.xlsx`;
+					const filename = useTemplate
+						? "QuestionBank_Template.xlsx"
+						: `QuestionBank_Export_${timestamp}.xlsx`;
 					res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 					res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 					return res.send(excelBuffer);

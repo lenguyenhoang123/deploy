@@ -120,8 +120,19 @@ export const validateQuestionBank = () => [
 	body("name")
 		.isString()
 		.withMessage("Tên câu hỏi phải là một chuỗi ký tự")
+		.trim()
 		.notEmpty()
-		.withMessage("Tên không được để trống"),
+		.withMessage("Tên không được để trống")
+		.isLength({ min: 5, max: 500 })
+		.withMessage("Tên câu hỏi phải từ 5 đến 500 ký tự"),
+
+	body("type")
+		.isString()
+		.withMessage("Loại câu hỏi phải là một chuỗi ký tự")
+		.notEmpty()
+		.withMessage("Loại câu hỏi không được để trống")
+		.isIn(["MULTIPLE_CHOICE", "ESSAY"])
+		.withMessage("Loại câu hỏi phải là MULTIPLE_CHOICE (Trắc nghiệm) hoặc ESSAY (Tự luận)"),
 
 	body("level")
 		.isString()
@@ -164,10 +175,19 @@ export const validateExam = () => [
 	body("name")
 		.isString()
 		.withMessage("Tên kỳ thi phải là một chuỗi ký tự")
+		.trim()
 		.notEmpty()
-		.withMessage("Tên kỳ thi không được để trống"),
+		.withMessage("Tên kỳ thi không được để trống")
+		.isLength({ min: 5, max: 200 })
+		.withMessage("Tên kỳ thi phải từ 5 đến 200 ký tự"),
 
-	body("description").optional().isString().withMessage("Mô tả kỳ thi phải là một chuỗi ký tự"),
+	body("description")
+		.optional()
+		.isString()
+		.withMessage("Mô tả kỳ thi phải là một chuỗi ký tự")
+		.trim()
+		.isLength({ min: 10, max: 1000 })
+		.withMessage("Mô tả kỳ thi phải từ 10 đến 1000 ký tự"),
 
 	body("start_time")
 		.isISO8601()
@@ -178,8 +198,6 @@ export const validateExam = () => [
 
 			return true;
 		}),
-
-	,
 	body("end_time")
 		.isISO8601()
 		.withMessage("Thời gian kết thúc phải là định dạng ngày giờ hợp lệ")
@@ -191,6 +209,29 @@ export const validateExam = () => [
 		}),
 
 	body("allowed_time").isInt({ min: 1 }).withMessage("Thời gian làm bài phải là một số nguyên dương"),
+
+	body("max_attempts")
+		.notEmpty()
+		.withMessage("Số lần làm bài tối đa không được để trống")
+		.isInt({ min: 1, max: 5 })
+		.withMessage("Số lần làm bài tối đa phải từ 1 đến 5"),
+
+	body("templates")
+		.optional()
+		.isArray()
+		.withMessage("Danh sách đề thi phải là một mảng")
+		.custom((templates) => {
+			if (!Array.isArray(templates)) return true;
+			for (const t of templates) {
+				if (!t.name || typeof t.name !== "string" || t.name.trim() === "") {
+					throw new Error("Tên đề thi không được để trống");
+				}
+				if (!Array.isArray(t.questions) || t.questions.length === 0) {
+					throw new Error("Đề thi phải có ít nhất một câu hỏi");
+				}
+			}
+			return true;
+		}),
 ];
 
 export const validateSubmitExam = () => [
