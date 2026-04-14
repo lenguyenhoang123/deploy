@@ -214,39 +214,9 @@ export const validateSubmitExam = () => [
 		.withMessage("Số lượt thi phải từ 1 đến 5"),
 
 	body("answers")
+		.optional()
 		.isArray()
-		.withMessage("Danh sách câu trả lời phải là một mảng")
-		.custom((answers: any[]) => {
-			if (!Array.isArray(answers)) {
-				throw new Error("Danh sách câu trả lời phải là một mảng");
-			}
-			// Allow empty answers array - user can submit without answering
-			if (answers.length === 0) {
-				return true;
-			}
-			for (const answer of answers) {
-				// Validate question_id
-				if (!answer.question_id) {
-					throw new Error("Mỗi câu trả lời phải có question_id");
-				}
-				if (!/^[0-9a-fA-F]{24}$/.test(answer.question_id)) {
-					throw new Error(`question_id ${answer.question_id} không hợp lệ`);
-				}
-				// Validate answer format - must have either user_answer or text_answer
-				if (!answer.user_answer && !answer.text_answer) {
-					throw new Error("Mỗi câu trả lời phải có user_answer (trắc nghiệm) hoặc text_answer (tự luận)");
-				}
-				// Validate user_answer format (if provided)
-				if (answer.user_answer && !/^[0-9a-fA-F]{24}$/.test(answer.user_answer)) {
-					throw new Error(`user_answer ${answer.user_answer} không hợp lệ`);
-				}
-				// Validate text_answer format (if provided)
-				if (answer.text_answer && typeof answer.text_answer !== "string") {
-					throw new Error("text_answer phải là chuỗi ký tự");
-				}
-			}
-			return true;
-		}),
+		.withMessage("Danh sách câu trả lời phải là một mảng"),
 ];
 
 // Validate profile fields against profile_schema from WebsiteConfig
