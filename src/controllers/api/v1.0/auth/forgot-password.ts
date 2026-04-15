@@ -81,7 +81,7 @@ export default (_express: Application) => {
 				},
 			);
 
-			if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
+			// if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
 			return res.sendOk({ data: { message: "Kiểm tra email của bạn để nhận mã đặt lại mật khẩu" } });
 		} catch (error) {
 			return res.sendError({ err: error });
