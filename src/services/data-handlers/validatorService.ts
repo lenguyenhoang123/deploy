@@ -139,23 +139,34 @@ export const validateQuestionBank = () => [
 		.isArray()
 		.withMessage("Đáp án phải là một mảng")
 		.custom((value, { req }) => {
-			// Skip validation for essay questions
-			if (req.body.type === "ESSAY") return true;
-			// For multiple choice, require 2-4 answers
+			// Essay: empty OR exactly 1 answer without is_correct
+			const hasAnyIsCorrect = value.some((a: any) => a.is_correct !== undefined && a.is_correct !== null);
+			const isEssay = req.body.type === "ESSAY" || !hasAnyIsCorrect;
+			if (isEssay) {
+				// Essay: allow 0 or 1 answer only
+				return value.length <= 1;
+			}
+			// MC: require 2-4 answers
 			return value.length >= 2 && value.length <= 4;
 		})
-		.withMessage("Mỗi câu hỏi trắc nghiệm phải có từ 2 đến 4 đáp án")
+		.withMessage("Tự luận tối đa 1 đáp án, trắc nghiệm phải có từ 2 đến 4 đáp án")
 		.custom((answers: any[], { req }) => {
-			// Skip validation for essay questions
-			if (req.body.type === "ESSAY") return true;
+			const hasAnyIsCorrect = answers.some((a: any) => a.is_correct !== undefined && a.is_correct !== null);
+			const isEssay = req.body.type === "ESSAY" || !hasAnyIsCorrect;
+			if (isEssay) {
+				// Essay: only check value exists
+				return answers.every((answer) => !answer.value || typeof answer.value === "string");
+			}
+			// MC: require value and is_correct for all
 			return answers.every(
 				(answer) => answer.value && typeof answer.value === "string" && typeof answer.is_correct === "boolean",
 			);
 		})
-		.withMessage("Mỗi đáp án phải có giá trị (chuỗi ký tự), is_correct (boolean)")
+		.withMessage("Mỗi đáp án phải có giá trị (chuỗi ký tự), trắc nghiệm cần thêm is_correct (boolean)")
 		.custom((answers: any[], { req }) => {
-			// Skip validation for essay questions
-			if (req.body.type === "ESSAY") return true;
+			const hasAnyIsCorrect = answers.some((a: any) => a.is_correct !== undefined && a.is_correct !== null);
+			const isEssay = req.body.type === "ESSAY" || !hasAnyIsCorrect;
+			if (isEssay) return true;
 			const correctAnswers = answers.filter((answer) => answer.is_correct);
 			return correctAnswers.length === 1;
 		})
