@@ -70,7 +70,7 @@ export default (_express: Application) => {
 
 			await sendOtpEmail(req.body.email, otp);
 
-			if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
+			// if (process.env.NODE_ENV.toLowerCase() != "production") return res.sendOk({ data: { otp } });
 			return res.sendOk({ data: { message: "Gửi mã xác minh thành công" } });
 		} catch (error) {
 			return res.sendError({ err: error });
