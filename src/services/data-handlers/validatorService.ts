@@ -237,13 +237,14 @@ export function validateProfile(profile: Record<string, any> | undefined, profil
 	for (const field of profileSchema) {
 		const value = profile[field.key];
 
-		// Check required fields
-		if (field.required && (value === undefined || value === null || value === "")) {
+		// Check required fields (trim whitespace for string values)
+		const trimmedValue = typeof value === "string" ? value.trim() : value;
+		if (field.required && (trimmedValue === undefined || trimmedValue === null || trimmedValue === "")) {
 			return `${field.label} là bắt buộc`;
 		}
 
 		// Skip validation if value is empty and not required
-		if (!value && !field.required) continue;
+		if (!trimmedValue && !field.required) continue;
 
 		// Special validation for identity_number (CCCD/CMND)
 		if (field.key === "identity_number" && value) {
@@ -253,6 +254,61 @@ export function validateProfile(profile: Record<string, any> | undefined, profil
 			}
 			if (idStr.length !== 9 && idStr.length !== 12) {
 				return `${field.label} phải có 9 số (CMND cũ) hoặc 12 số (CCCD)`;
+			}
+			continue;
+		}
+
+		// Special validation for names (first_name, middle_name, last_name) - Vietnamese with spaces
+		if ((field.key === "first_name" || field.key === "middle_name" || field.key === "last_name") && value) {
+			const nameStr = String(value).trim();
+			// Allow Vietnamese characters, spaces, and require at least 2 words for full name
+			if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(nameStr)) {
+				return `${field.label} chỉ được chứa chữ cái tiếng Việt và khoảng trắng`;
+			}
+			// Check minimum length
+			if (nameStr.length < 2) {
+				return `${field.label} phải có ít nhất 2 ký tự`;
+			}
+			continue;
+		}
+
+		// Special validation for phone number in profile
+		if (field.key === "phone" && value) {
+			const phoneStr = String(value).trim();
+			if (!/^\d+$/.test(phoneStr)) {
+				return `${field.label} chỉ được chứa số`;
+			}
+			if (phoneStr.length < 9 || phoneStr.length > 11) {
+				return `${field.label} phải có từ 9 đến 11 số`;
+			}
+			continue;
+		}
+
+		// Special validation for school_address - must have comma separators
+		if (field.key === "school_address" && value) {
+			const addrStr = String(value).trim();
+			// Should contain commas to separate: school name, ward/commune, province
+			if (!addrStr.includes(",")) {
+				return `${field.label} phải có định dạng: Tên trường, Phường/Xã, Tỉnh/Thành phố`;
+			}
+			continue;
+		}
+
+		// Special validation for date_of_birth - must be a valid past date
+		if (field.key === "date_of_birth" && value) {
+			const date = new Date(value);
+			if (isNaN(date.getTime())) {
+				return `${field.label} không hợp lệ`;
+			}
+			// Check if date is in the past (reasonable birth date)
+			const now = new Date();
+			if (date >= now) {
+				return `${field.label} phải là ngày trong quá khứ`;
+			}
+			// Check if not too old (before 1900)
+			const minDate = new Date("1900-01-01");
+			if (date < minDate) {
+				return `${field.label} không hợp lệ (phải sau năm 1900)`;
 			}
 			continue;
 		}
