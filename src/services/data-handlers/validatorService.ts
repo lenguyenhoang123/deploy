@@ -282,6 +282,25 @@ export function validateProfile(profile: Record<string, any> | undefined, profil
 			continue;
 		}
 
+		// Special validation for date_of_birth - must be a valid past date
+		if (field.key === "date_of_birth" && value) {
+			const date = new Date(value);
+			if (isNaN(date.getTime())) {
+				return `${field.label} không hợp lệ`;
+			}
+			// Check if date is in the past (reasonable birth date)
+			const now = new Date();
+			if (date >= now) {
+				return `${field.label} phải là ngày trong quá khứ`;
+			}
+			// Check if not too old (before 1900)
+			const minDate = new Date("1900-01-01");
+			if (date < minDate) {
+				return `${field.label} không hợp lệ (phải sau năm 1900)`;
+			}
+			continue;
+		}
+
 		// Type validation
 		switch (field.type) {
 			case "text":
