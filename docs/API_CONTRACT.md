@@ -2226,6 +2226,337 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 ---
 
+## 11. Certificate (Chứng chỉ)
+
+### `POST /exam-participant/{id}/finalize` ✅
+🔒 **Yêu cầu auth Admin** — Gửi email chứng chỉ cho 1 thí sinh sau khi chấm điểm xong.
+
+**Logic:**
+- Kiểm tra tất cả câu tự luận đã được chấm điểm
+- Kiểm tra điều kiện đạt chứng chỉ (score, completion_required)
+- Chỉ gửi mail nếu chưa gửi trước đó (`certificateNotified: false`)
+- Đánh dấu `certificateNotified: true` sau khi gửi
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Finalize thành công",
+  "responseData": {
+    "certificateSent": true,
+    "email": "user@email.com",
+    "participantId": "...",
+    "examName": "Kỳ thi Bảo tồn thiên nhiên"
+  }
+}
+```
+
+**Quy trình:**
+1. Kiểm tra điều kiện đạt chứng chỉ
+2. **Tạo PDF chứng chỉ** (Puppeteer render HTML → PDF)
+3. Lưu PDF vào file storage
+4. Gửi email có link download PDF
+5. Đánh dấu đã notified
+
+**Email bao gồm:**
+- Link xem certificate online
+- **Link download PDF chứng chỉ** (nếu tạo PDF thành công)
+
+**Errors:**
+- `500` — Chưa chấm hết câu tự luận
+- `500` — Không đủ điều kiện nhận chứng chỉ
+- `500` — Đã gửi email trước đó
+
+---
+
+### `POST /exam/{exam_id}/bulk-finalize` ✅
+🔒 **Yêu cầu auth Admin** — Gửi email chứng chỉ cho tất cả thí sinh đủ điều kiện trong kỳ thi.
+
+**Logic:**
+- Lấy tất cả participants đã submit và được chấm điểm
+- Kiểm tra điều kiện từng người
+- **Tạo PDF chứng chỉ cho từng người** (Puppeteer)
+- Chỉ gửi cho người chưa notified và đủ điều kiện
+- Trả về summary: số người được gửi, skip, lỗi
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Đã gửi 8 email chứng chỉ cho 10 thí sinh",
+  "responseData": {
+    "total": 10,
+    "sent": 8,
+    "skipped": 1,
+    "errors": 1,
+    "details": [
+      { "participantId": "...", "status": "sent", "email": "user1@email.com", "pdfUrl": "/api/v1.0/file/..." },
+      { "participantId": "...", "status": "skipped", "reason": "already_notified" },
+      { "participantId": "...", "status": "error", "error": "..." }
+    ]
+  }
+}
+```
+
+---
+
+### `GET /user/certificates` ✅
+🔒 **Yêu cầu auth User** — Lấy danh sách chứng chỉ của user đang đăng nhập.
+
+**Query params:**
+
+| Param | Type | Description | Example |
+|-------|------|-------------|---------|
+| `currentPage` | number | Trang hiện tại | `?currentPage=1` |
+| `pageSize` | number | Số bản ghi/trang | `?pageSize=10` |
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Lấy danh sách chứng chỉ thành công",
+  "responseData": {
+    "rows": [
+      {
+        "_id": "...",
+        "certificate_code": "SHTT-2026-001",
+        "exam_info": {
+          "name": "Kỳ thi Bảo tồn thiên nhiên",
+          "completion_date": "2026-04-28",
+          "score": 85
+        },
+        "status": "active",
+        "file_url": "/api/v1.0/file/...",
+        "created_at": "2026-04-28T10:00:00Z"
+      }
+    ],
+    "count": 5,
+    "pageSize": 10,
+    "currentPage": 1,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### `GET /user/certificates/{id}` ✅
+🔒 **Yêu cầu auth User** — Lấy chi tiết 1 chứng chỉ.
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Lấy chứng chỉ thành công",
+  "responseData": {
+    "_id": "...",
+    "certificate_code": "SHTT-2026-001",
+    "user_info": {
+      "full_name": "Nguyễn Văn A",
+      "identity_number": "0123456789",
+      "class_name": "10A1",
+      "school_name": "THPT Chuyên"
+    },
+    "exam_info": {
+      "name": "Kỳ thi Bảo tồn thiên nhiên",
+      "completion_date": "2026-04-28",
+      "score": 85
+    },
+    "status": "active",
+    "file_url": "/api/v1.0/file/...",
+    "created_at": "2026-04-28T10:00:00Z"
+  }
+}
+```
+
+---
+
+### `GET /exam/{exam_id}/certificate-template` ✅
+🔒 **Yêu cầu auth Admin** — Lấy template chứng chỉ của kỳ thi.
+
+**Response 200 (có template):**
+```json
+{
+  "status": "success",
+  "message": "Lấy cấu hình chứng chỉ thành công",
+  "responseData": {
+    "_id": "...",
+    "exam_id": "...",
+    "name": "Chứng chỉ tham gia",
+    "is_enabled": true,
+    "conditions": {
+      "min_score": 50,
+      "require_all_correct": false,
+      "completion_required": true
+    },
+    "design": { ... },
+    "legal_text": "...",
+    "created_at": "2026-04-28T10:00:00Z"
+  }
+}
+```
+
+**Response 200 (chưa có template):**
+```json
+{
+  "status": "success",
+  "message": "Chưa có cấu hình chứng chỉ cho kỳ thi này",
+  "responseData": null
+}
+```
+
+---
+
+### `PUT /exam/{exam_id}/certificate-template` ✅
+🔒 **Yêu cầu auth Admin** — Cập nhật hoặc tạo mới template chứng chỉ cho kỳ thi.
+
+**Request Body:**
+```json
+{
+  "name": "Chứng chỉ tham gia",
+  "is_enabled": true,
+  "conditions": {
+    "min_score": 50,
+    "require_all_correct": false,
+    "completion_required": true
+  },
+  "design": {
+    "background_image": "...",
+    "logo": "...",
+    "signature": "..."
+  },
+  "legal_text": "Văn bản pháp lý hiển thị trên chứng chỉ"
+}
+```
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Cập nhật cấu hình chứng chỉ thành công",
+  "responseData": {
+    "_id": "...",
+    "exam_id": "...",
+    "name": "Chứng chỉ tham gia",
+    "is_enabled": true,
+    "conditions": {
+      "min_score": 50,
+      "require_all_correct": false,
+      "completion_required": true
+    }
+  }
+}
+```
+
+---
+
+### `DELETE /exam/{exam_id}/certificate-template` ✅
+🔒 **Yêu cầu auth Admin** — Xóa template chứng chỉ của kỳ thi.
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Xóa cấu hình chứng chỉ thành công",
+  "responseData": null
+}
+```
+
+---
+
+### `GET /certificates/verify` ✅
+🌐 **PUBLIC** — Kiểm tra tính hợp lệ của chứng chỉ bằng mã code (không cần đăng nhập).
+
+**Query params:**
+
+| Param | Type | Description | Example |
+|-------|------|-------------|---------|
+| `code` | string | **Bắt buộc** — Mã chứng chỉ cần verify | `?code=SHTT-2026-001` |
+
+**Response 200 (hợp lệ):**
+```json
+{
+  "status": "success",
+  "message": "Chứng chỉ hợp lệ",
+  "responseData": {
+    "valid": true,
+    "certificate": {
+      "certificate_code": "SHTT-2026-001",
+      "user_info": {
+        "full_name": "Nguyễn Văn A",
+        "identity_number": "0123456789",
+        "class_name": "10A1",
+        "school_name": "THPT Chuyên"
+      },
+      "exam_info": {
+        "name": "Kỳ thi Bảo tồn thiên nhiên",
+        "completion_date": "2026-04-28",
+        "score": 85
+      },
+      "created_at": "2026-04-28T10:00:00Z"
+    },
+    "message": "Chứng chỉ hợp lệ"
+  }
+}
+```
+
+**Response 200 (không hợp lệ):**
+```json
+{
+  "status": "success",
+  "message": "Chứng chỉ không hợp lệ",
+  "responseData": {
+    "valid": false,
+    "certificate": null,
+    "message": "Chứng chỉ đã bị thu hồi: Không đủ điều kiện"
+  }
+}
+```
+
+---
+
+### `GET /certificates` ✅
+🔒 **Yêu cầu auth Admin** — Xem tất cả chứng chỉ trong hệ thống (có filter và phân trang).
+
+**Query params:**
+
+| Param | Type | Description | Example |
+|-------|------|-------------|---------|
+| `currentPage` | number | Trang hiện tại | `?currentPage=1` |
+| `pageSize` | number | Số bản ghi/trang | `?pageSize=20` |
+| `exam_id` | string | Lọc theo kỳ thi | `?exam_id=...` |
+| `user_id` | string | Lọc theo user | `?user_id=...` |
+| `status` | string | Lọc theo trạng thái: `active`, `revoked`, `expired` | `?status=active` |
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Lấy danh sách chứng chỉ thành công",
+  "responseData": {
+    "rows": [
+      {
+        "_id": "...",
+        "certificate_code": "SHTT-2026-001",
+        "exam_id": { "name": "Kỳ thi Bảo tồn" },
+        "user_id": { "first_name": "A", "last_name": "Nguyễn", "email": "..." },
+        "exam_info": { "score": 85 },
+        "status": "active",
+        "certificateNotified": true,
+        "file_url": "/api/v1.0/file/...",
+        "created_at": "2026-04-28T10:00:00Z"
+      }
+    ],
+    "count": 100,
+    "pageSize": 20,
+    "currentPage": 1,
+    "totalPages": 5
+  }
+}
+```
+
+---
+
 ## Tổng hợp trạng thái API
 
 | # | Module | Endpoint | Method | Status | Ghi chú |
@@ -2286,7 +2617,16 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 54 | CMS | `/content-page/{id}` | DELETE | ✅ | **Mới** |
 | 55 | CMS | `/content-page/public` | GET | ✅ | **Mới** — Public |
 | 56 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
+| 57 | Certificate | `/exam-participant/{id}/finalize` | POST | ✅ | **Mới** — Gửi email chứng chỉ 1 người |
+| 58 | Certificate | `/exam/{exam_id}/bulk-finalize` | POST | ✅ | **Mới** — Gửi email chứng chỉ hàng loạt |
+| 59 | Certificate | `/user/certificates` | GET | ✅ | **Mới** — Danh sách chứng chỉ user |
+| 60 | Certificate | `/user/certificates/{id}` | GET | ✅ | **Mới** — Chi tiết chứng chỉ |
+| 61 | Certificate | `/exam/{exam_id}/certificate-template` | GET | ✅ | **Mới** — Lấy template chứng chỉ |
+| 62 | Certificate | `/exam/{exam_id}/certificate-template` | PUT | ✅ | **Mới** — Cập nhật/tạo template chứng chỉ |
+| 63 | Certificate | `/exam/{exam_id}/certificate-template` | DELETE | ✅ | **Mới** — Xóa template chứng chỉ |
+| 64 | Certificate | `/certificates` | GET | ✅ | **Mới** — Admin xem tất cả chứng chỉ (filter theo exam, user, status) |
+| 65 | Certificate | `/certificates/verify` | GET | ✅ | **Mới** — **PUBLIC** — Verify chứng chỉ bằng code |
 
 ---
 
-**Tổng:** 56 endpoints | ✅ 32 hoạt động | ⚠️ 19 cần sửa | ❌ 5 chưa có
+**Tổng:** 65 endpoints | ✅ 41 hoạt động | ⚠️ 19 cần sửa | ❌ 5 chưa có

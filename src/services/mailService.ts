@@ -6,7 +6,14 @@ import { Options } from "nodemailer/lib/mailer";
 class MailService {
 	transporter?: nodemailer.Transporter<SentMessageInfo>;
 	constructor() {
-		this.transporter ??= nodemailer.createTransport(nconf.get("smtpOptions"));
+		const smtpOptions = nconf.get("smtpOptions") || {};
+		this.transporter ??= nodemailer.createTransport({
+			...smtpOptions,
+			// Accept self-signed certificates in development
+			tls: {
+				rejectUnauthorized: false,
+			},
+		});
 	}
 
 	// async replaceMailTemplate(sHtml: string, oReplace: string | any[]) {
@@ -18,7 +25,19 @@ class MailService {
 	// }
 
 	async sendmail(mailOptions: Options, callback?: (err: Error, info: SentMessageInfo) => void) {
-		return this.transporter.sendMail(mailOptions, callback);
+		console.log("[MAIL] Sending email to:", mailOptions.to);
+		console.log("[MAIL] Subject:", mailOptions.subject);
+		console.log("[MAIL] From:", mailOptions.from);
+		
+		try {
+			const result = await this.transporter.sendMail(mailOptions, callback);
+			console.log("[MAIL] Email sent successfully:", (result as any).messageId);
+			console.log("[MAIL] Response:", result);
+			return result;
+		} catch (error) {
+			console.error("[MAIL] Email send failed:", error);
+			throw error;
+		}
 	}
 }
 export { MailService };

@@ -1,4 +1,4 @@
-import { Model, ObjectId, Schema } from "mongoose";
+import { Model, Schema, Types } from "mongoose";
 
 export interface IFile {
 	file_name: string;
@@ -8,9 +8,9 @@ export interface IFile {
 	file_path: string;
 	size: number;
 	created_at?: Date;
-	created_by?: ObjectId;
+	created_by?: Types.ObjectId;
 	updated_at?: Date;
-	updated_by?: ObjectId;
+	updated_by?: Types.ObjectId;
 }
 export interface IFileMethods {}
 export type FileModel = Model<IFile, {}, IFileMethods>;
