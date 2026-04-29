@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Thông báo cấp chứng chỉ</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f5f7fa; font-family:Arial, sans-serif;">
+
+  <!-- Wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+    <tr>
+      <td align="center">
+
+        <!-- Main Container -->
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff; border:1px solid #e5e7eb; border-radius:6px;">
+
+          <!-- Header -->
+          <tr>
+            <td style="padding:24px 32px; border-bottom:1px solid #e5e7eb;">
+              <div style="font-size:18px; font-weight:600; color:#111827;">
+                Thông báo cấp chứng chỉ
+              </div>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding:32px; color:#374151; font-size:14px; line-height:1.6;">
+
+              <p style="margin:0 0 16px;">
+                Xin chúc mừng <strong style="color:#111827;">{{user_full_name}}</strong>,
+              </p>
+
+              <p style="margin:0 0 20px;">
+                Bạn đã hoàn thành kỳ thi và được cấp chứng chỉ.
+              </p>
+
+              <!-- Score Box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+                <tr>
+                  <td style="background:#f9fafb; border:1px solid #e5e7eb; padding:16px; text-align:center; border-radius:4px;">
+                    <div style="font-size:12px; color:#6b7280; margin-bottom:4px;">Kết quả</div>
+                    <div style="font-size:28px; font-weight:600; color:#111827;">
+                      {{exam_score}}<span style="font-size:16px; color:#6b7280;">/{{total_questions}}</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Info Table -->
+              <table width="100%" cellpadding="8" cellspacing="0" style="margin-top:16px; font-size:14px;">
+                <tr>
+                  <td style="color:#6b7280; padding:8px 0;">Mã chứng chỉ</td>
+                  <td align="right" style="color:#111827; font-weight:500;">{{certificate_code}}</td>
+                </tr>
+                <tr>
+                  <td style="color:#6b7280; padding:8px 0; border-top:1px solid #f3f4f6;">Kỳ thi</td>
+                  <td align="right" style="border-top:1px solid #f3f4f6;">{{exam_name}}</td>
+                </tr>
+                <tr>
+                  <td style="color:#6b7280; padding:8px 0; border-top:1px solid #f3f4f6;">Ngày hoàn thành</td>
+                  <td align="right" style="border-top:1px solid #f3f4f6;">{{completion_date}}</td>
+                </tr>
+                <tr>
+                  <td style="color:#6b7280; padding:8px 0; border-top:1px solid #f3f4f6;">Trường</td>
+                  <td align="right" style="border-top:1px solid #f3f4f6;">{{school_name}}</td>
+                </tr>
+                <tr>
+                  <td style="color:#6b7280; padding:8px 0; border-top:1px solid #f3f4f6;">Lớp</td>
+                  <td align="right" style="border-top:1px solid #f3f4f6;">{{class_name}}</td>
+                </tr>
+              </table>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:32px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="{{certificate_link}}"
+                       style="background:#111827;
+                              color:#ffffff;
+                              padding:12px 28px;
+                              text-decoration:none;
+                              font-size:14px;
+                              font-weight:500;
+                              border-radius:4px;
+                              display:inline-block;">
+                      Xem chứng chỉ
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0; font-size:12px; color:#9ca3af;">
+                Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 32px; border-top:1px solid #e5e7eb; font-size:12px; color:#9ca3af; text-align:center;">
+              © 2026 Hệ thống thi trực tuyến SHTT
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

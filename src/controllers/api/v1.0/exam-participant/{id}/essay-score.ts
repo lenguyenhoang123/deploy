@@ -4,8 +4,11 @@ import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { ExamParticipantProvider } from "#providers/examParticipantProvider";
 import { UserProvider } from "#providers/userProvider";
+import { CertificateProvider } from "#providers/certificateProvider";
+import { CertificateTemplateProvider } from "#providers/certificateTemplateProvider";
+import { ObjectId } from "#models/certificate";
+import { IUser } from "#models/user";
 import mongoose from "mongoose";
-
 interface EssayScoreEntry {
 	question_id: string;
 	score: number;
@@ -15,7 +18,6 @@ interface EssayScoreEntry {
 interface EssayScoreRequest {
 	scores: EssayScoreEntry[];
 }
-
 export default (_express: Application) => {
 	const examParticipantProvider = new ExamParticipantProvider();
 	const userProvider = new UserProvider();
@@ -112,7 +114,7 @@ export default (_express: Application) => {
 					const participant = await examParticipantProvider.getById(participantId, {
 						includes: [
 							{ path: "exam_id", select: "name" },
-							{ path: "user_id", select: "first_name last_name middle_name email phone" },
+							{ path: "user_id", select: "first_name last_name middle_name email phone profile" },
 						],
 					});
 					if (!participant) {
@@ -155,6 +157,71 @@ export default (_express: Application) => {
 
 					if (result.modifiedCount <= 0) {
 						throw new Error("Có lỗi xảy ra khi cập nhật điểm");
+					}
+
+					// Check if all essay questions are now graded and create certificate if eligible
+					const hasUngradedEssay = updatedAnswers.some((a: any) => a.is_correct === null);
+					if (!hasUngradedEssay) {
+						try {
+							const certificateProvider = new CertificateProvider();
+							const certificateTemplateProvider = new CertificateTemplateProvider();
+
+							const examId = (participant.exam_id as any)._id?.toString() || (participant.exam_id as any).toString();
+							const template = await certificateTemplateProvider.getByExamId(examId);
+							if (template && template.is_enabled) {
+								const totalQuestions = updatedAnswers.length;
+								const correctAnswers = updatedAnswers.filter((a: any) => a.is_correct === true).length;
+								const percentageScore = totalQuestions > 0 ? (newScore / totalQuestions) * 100 : 0;
+
+								const meetsConditions = certificateProvider.checkConditions(
+									template,
+									percentageScore,
+									totalQuestions,
+									correctAnswers
+								);
+
+								const existingCert = await certificateProvider.getByParticipantId(participantId);
+								const user = participant.user_id as any;
+								const userIdForCert = user._id?.toString() || user.toString();
+
+								// Finalize-based flow: Update certificate but don't send email yet
+if (!existingCert) {
+	// Create new certificate (not notified yet)
+	await certificateProvider.createCertificate({
+		exam_id: new ObjectId(examId),
+		user_id: new ObjectId(userIdForCert),
+		participant_id: new ObjectId(participantId),
+		template_id: template._id,
+		user_info: {
+			full_name: `${user.last_name || ""} ${user.middle_name || ""} ${user.first_name || ""}`.trim(),
+			identity_number: user.profile?.identity_number,
+			class_name: user.profile?.class_name,
+			school_name: user.profile?.school_name,
+		},
+		exam_info: {
+			name: (participant.exam_id as any).name || "",
+			completion_date: participant.submit_time,
+			score: newScore,
+		},
+		status: meetsConditions ? "active" : "revoked",
+		certificateNotified: false, // Don't send email yet
+	});
+} else {
+	// Update existing certificate (don't change notified status)
+	await certificateProvider.put(existingCert._id.toString(), {
+		exam_info: {
+			name: (participant.exam_id as any).name || "",
+			completion_date: participant.submit_time,
+			score: newScore,
+		},
+		status: meetsConditions ? "active" : "revoked",
+		// Keep certificateNotified unchanged
+	});
+}
+							}
+						} catch (certError) {
+							console.error("Certificate generation error after essay grading:", certError);
+						}
 					}
 
 					return res.sendOk({
@@ -266,7 +333,7 @@ export default (_express: Application) => {
 					const participant = await examParticipantProvider.getById(participantId, {
 						includes: [
 							{ path: "exam_id", select: "name" },
-							{ path: "user_id", select: "first_name last_name middle_name email phone" },
+							{ path: "user_id", select: "first_name last_name middle_name email phone profile" },
 						],
 					});
 					if (!participant) {
@@ -303,6 +370,71 @@ export default (_express: Application) => {
 
 					if (result.modifiedCount <= 0) {
 						throw new Error("Có lỗi xảy ra khi cập nhật điểm");
+					}
+
+					// Check if all essay questions are now graded and create certificate if eligible
+					const hasUngradedEssay = updatedAnswers.some((a: any) => a.is_correct === null);
+					if (!hasUngradedEssay) {
+						try {
+							const certificateProvider = new CertificateProvider();
+							const certificateTemplateProvider = new CertificateTemplateProvider();
+
+							const examId = (participant.exam_id as any)._id?.toString() || (participant.exam_id as any).toString();
+							const template = await certificateTemplateProvider.getByExamId(examId);
+							if (template && template.is_enabled) {
+								const totalQuestions = updatedAnswers.length;
+								const correctAnswers = updatedAnswers.filter((a: any) => a.is_correct === true).length;
+								const percentageScore = totalQuestions > 0 ? (newScore / totalQuestions) * 100 : 0;
+
+								const meetsConditions = certificateProvider.checkConditions(
+									template,
+									percentageScore,
+									totalQuestions,
+									correctAnswers
+								);
+
+								const existingCert = await certificateProvider.getByParticipantId(participantId);
+								const user = participant.user_id as any;
+								const userIdForCert = user._id?.toString() || user.toString();
+
+								// Finalize-based flow: Update certificate but don't send email yet
+if (!existingCert) {
+	// Create new certificate (not notified yet)
+	await certificateProvider.createCertificate({
+		exam_id: new ObjectId(examId),
+		user_id: new ObjectId(userIdForCert),
+		participant_id: new ObjectId(participantId),
+		template_id: template._id,
+		user_info: {
+			full_name: `${user.last_name || ""} ${user.middle_name || ""} ${user.first_name || ""}`.trim(),
+			identity_number: user.profile?.identity_number,
+			class_name: user.profile?.class_name,
+			school_name: user.profile?.school_name,
+		},
+		exam_info: {
+			name: (participant.exam_id as any).name || "",
+			completion_date: participant.submit_time,
+			score: newScore,
+		},
+		status: meetsConditions ? "active" : "revoked",
+		certificateNotified: false, // Don't send email yet
+	});
+} else {
+	// Update existing certificate (don't change notified status)
+	await certificateProvider.put(existingCert._id.toString(), {
+		exam_info: {
+			name: (participant.exam_id as any).name || "",
+			completion_date: participant.submit_time,
+			score: newScore,
+		},
+		status: meetsConditions ? "active" : "revoked",
+		// Keep certificateNotified unchanged
+	});
+}
+							}
+						} catch (certError) {
+							console.error("Certificate generation error after essay grading:", certError);
+						}
 					}
 
 					return res.sendOk({

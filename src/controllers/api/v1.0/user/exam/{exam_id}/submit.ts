@@ -6,6 +6,9 @@ import { ExamProvider } from "#providers/examProvider";
 import { UserProvider } from "#providers/userProvider";
 import { ExamParticipantProvider } from "#providers/examParticipantProvider";
 import { QuestionBankProvider } from "#providers/questionBankProvider";
+import { CertificateTemplateProvider } from "#providers/certificateTemplateProvider";
+import { CertificateProvider } from "#providers/certificateProvider";
+import { ObjectId } from "#models/certificate";
 import { validateSubmitExamEntry } from "#middlewares/validator";
 import { IExamParticipantAnswer, ExamParticipantStatus } from "#models/examParticipant";
 import mongoose from "mongoose";
@@ -15,6 +18,8 @@ export default (_express: Application) => {
 	const userProvider = new UserProvider();
 	const examParticipantProvider = new ExamParticipantProvider();
 	const questionBankProvider = new QuestionBankProvider();
+	const certificateTemplateProvider = new CertificateTemplateProvider();
+	const certificateProvider = new CertificateProvider();
 	return <Resource>{
 		put: {
 			middleware: [verify, validateSubmitExamEntry],
@@ -165,6 +170,66 @@ export default (_express: Application) => {
 					const result = await examParticipantProvider.put(participant._id!.toString(), updateData);
 
 					if (result.modifiedCount <= 0) throw new Error("Có lỗi xảy ra khi nộp bài thi");
+
+					// Auto-generate certificate if enabled and conditions are met
+					try {
+						const template = await certificateTemplateProvider.getByExamId(examId);
+						if (template && template.is_enabled) {
+							// Check if there are ungraded essay questions
+							const hasUngradedEssay = processedAnswers.some(a => a.is_correct === null);
+
+							if (hasUngradedEssay) {
+								// Skip certificate creation - will be handled after essay grading
+								console.log("Skipping certificate creation - ungraded essay questions exist");
+							} else {
+								const totalQuestions = processedAnswers.length;
+								const correctAnswers = processedAnswers.filter(a => a.is_correct === true).length;
+								const percentageScore = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
+
+								const meetsConditions = certificateProvider.checkConditions(
+									template,
+									percentageScore,
+									totalQuestions,
+									correctAnswers
+								);
+
+							if (meetsConditions) {
+								try {
+									const user = await userProvider.getById(userId.toString());
+									const existingCert = await certificateProvider.getByParticipantId(participant._id!.toString());
+
+									if (!existingCert) {
+										await certificateProvider.createCertificate({
+											exam_id: new ObjectId(examId),
+											user_id: new ObjectId(userId.toString()),
+											participant_id: participant._id!,
+											template_id: template._id,
+											user_info: {
+												full_name: `${user.last_name} ${user.middle_name || ""} ${user.first_name}`.trim(),
+												identity_number: user.profile?.identity_number,
+												class_name: user.profile?.class_name,
+												school_name: user.profile?.school_name,
+											},
+											exam_info: {
+												name: exam.name,
+												completion_date: serverSubmitTime,
+												score: percentageScore,
+											},
+											status: "active",
+										});
+									}
+								} catch (certError) {
+									// Log error but don't fail the submission
+									console.error("Certificate generation error:", certError);
+								}
+							}
+						}
+					}
+					} catch (certTemplateError) {
+						// Log error but don't fail the submission
+						console.error("Certificate template error:", certTemplateError);
+					}
+
 					return res.sendOk({
 						data: { message: "Nộp bài thi thành công" },
 						message: "Nộp bài thi thành công",
