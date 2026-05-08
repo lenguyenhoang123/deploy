@@ -171,11 +171,10 @@ export default (_express: Application) => {
 							if (template && template.is_enabled) {
 								const totalQuestions = updatedAnswers.length;
 								const correctAnswers = updatedAnswers.filter((a: any) => a.is_correct === true).length;
-								const percentageScore = totalQuestions > 0 ? (newScore / totalQuestions) * 100 : 0;
 
 								const meetsConditions = certificateProvider.checkConditions(
 									template,
-									percentageScore,
+									newScore, 
 									totalQuestions,
 									correctAnswers
 								);
@@ -188,6 +187,7 @@ export default (_express: Application) => {
 if (!existingCert) {
 	// Create new certificate (not notified yet)
 	await certificateProvider.createCertificate({
+		type: "exam",
 		exam_id: new ObjectId(examId),
 		user_id: new ObjectId(userIdForCert),
 		participant_id: new ObjectId(participantId),
@@ -384,11 +384,10 @@ if (!existingCert) {
 							if (template && template.is_enabled) {
 								const totalQuestions = updatedAnswers.length;
 								const correctAnswers = updatedAnswers.filter((a: any) => a.is_correct === true).length;
-								const percentageScore = totalQuestions > 0 ? (newScore / totalQuestions) * 100 : 0;
 
 								const meetsConditions = certificateProvider.checkConditions(
 									template,
-									percentageScore,
+									newScore, // Use absolute score instead of percentage
 									totalQuestions,
 									correctAnswers
 								);
@@ -401,6 +400,7 @@ if (!existingCert) {
 if (!existingCert) {
 	// Create new certificate (not notified yet)
 	await certificateProvider.createCertificate({
+		type: "exam",
 		exam_id: new ObjectId(examId),
 		user_id: new ObjectId(userIdForCert),
 		participant_id: new ObjectId(participantId),

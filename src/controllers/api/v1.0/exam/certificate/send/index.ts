@@ -6,6 +6,7 @@ import { ExamParticipantProvider } from "#providers/examParticipantProvider";
 import { CertificateProvider } from "#providers/certificateProvider";
 import { CertificateTemplateProvider } from "#providers/certificateTemplateProvider";
 import { FileProvider } from "#providers/fileProvider";
+import { UserProvider } from "#providers/userProvider";
 import mongoose, { Types } from "mongoose";
 import MailService from "#services/mailService";
 import certificatePdfService from "#services/certificatePdfService";
@@ -56,9 +57,9 @@ async function sendCertificateEmail(
 			html: emailContent,
 		});
 		
-		console.log(`[BULK-FINALIZE] Certificate email (${type}) sent to ${userEmail}`);
+		console.log(`[CERTIFICATE-SEND] Certificate email (${type}) sent to ${userEmail}`);
 	} catch (emailError) {
-		console.error("[BULK-FINALIZE] Failed to send certificate email:", emailError);
+		console.error("[CERTIFICATE-SEND] Failed to send certificate email:", emailError);
 		throw emailError;
 	}
 }
@@ -68,6 +69,7 @@ export default (_express: Application) => {
 	const certificateProvider = new CertificateProvider();
 	const certificateTemplateProvider = new CertificateTemplateProvider();
 	const fileProvider = new FileProvider();
+	const userProvider = new UserProvider();
 
 	return <Resource>{
 		post: {
@@ -75,53 +77,147 @@ export default (_express: Application) => {
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /exam/{exam_id}/bulk-finalize:
+				 * /exam/certificate/send:
 				 *   post:
 				 *     tags: [Admin]
-				 *     description: Bulk finalize and send certificate emails to all eligible participants
+				 *     description: Send exam certificate emails to participants
 				 *     security:
 				 *       - Bearer: []
-				 *     parameters:
-				 *       - name: exam_id
-				 *         in: path
-				 *         schema:
-				 *           type: string
-				 *         description: Exam ID
-				 *         required: true
+				 *     requestBody:
+				 *       required: true
+				 *       content:
+				 *         application/json:
+				 *           schema:
+				 *             type: object
+				 *             required: [exam_id]
+				 *             properties:
+				 *               exam_id:
+				 *                 type: string
+				 *                 description: Exam ID
+				 *                 example: "6699f4391c7ab023b0a77b5b"
+				 *               participant_id:
+				 *                 type: string
+				 *                 description: Participant ID (optional - send to specific participant)
+				 *                 example: "6699f4391c7ab023b0a77b5c"
+				 *               user_id:
+				 *                 type: string
+				 *                 description: User ID (optional - send to all participants of this user in the exam)
+				 *                 example: "6699f4391c7ab023b0a77b5d"
 				 *     responses:
 				 *       200:
 				 *         description: Success
+				 *         content:
+				 *           application/json:
+				 *             schema:
+				 *               type: object
+				 *               properties:
+				 *                 data:
+				 *                   type: object
+				 *                   properties:
+				 *                     total:
+				 *                       type: number
+				 *                     sent:
+				 *                       type: number
+				 *                     skipped:
+				 *                       type: number
+				 *                     errors:
+				 *                       type: number
+				 *                     details:
+				 *                       type: array
+				 *                       items:
+				 *                         type: object
+				 *                 message:
+				 *                   type: string
 				 */
 
 				try {
-					const examId = req.params.exam_id as string;
-					if (!examId) throw new Error("Exam ID không được để trống");
-					if (!mongoose.Types.ObjectId.isValid(examId)) {
+					const { exam_id, participant_id, user_id } = req.body;
+
+					if (!exam_id) throw new Error("Exam ID là bắt buộc");
+					if (!mongoose.Types.ObjectId.isValid(exam_id)) {
 						throw new Error("Exam ID không hợp lệ");
 					}
 
 					// Get certificate template
-					const template = await certificateTemplateProvider.getByExamId(examId);
+					const template = await certificateTemplateProvider.getByExamId(exam_id);
+
 					if (!template || !template.is_enabled) {
 						throw new Error("Không tìm thấy template chứng chỉ hoặc template chưa được bật");
 					}
 
-					// Find all submitted participants with certificates
-					const participantsResult = await examParticipantProvider.getAll({
-						where: {
-							exam_id: examId,
-							status: "submitted",
-							is_graded: true,
-						},
-						includes: [
-							{ path: "exam_id", select: "name" },
-							{ path: "user_id", select: "first_name last_name middle_name email phone profile" },
-						],
-					});
-					
-					const participants = participantsResult.rows || [];
+					let participants: any[] = [];
 
-	
+					// Determine which participants to process
+					if (participant_id) {
+						// Send to specific participant
+						if (!mongoose.Types.ObjectId.isValid(participant_id)) {
+							throw new Error("Participant ID không hợp lệ");
+						}
+
+						const participant = await examParticipantProvider.getById(participant_id, {
+							includes: [
+								{ path: "exam_id", select: "name" },
+								{ path: "user_id", select: "first_name last_name middle_name email phone profile" },
+							],
+						});
+
+						if (!participant) {
+							throw new Error("Không tìm thấy thông tin lượt thi");
+						}
+
+						if (participant.exam_id.toString() !== exam_id) {
+							throw new Error("Participant không thuộc exam này");
+						}
+
+						participants = [participant];
+					} else if (user_id) {
+						// Send to all participants of this user in the exam
+						if (!mongoose.Types.ObjectId.isValid(user_id)) {
+							throw new Error("User ID không hợp lệ");
+						}
+
+						const participantsResult = await examParticipantProvider.getAll({
+							where: {
+								exam_id: exam_id,
+								user_id: user_id,
+								status: "submitted",
+								is_graded: true,
+							},
+							includes: [
+								{ path: "exam_id", select: "name" },
+								{ path: "user_id", select: "first_name last_name middle_name email phone profile" },
+							],
+						});
+
+						participants = participantsResult.rows || [];
+					} else {
+						// Send to all participants in the exam (bulk)
+						const participantsResult = await examParticipantProvider.getAll({
+							where: {
+								exam_id: exam_id,
+								status: "submitted",
+								is_graded: true,
+							},
+							includes: [
+								{ path: "exam_id", select: "name" },
+								{ path: "user_id", select: "first_name last_name middle_name email phone profile" },
+							],
+						});
+
+						participants = participantsResult.rows || [];
+					}
+
+					// Group by user_id, keep only highest score participant per user
+					const userBestParticipant = new Map<string, any>();
+					for (const p of participants) {
+						const userId = (p.user_id as any)._id?.toString() || p.user_id.toString();
+						const existing = userBestParticipant.get(userId);
+						if (!existing || (p.score || 0) > (existing.score || 0)) {
+							userBestParticipant.set(userId, p);
+						}
+					}
+					participants = Array.from(userBestParticipant.values());
+
 					let sentCount = 0;
 					let skippedCount = 0;
 					let errorCount = 0;
@@ -134,7 +230,7 @@ export default (_express: Application) => {
 							// Check if all essays are graded
 							const hasUngradedEssay = participant.answers.some((a: any) => a.is_correct === null);
 							if (hasUngradedEssay) {
-									skippedCount++;
+								skippedCount++;
 								results.push({ participantId, status: "skipped", reason: "has_ungraded_essays" });
 								continue;
 							}
@@ -142,17 +238,63 @@ export default (_express: Application) => {
 							// Calculate score and check conditions
 							const totalQuestions = participant.answers.length;
 							const correctAnswers = participant.answers.filter((a: any) => a.is_correct === true).length;
-							const percentageScore = totalQuestions > 0 ? (participant.score / totalQuestions) * 100 : 0;
+							const absoluteScore = participant.score || 0;
+
 							const meetsConditions = certificateProvider.checkConditions(
 								template,
-								percentageScore,
+								absoluteScore,
 								totalQuestions,
 								correctAnswers
 							);
 
 							// Get existing certificate
-							const existingCert = await certificateProvider.getByParticipantId(participantId);
-							
+							let existingCert = await certificateProvider.getByParticipantId(participantId);
+
+							const user = participant.user_id as any;
+							const userIdForCert = user._id?.toString() || user.toString();
+
+							// Update existing certificate score if it has percentage score
+							if (existingCert && existingCert.exam_info.score > totalQuestions) {
+								// Score is percentage, update to absolute score
+								await certificateProvider.put(existingCert._id.toString(), {
+									exam_info: {
+										...existingCert.exam_info,
+										score: participant.score || 0
+									}
+								});
+								existingCert = await certificateProvider.getByParticipantId(participantId);
+							}
+
+							// Create certificate if not exists and meets conditions
+							if (!existingCert && meetsConditions) {
+								try {
+									existingCert = await certificateProvider.createCertificate({
+										type: "exam",
+										exam_id: new Types.ObjectId(exam_id),
+										user_id: new Types.ObjectId(userIdForCert),
+										participant_id: new Types.ObjectId(participantId),
+										template_id: template._id,
+										user_info: {
+											full_name: `${user.last_name || ""} ${user.middle_name || ""} ${user.first_name || ""}`.trim(),
+											identity_number: user.profile?.identity_number,
+											class_name: user.profile?.class_name,
+											school_name: user.profile?.school_name,
+										},
+										exam_info: {
+											name: (participant.exam_id as any)?.name || "",
+											completion_date: participant.submit_time || new Date(),
+											score: participant.score || 0
+										},
+										status: "active"
+									});
+									console.log(`[CERTIFICATE-SEND] Created certificate for participant ${participantId}`);
+								} catch (certError) {
+									results.push({ participantId, status: "error", reason: "certificate_creation_failed", error: (certError as Error).message });
+									errorCount++;
+									continue;
+								}
+							}
+
 							if (!existingCert) {
 								skippedCount++;
 								results.push({ participantId, status: "skipped", reason: "no_certificate" });
@@ -162,12 +304,6 @@ export default (_express: Application) => {
 							if (!meetsConditions) {
 								skippedCount++;
 								results.push({ participantId, status: "skipped", reason: "does_not_meet_conditions" });
-								continue;
-							}
-
-							if (existingCert.certificateNotified) {
-								skippedCount++;
-								results.push({ participantId, status: "skipped", reason: "already_notified" });
 								continue;
 							}
 
@@ -184,16 +320,15 @@ export default (_express: Application) => {
 									fs.mkdirSync(storageDir, { recursive: true });
 								}
 								
-								
 								// Generate PDF
 								await certificatePdfService.generateCertificatePdf(existingCert, template, pdfPath);
 								
-								// Get relative path for storage (manual calculation to avoid nconf issues)
+								// Get relative path for storage
 								const relativePath = "/" + path.relative(storageRoot, pdfPath).replace(/\\/g, "/");
 								
 								const pdfStats = fs.statSync(pdfPath);
 								
-								// Upload PDF to file storage using provider.post
+								// Upload PDF to file storage
 								const fileDoc = await fileProvider.post({
 									file_name: pdfFileName,
 									original_name: `${existingCert.certificate_code}.pdf`,
@@ -205,7 +340,7 @@ export default (_express: Application) => {
 									updated_by: new Types.ObjectId(req.user.id as string),
 								});
 								
-								// Use direct static file URL instead of API endpoint
+								// Use direct static file URL
 								pdfUrl = relativePath;
 								
 								// Update certificate with file info
@@ -225,7 +360,6 @@ export default (_express: Application) => {
 							}
 
 							// Send email
-							const user = participant.user_id as any;
 							await sendCertificateEmail(
 								user,
 								existingCert,
@@ -249,7 +383,6 @@ export default (_express: Application) => {
 						}
 					}
 
-	
 					return res.sendOk({
 						data: {
 							total: participants.length,

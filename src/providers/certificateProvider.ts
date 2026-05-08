@@ -30,18 +30,8 @@ export class CertificateProvider extends BaseProvider<ICertificate, ICertificate
 
 		const { conditions } = template;
 
-		// Check completion required
-		if (conditions.completion_required && score === 0) {
-			return false;
-		}
-
-		// Check min score
+		// Check min score only
 		if (score < conditions.min_score) {
-			return false;
-		}
-
-		// Check require all correct
-		if (conditions.require_all_correct && correctAnswers !== totalQuestions) {
 			return false;
 		}
 
@@ -95,6 +85,27 @@ export class CertificateProvider extends BaseProvider<ICertificate, ICertificate
 		return await this.getOne({
 			where: { participant_id: participantId },
 		});
+	}
+
+	/**
+	 * Get certificate by quiz attempt ID (for Learning Quiz)
+	 */
+	async getByQuizAttemptId(quizAttemptId: string): Promise<ICertificate | null> {
+		return await this.getOne({
+			where: { quiz_attempt_id: quizAttemptId },
+		});
+	}
+
+	/**
+	 * Get certificates by content ID (for Learning Quiz)
+	 */
+	async getByContentId(contentId: string): Promise<ICertificate[]> {
+		const result = await this.getAll({
+			where: { content_id: contentId },
+			sortField: "created_at",
+			sortOrder: "desc",
+		});
+		return result.rows;
 	}
 
 	/**

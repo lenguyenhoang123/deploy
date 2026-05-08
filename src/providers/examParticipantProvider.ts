@@ -158,6 +158,10 @@ export class ExamParticipantProvider extends BaseProvider<IExamParticipant, IExa
 			throw new Error("Không tìm thấy thông tin lượt thi");
 		}
 
+		// Check if all questions are graded (no ungraded essays)
+		const hasUngradedEssay = processedAnswers.some((a: any) => a.is_correct === null);
+		const is_graded = !hasUngradedEssay;
+
 		const updateData = {
 			status: ExamParticipantStatus.SUBMITTED,
 			start_time,
@@ -165,6 +169,7 @@ export class ExamParticipantProvider extends BaseProvider<IExamParticipant, IExa
 			time_taken: timeTaken,
 			score,
 			answers: processedAnswers,
+			is_graded,
 		};
 
 		const result = await this.put(participant._id!.toString(), updateData);

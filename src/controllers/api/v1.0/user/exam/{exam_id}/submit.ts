@@ -157,6 +157,10 @@ export default (_express: Application) => {
 						}
 					}
 
+					// Check if all questions are graded (no ungraded essays)
+					const hasUngradedEssay = processedAnswers.some(a => a.is_correct === null);
+					const is_graded = !hasUngradedEssay;
+
 					// Update participant record
 					const updateData = {
 						status: ExamParticipantStatus.SUBMITTED,
@@ -165,6 +169,7 @@ export default (_express: Application) => {
 						time_taken: timeTaken,
 						score,
 						answers: processedAnswers,
+						is_graded,
 					};
 
 					const result = await examParticipantProvider.put(participant._id!.toString(), updateData);
@@ -180,51 +185,50 @@ export default (_express: Application) => {
 
 							if (hasUngradedEssay) {
 								// Skip certificate creation - will be handled after essay grading
-								console.log("Skipping certificate creation - ungraded essay questions exist");
 							} else {
 								const totalQuestions = processedAnswers.length;
 								const correctAnswers = processedAnswers.filter(a => a.is_correct === true).length;
-								const percentageScore = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
 
 								const meetsConditions = certificateProvider.checkConditions(
 									template,
-									percentageScore,
+									score, // Use absolute score instead of percentage
 									totalQuestions,
 									correctAnswers
 								);
 
-							if (meetsConditions) {
-								try {
-									const user = await userProvider.getById(userId.toString());
-									const existingCert = await certificateProvider.getByParticipantId(participant._id!.toString());
+								if (meetsConditions) {
+									try {
+										const user = await userProvider.getById(userId.toString());
+										const existingCert = await certificateProvider.getByParticipantId(participant._id!.toString());
 
-									if (!existingCert) {
-										await certificateProvider.createCertificate({
-											exam_id: new ObjectId(examId),
-											user_id: new ObjectId(userId.toString()),
-											participant_id: participant._id!,
-											template_id: template._id,
-											user_info: {
-												full_name: `${user.last_name} ${user.middle_name || ""} ${user.first_name}`.trim(),
-												identity_number: user.profile?.identity_number,
-												class_name: user.profile?.class_name,
-												school_name: user.profile?.school_name,
-											},
-											exam_info: {
-												name: exam.name,
-												completion_date: serverSubmitTime,
-												score: percentageScore,
-											},
-											status: "active",
-										});
+										if (!existingCert) {
+											await certificateProvider.createCertificate({
+												type: "exam",
+												exam_id: new ObjectId(examId),
+												user_id: new ObjectId(userId.toString()),
+												participant_id: participant._id!,
+												template_id: template._id,
+												user_info: {
+													full_name: `${user.last_name} ${user.middle_name || ""} ${user.first_name}`.trim(),
+													identity_number: user.profile?.identity_number,
+													class_name: user.profile?.class_name,
+													school_name: user.profile?.school_name,
+												},
+												exam_info: {
+													name: exam.name,
+													completion_date: serverSubmitTime,
+													score: score, // Use absolute score
+												},
+												status: "active",
+											});
+										}
+									} catch (certError) {
+										// Log error but don't fail the submission
+										console.error("Certificate generation error:", certError);
 									}
-								} catch (certError) {
-									// Log error but don't fail the submission
-									console.error("Certificate generation error:", certError);
 								}
 							}
 						}
-					}
 					} catch (certTemplateError) {
 						// Log error but don't fail the submission
 						console.error("Certificate template error:", certTemplateError);

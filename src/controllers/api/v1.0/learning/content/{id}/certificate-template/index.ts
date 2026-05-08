@@ -3,12 +3,14 @@ import { Application } from "express";
 import { Resource } from "express-automatic-routes";
 import { Req, Res } from "#services/interfaces/iapi";
 import { CertificateTemplateProvider } from "#providers/certificateTemplateProvider";
+import { UserProvider } from "#providers/userProvider";
 import { ICertificateTemplate } from "#models/certificateTemplate";
 
 type TemplateCreate = Omit<ICertificateTemplate, "created_at" | "created_by" | "updated_at" | "updated_by">;
 
 export default (_express: Application) => {
 	const provider = new CertificateTemplateProvider();
+	const userProvider = new UserProvider();
 
 	return <Resource>{
 		get: {
@@ -16,14 +18,14 @@ export default (_express: Application) => {
 			handler: async (req: Req, res: Res) => {
 				/**
 				 * @openapi
-				 * /exam/{exam_id}/certificate-template:
+				 * /learning/content/{id}/certificate-template:
 				 *   get:
-				 *     tags: [Certificate]
-				 *     description: Get certificate template for an exam (admin only)
+				 *     tags: [Learning Certificate]
+				 *     description: Get certificate template for learning content (admin only)
 				 *     security:
 				 *       - Bearer: []
 				 *     parameters:
-				 *       - name: exam_id
+				 *       - name: id
 				 *         in: path
 				 *         required: true
 				 *         schema:
@@ -31,19 +33,15 @@ export default (_express: Application) => {
 				 *     responses:
 				 *       200:
 				 *         description: Success
-				 *         content:
-				 *           application/json:
-				 *             schema:
-				 *               $ref: '#/components/schemas/Response'
 				 */
 				try {
-					const examId = req.params.exam_id;
-					const template = await provider.getByExamId(examId);
+					const contentId = req.params.id;
+					const template = await provider.getByContentId(contentId);
 
 					if (!template) {
 						return res.sendOk({
 							data: null,
-							message: "Chưa có cấu hình chứng chỉ cho kỳ thi này",
+							message: "Chưa có cấu hình chứng chỉ cho nội dung này",
 						});
 					}
 
@@ -56,17 +54,17 @@ export default (_express: Application) => {
 
 		put: {
 			middleware: [verify, verifyAdmin],
-			handler: async (req: Req, res: Res) => {
+			handler: async (req: Req<ICertificateTemplate, TemplateCreate>, res: Res) => {
 				/**
 				 * @openapi
-				 * /exam/{exam_id}/certificate-template:
+				 * /learning/content/{id}/certificate-template:
 				 *   put:
-				 *     tags: [Certificate]
-				 *     description: Update or create certificate template for an exam (admin only)
+				 *     tags: [Learning Certificate]
+				 *     description: Update or create certificate template for learning content (admin only)
 				 *     security:
 				 *       - Bearer: []
 				 *     parameters:
-				 *       - name: exam_id
+				 *       - name: id
 				 *         in: path
 				 *         required: true
 				 *         schema:
@@ -81,7 +79,7 @@ export default (_express: Application) => {
 				 *             properties:
 				 *               name:
 				 *                 type: string
-				 *                 example: "Chung nhan hoan thanh ky thi"
+				 *                 example: "Chung nhan hoan thanh bai on tap"
 				 *               is_enabled:
 				 *                 type: boolean
 				 *                 example: true
@@ -104,30 +102,24 @@ export default (_express: Application) => {
 				 *                 type: object
 				 *                 required: [title, layout, content, signatures]
 				 *                 properties:
-				 *                   logo:
-				 *                     type: string
-				 *                     description: "Logo image ID"
-				 *                   background:
-				 *                     type: string
-				 *                     description: "Background image ID"
 				 *                   title:
 				 *                     type: string
-				 *                     example: "CHỨNG CHỈ HOÀN THÀNH"
+				 *                     example: "CHUNG NHAN HOAN THANH"
 				 *                   subtitle:
 				 *                     type: string
-				 *                     example: "Kỳ thi trực tuyến"
+				 *                     example: "Bai on tap trac nghiem"
 				 *                   layout:
 				 *                     type: object
 				 *                     properties:
 				 *                       font_family:
 				 *                         type: string
-				 *                         example: "Times New Roman"
+				 *                         example: "Arial"
 				 *                       primary_color:
 				 *                         type: string
-				 *                         example: "#1a5fb4"
+				 *                         example: "#1a73e8"
 				 *                       secondary_color:
 				 *                         type: string
-				 *                         example: "#333333"
+				 *                         example: "#34a853"
 				 *                   content:
 				 *                     type: object
 				 *                     properties:
@@ -150,77 +142,63 @@ export default (_express: Application) => {
 				 *                       properties:
 				 *                         name:
 				 *                           type: string
-				 *                           example: "Nguyễn Văn A"
+				 *                           example: "Nguyen Van A"
 				 *                         title:
 				 *                           type: string
-				 *                           example: "Hiệu trưởng"
-				 *                         signature_image:
-				 *                           type: string
-				 *                           description: "Signature image ID"
+				 *                           example: "Giam doc"
 				 *                         position:
 				 *                           type: string
-				 *                           enum: ["left", "center", "right"]
-				 *                           example: "center"
+				 *                           enum: [left, center, right]
+				 *                           example: center
+				 *                         signature_image:
+				 *                           type: string
+				 *                           description: "File ID của ảnh chữ ký"
+				 *                           example: "69fab939159c64d0bc76a979"
 				 *               legal_text:
 				 *                 type: string
-				 *                 example: "Chứng chỉ này được cấp theo quy định của trường"
+				 *                 example: "Van ban phap ly..."
+				 *           example:
+				 *             name: "Chung nhan hoan thanh bai on tap"
+				 *             is_enabled: true
+				 *             conditions:
+				 *               min_score: 80
+				 *               require_all_correct: false
+				 *               completion_required: true
+				 *             design:
+				 *               title: "CHUNG NHAN HOAN THANH"
+				 *               subtitle: "Bai on tap trac nghiem"
+				 *               layout:
+				 *                 font_family: "Arial"
+				 *                 primary_color: "#1a73e8"
+				 *                 secondary_color: "#34a853"
+				 *               content:
+				 *                 show_score: true
+				 *                 show_rank: false
+				 *                 show_completion_date: true
+				 *                 show_exam_name: true
+				 *               signatures:
+				 *                 - name: "Nguyen Van A"
+				 *                   title: "Giam doc"
+				 *                   position: "center"
+				 *                   signature_image: "69fab939159c64d0bc76a979"
+				 *             legal_text: "Van ban phap ly"
 				 *     responses:
 				 *       200:
 				 *         description: Success
-				 *         content:
-				 *           application/json:
-				 *             schema:
-				 *               $ref: '#/components/schemas/Response'
 				 */
 				try {
-					const examId = req.params.exam_id;
-					const data: TemplateCreate = {
-						exam_id: examId,
-						...req.body,
-					};
+					const userId = await userProvider.validateAndFetchUserId(req.user.id as string);
+					const contentId = req.params.id;
 
-					const template = await provider.updateOrCreate(examId, data, req.user.id as string);
+					const template = await provider.updateOrCreateForContent(
+						contentId,
+						req.body,
+						userId
+					);
+
 					return res.sendOk({
 						data: template,
 						message: "Cập nhật cấu hình chứng chỉ thành công",
-					});
-				} catch (error) {
-					return res.sendError({ err: error });
-				}
-			},
-		},
-
-		delete: {
-			middleware: [verify, verifyAdmin],
-			handler: async (req: Req, res: Res) => {
-				/**
-				 * @openapi
-				 * /exam/{exam_id}/certificate-template:
-				 *   delete:
-				 *     tags: [Certificate]
-				 *     description: Delete certificate template for an exam (admin only)
-				 *     security:
-				 *       - Bearer: []
-				 *     parameters:
-				 *       - name: exam_id
-				 *         in: path
-				 *         required: true
-				 *         schema:
-				 *           type: string
-				 *     responses:
-				 *       200:
-				 *         description: Success
-				 *         content:
-				 *           application/json:
-				 *             schema:
-				 *               $ref: '#/components/schemas/Response'
-				 */
-				try {
-					const examId = req.params.exam_id;
-					await provider.deleteByExamId(examId);
-					return res.sendOk({
-						data: null,
-						message: "Xóa cấu hình chứng chỉ thành công",
 					});
 				} catch (error) {
 					return res.sendError({ err: error });

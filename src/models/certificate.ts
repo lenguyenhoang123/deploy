@@ -21,9 +21,18 @@ export interface ICertificateExamInfo {
 export interface ICertificate {
 	_id?: ObjectId;
 	certificate_code: string;
-	exam_id: ObjectId;
+	type: "exam" | "learning_quiz"; // Certificate type
+	
+	// For Exam type
+	exam_id?: ObjectId;
+	participant_id?: ObjectId;
+	
+	// For Learning Quiz type
+	quiz_attempt_id?: ObjectId;
+	content_id?: ObjectId;
+	quiz_id?: ObjectId;
+	
 	user_id: ObjectId;
-	participant_id: ObjectId;
 	template_id?: ObjectId;
 
 	user_info: ICertificateUserInfo;
@@ -70,9 +79,18 @@ export const schema = (function () {
 	const newSchema = new Schema<ICertificate, CertificateModel, ICertificateMethods>(
 		{
 			certificate_code: { type: String, required: true, unique: true, index: true },
-			exam_id: { type: Schema.Types.ObjectId, required: true, index: true },
+			type: { type: String, enum: ["exam", "learning_quiz"], required: true, default: "exam" },
+			
+			// For Exam type
+			exam_id: { type: Schema.Types.ObjectId, index: true },
+			participant_id: { type: Schema.Types.ObjectId, index: true, sparse: true },
+			
+			// For Learning Quiz type
+			quiz_attempt_id: { type: Schema.Types.ObjectId, index: true },
+			content_id: { type: Schema.Types.ObjectId, index: true },
+			quiz_id: { type: Schema.Types.ObjectId, index: true },
+			
 			user_id: { type: Schema.Types.ObjectId, required: true, index: true },
-			participant_id: { type: Schema.Types.ObjectId, required: true, unique: true },
 			template_id: { type: Schema.Types.ObjectId },
 
 			user_info: { type: userInfoSchema, required: true },
@@ -93,5 +111,11 @@ export const schema = (function () {
 			timestamps: { createdAt: "created_at", updatedAt: null },
 		},
 	);
+	
+	// Compound index to prevent duplicate certificates for same quiz attempt
+	newSchema.index({ quiz_attempt_id: 1, user_id: 1 }, { unique: true, sparse: true });
+	// Compound index for exam participant - chỉ áp dụng khi có participant_id và exam_id
+	newSchema.index({ participant_id: 1, exam_id: 1 }, { unique: true, sparse: true, partialFilterExpression: { participant_id: { $exists: true }, exam_id: { $exists: true } } });
+	
 	return newSchema;
 })();
