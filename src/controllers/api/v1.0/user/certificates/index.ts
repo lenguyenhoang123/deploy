@@ -21,16 +21,36 @@ export default (_express: Application) => {
 				 *     security:
 				 *       - Bearer: []
 				 *     parameters:
+				 *       - name: filters
+				 *         in: query
+				 *         schema:
+				 *           type: string
+				 *         description: Optional filter criteria for the certificates.
 				 *       - name: pageSize
 				 *         in: query
 				 *         schema:
 				 *           type: integer
 				 *           example: 10
+				 *         description: Number of certificates per page.
 				 *       - name: currentPage
 				 *         in: query
 				 *         schema:
 				 *           type: integer
 				 *           example: 1
+				 *         description: Current page number for pagination.
+				 *       - name: sortField
+				 *         in: query
+				 *         schema:
+				 *           type: string
+				 *           example: created_at
+				 *         description: Field to sort the certificates by.
+				 *       - name: sortOrder
+				 *         in: query
+				 *         schema:
+				 *           type: string
+				 *           enum: [asc, desc]
+				 *           example: desc
+				 *         description: Sort order, either ascending (asc) or descending (desc).
 				 *     responses:
 				 *       200:
 				 *         description: Success
@@ -41,14 +61,20 @@ export default (_express: Application) => {
 				 */
 				try {
 					const userId = req.user.id as string;
-					const { pageSize, currentPage } = req.payload;
+					const { pageSize, currentPage, sortField, sortOrder } = req.payload;
+
+					// Build where clause - merge filters with user_id
+					const where = {
+						...(req.payload.where || {}),
+						user_id: userId,
+					};
 
 					const result = await provider.getAll({
-						where: { user_id: userId },
+						where,
 						pageSize,
 						currentPage,
-						sortField: "created_at",
-						sortOrder: "desc",
+						sortField: sortField || "created_at",
+						sortOrder: sortOrder || "desc",
 					});
 
 					return res.sendOk({ data: result });

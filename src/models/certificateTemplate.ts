@@ -32,7 +32,15 @@ export interface ICertificateSignature {
 
 export interface ICertificateTemplate {
 	_id?: ObjectId;
+	type: "exam" | "learning_quiz" | "global"; // Template type
+	
+	// For Exam type
 	exam_id?: ObjectId;
+	
+	// For Learning Quiz type
+	content_id?: ObjectId;
+	quiz_id?: ObjectId;
+	
 	name: string;
 	is_enabled: boolean;
 	conditions: ICertificateConditions;
@@ -97,7 +105,15 @@ export const collectionName = "certificate_template";
 export const schema = (function () {
 	const newSchema = new Schema<ICertificateTemplate, CertificateTemplateModel, ICertificateTemplateMethods>(
 		{
+			type: { type: String, enum: ["exam", "learning_quiz", "global"], required: true, default: "exam" },
+			
+			// For Exam type
 			exam_id: { type: Schema.Types.ObjectId, unique: true, sparse: true },
+			
+			// For Learning Quiz type
+			content_id: { type: Schema.Types.ObjectId, unique: true, sparse: true },
+			quiz_id: { type: Schema.Types.ObjectId },
+			
 			name: { type: String, required: true },
 			is_enabled: { type: Boolean, default: false },
 			conditions: { type: conditionsSchema, required: true },
@@ -118,5 +134,9 @@ export const schema = (function () {
 			timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
 		},
 	);
+	
+	// Index for global template (one per system)
+	newSchema.index({ type: 1 }, { unique: true, partialFilterExpression: { type: "global" } });
+	
 	return newSchema;
 })();

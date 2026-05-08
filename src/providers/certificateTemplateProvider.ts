@@ -35,6 +35,7 @@ export class CertificateTemplateProvider extends BaseProvider<ICertificateTempla
 		} else {
 			// Create new - ensure required fields are present
 			const createData: ICertificateTemplate = {
+				type: "exam",
 				name: data.name!,
 				is_enabled: data.is_enabled ?? false,
 				conditions: data.conditions!,
@@ -66,5 +67,59 @@ export class CertificateTemplateProvider extends BaseProvider<ICertificateTempla
 	async isCertificateEnabled(examId: string): Promise<boolean> {
 		const template = await this.getByExamId(examId);
 		return template?.is_enabled ?? false;
+	}
+
+	/**
+	 * Get certificate template by content ID (for Learning Quiz)
+	 */
+	async getByContentId(contentId: string): Promise<ICertificateTemplate | null> {
+		return await this.getOne({
+			where: { content_id: contentId, type: "learning_quiz" },
+		});
+	}
+
+	/**
+	 * Get global certificate template by type
+	 */
+	async getGlobalTemplate(type: "exam" | "learning_quiz" | "global"): Promise<ICertificateTemplate | null> {
+		return await this.getOne({
+			where: { type },
+		});
+	}
+
+	/**
+	 * Update or create certificate template for learning content
+	 */
+	async updateOrCreateForContent(
+		contentId: string,
+		data: Partial<ICertificateTemplate>,
+		userId: string,
+	): Promise<ICertificateTemplate> {
+		const existing = await this.getByContentId(contentId);
+
+		if (existing) {
+			// Update existing
+			await this.put(existing._id!.toString(), {
+				...data,
+				updated_by: new ObjectId(userId),
+			});
+			return { ...existing, ...data };
+		} else {
+			// Create new
+			const createData: ICertificateTemplate = {
+				type: "learning_quiz",
+				name: data.name!,
+				is_enabled: data.is_enabled ?? false,
+				conditions: data.conditions!,
+				design: data.design!,
+				content_id: new ObjectId(contentId),
+				created_by: new ObjectId(userId),
+				legal_text: data.legal_text,
+				_id: undefined,
+				created_at: undefined,
+			};
+			const created = await this.post(createData);
+			return created;
+		}
 	}
 }

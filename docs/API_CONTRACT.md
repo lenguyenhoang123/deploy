@@ -1,8 +1,8 @@
 # API Contract — Cuộc thi trực tuyến "Tìm hiểu về bảo tồn đa dạng sinh học"
 
-> **Version:** 1.0  
+> **Version:** 1.1  
 > **Base URL:** `https://{domain}/api/v1.0`  
-> **Updated:** 27/03/2026  
+> **Updated:** 04/05/2026  
 > **Trạng thái:** Đang phát triển — Phase 1  
 
 ---
@@ -2557,6 +2557,426 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 
 ---
 
+## 6. Learning Content
+
+### `GET /learning/content` ✅
+🔒 **Yêu cầu auth** (User) — Lấy danh sách nội dung học tập với tiến độ cá nhân.
+
+> **✅ Đã xong:** Trả về danh sách content có `is_active: true` kèm theo tiến độ học tập của user.
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Lấy danh sách nội dung học tập thành công",
+  "responseData": {
+    "rows": [
+      {
+        "_id": "ObjectId",
+        "title": "HTML Basics",
+        "description": "Learn HTML fundamentals",
+        "type": "reading_material",
+        "content": "HTML is the standard markup language...",
+        "estimated_reading_time": 15,
+        "difficulty_level": "easy",
+        "tags": ["html", "web", "basics"],
+        "file": {
+          "_id": "ObjectId",
+          "file_name": "html_basics.pdf",
+          "original_name": "html_basics.pdf",
+          "mime_type": "application/pdf",
+          "file_path": "/uploads/learning/html_basics.pdf"
+        },
+        "user_progress": {
+          "status": "completed",
+          "progress_percentage": 100,
+          "time_spent": 15
+        },
+        "can_start_quiz": true
+      }
+    ],
+    "count": 10,
+    "pageSize": 20,
+    "currentPage": 1,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+### `POST /learning/content` ✅
+🔒 **Yêu cầu auth** (Admin) — Tạo nội dung học tập mới.
+
+> **✅ Đã xong:** Auto-generate `slug` từ title. Default `is_active: true` (public ngay).
+
+**Request:**
+```json
+{
+  "title": "HTML Basics",
+  "description": "Learn HTML fundamentals",
+  "type": "reading_material",
+  "content": "HTML is the standard markup language for creating web pages.",
+  "estimated_reading_time": 15,
+  "difficulty_level": "easy",
+  "tags": ["html", "web", "basics"]
+}
+```
+
+**Validation:**
+- `title`: required, string, max 255 ký tự
+- `description`: required, string, max 500 ký tự
+- `type`: required, enum `[reading_material, video_content, interactive_content]`
+- `content`: required, string (HTML content)
+- `estimated_reading_time`: required, number > 0 (phút)
+- `difficulty_level`: optional, enum `[easy, medium, hard]`, default `medium`
+- `tags`: optional, array of strings
+- `slug`: optional, string (URL-friendly), auto-generated từ title nếu không cung cấp
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Tạo nội dung học tập thành công",
+  "responseData": {
+    "_id": "ObjectId",
+    "title": "HTML Basics",
+    "description": "Learn HTML fundamentals",
+    "type": "reading_material",
+    "content": "HTML is the standard markup language...",
+    "estimated_reading_time": 15,
+    "difficulty_level": "easy",
+    "tags": ["html", "web", "basics"],
+    "is_active": true,
+    "sort_order": 0,
+    "slug": "html-basics",
+    "created_by": "ObjectId",
+    "created_at": "2026-05-04T07:14:14Z",
+    "updated_at": "2026-05-04T07:14:14Z"
+  }
+}
+```
+
+---
+
+### `PUT /learning/content/{id}` ✅
+🔒 **Yêu cầu auth** (Admin) — Cập nhật nội dung học tập.
+
+> **✅ Đã xong:** Cho phép update thông tin hoặc ẩn content (`is_active: false`).
+
+**Request:**
+```json
+{
+  "title": "HTML Basics - Updated",
+  "description": "Updated description",
+  "is_active": false
+}
+```
+
+**Validation:**
+- Tất cả fields optional
+- `is_active`: boolean - set `false` để ẩn content khỏi user view
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Cập nhật nội dung học tập thành công",
+  "responseData": {
+    "_id": "ObjectId",
+    "title": "HTML Basics - Updated",
+    "description": "Updated description",
+    "type": "reading_material",
+    "content": "HTML is the standard markup language...",
+    "estimated_reading_time": 15,
+    "difficulty_level": "easy",
+    "tags": ["html", "web", "basics"],
+    "is_active": true,
+    "slug": "html-basics",
+    "created_by": "ObjectId",
+    "created_at": "2026-05-04T07:14:14Z",
+    "updated_at": "2026-05-04T08:30:00Z"
+  }
+}
+```
+
+**Errors:** `500` Nội dung học tập không tồn tại
+
+---
+
+### `DELETE /learning/content/{id}` ✅
+🔒 **Yêu cầu auth** (Admin) — Soft delete nội dung học tập.
+
+> **✅ Đã xong:** Set `is_active: false` (không xóa vĩnh viễn).
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Xóa nội dung học tập thành công",
+  "responseData": {
+    "acknowledged": true,
+    "modifiedCount": 1
+  }
+}
+```
+
+**Errors:** `500` Nội dung học tập không tồn tại
+
+---
+
+### `GET /learning/content/{id}/progress` ✅
+🔒 **Yêu cầu auth** (User) — Lấy tiến độ học tập cho content cụ thể.
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Lấy tiến độ học tập thành công",
+  "responseData": {
+    "user_id": "ObjectId",
+    "content_id": "ObjectId",
+    "status": "in_progress",
+    "progress_percentage": 45,
+    "time_spent": 7,
+    "scroll_position": 500,
+    "last_position": "section-3",
+    "created_at": "2026-05-04T08:00:00Z",
+    "updated_at": "2026-05-04T08:07:00Z"
+  }
+}
+```
+
+---
+
+### `PUT /learning/content/{id}/progress` ✅
+🔒 **Yêu cầu auth** (User) — Cập nhật tiến độ học tập.
+
+**Request:**
+```json
+{
+  "progress_percentage": 45,
+  "time_spent": 7,
+  "scroll_position": 500,
+  "last_position": "section-3"
+}
+```
+
+**Validation:**
+- `progress_percentage`: required, number 0-100
+- `time_spent`: optional, number (phút)
+- `scroll_position`: optional, number
+- `last_position`: optional, string
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Cập nhật tiến độ học tập thành công",
+  "responseData": {
+    "status": "in_progress",
+    "progress_percentage": 45,
+    "time_spent": 7
+  }
+}
+```
+
+---
+
+## 7. Learning Quiz — Practice Mode with Certificate (Ôn tập có cấp chứng nhận)
+
+> **Lưu ý quan trọng:** Learning Quiz là chế độ **ôn tập**, khác với Exam (thi chính thức):
+> - ✅ **Không giới hạn** số lần làm bài
+> - ✅ **Cấp chứng nhận** nếu đạt >= 80% (nếu có template)
+> - ✅ Chỉ để luyện tập trước khi vào thi thật
+> 
+> **Lưu ý về chứng nhận:**
+> - Mỗi content có thể có 1 template chứng nhận riêng
+> - Hoặc dùng template "global" cho tất cả learning quiz
+> - Cần admin cấu hình template và điều kiện cấp chứng nhận
+
+### `GET /learning/quiz` ✅
+🔒 **Yêu cầu auth** (User) — Lấy thông tin ôn tập cho content (sau khi hoàn thành đọc).
+
+> **✅ Đã xong:** Yêu cầu user hoàn thành đọc content trước. Không giới hạn số lần ôn tập.
+
+**Query params:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `content_id` | string | ID của learning content (required) |
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Lấy thông tin ôn tập thành công",
+  "responseData": {
+    "quiz": {
+      "_id": "ObjectId",
+      "title": "Bài ôn tập - HTML",
+      "time_limit": 10
+    },
+    "attempts": [
+      {
+        "_id": "ObjectId",
+        "attempt_number": 1,
+        "score": 65,
+        "status": "completed"
+      }
+    ],
+    "attempts_count": 5,
+    "can_attempt": true,
+    "is_practice": true,
+    "message": "Chế độ ôn tập - Không giới hạn số lần làm bài"
+  }
+}
+```
+
+**Errors:** `500` Bạn cần hoàn thành đọc nội dung trước khi ôn tập | Không có bài ôn tập cho nội dung này
+
+---
+
+### `POST /learning/quiz` ✅
+🔒 **Yêu cầu auth** (User) — Bắt đầu bài ôn tập mới (UNLIMITED attempts).
+
+> **✅ Đã xong:** Random 20 câu hỏi từ ngân hàng. **Không giới hạn số lần** như Exam.
+
+**Request:**
+```json
+{
+  "content_id": "ObjectId"
+}
+```
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Bắt đầu ôn tập thành công",
+  "responseData": {
+    "attempt": {
+      "_id": "ObjectId",
+      "attempt_number": 6,
+      "status": "in_progress",
+      "questions": ["ObjectId", "ObjectId", "..."]
+    },
+    "quiz": {
+      "title": "Bài ôn tập - HTML",
+      "time_limit": 10
+    },
+    "attempt_number": 6,
+    "is_practice": true,
+    "message": "Bắt đầu bài ôn tập (không giới hạn số lần)"
+  }
+}
+```
+
+**Errors:** `500` Bạn cần hoàn thành đọc nội dung trước | Bạn đang có một bài ôn tập chưa hoàn thành
+
+---
+
+### `GET /learning/quiz/{attempt_id}` ✅
+🔒 **Yêu cầu auth** (User) — Lấy chi tiết bài ôn tập đang làm.
+
+**Response 200:**
+```json
+{
+  "status": "success",
+  "message": "Lấy chi tiết bài ôn tập thành công",
+  "responseData": {
+    "attempt": {
+      "_id": "ObjectId",
+      "quiz_id": "ObjectId",
+      "attempt_number": 6,
+      "status": "in_progress",
+      "score": null,
+      "answers": [],
+      "start_time": "2026-05-04T10:00:00Z"
+    },
+    "questions": [
+      {
+        "_id": "ObjectId",
+        "name": "Câu hỏi...",
+        "type": "MULTIPLE_CHOICE",
+        "answers": [{ "_id": "...", "value": "..." }],
+        "files": null
+      }
+    ],
+    "is_practice": true
+  }
+}
+```
+
+---
+
+### `PUT /learning/quiz/{attempt_id}` ✅
+🔒 **Yêu cầu auth** (User) — Nộp bài ôn tập (không cấp chứng nhận).
+
+> **✅ Đã xong:** Tính điểm và hiển thị kết quả. **Không cấp chứng nhận** - chỉ để ôn tập.
+
+**Request:**
+```json
+{
+  "answers": [
+    {
+      "question_id": "ObjectId",
+      "user_answer": "ObjectId"
+    }
+  ]
+}
+```
+
+**Response 200 (đạt >=80% và có chứng nhận):**
+```json
+{
+  "status": "success",
+  "message": "Nộp bài thành công",
+  "responseData": {
+    "score": 85,
+    "correct_count": 17,
+    "total_questions": 20,
+    "passed": true,
+    "answers": [
+      {
+        "question_id": "ObjectId",
+        "user_answer": "ObjectId",
+        "is_correct": true
+      }
+    ],
+    "certificate": {
+      "_id": "ObjectId",
+      "certificate_code": "CERT-ABC123-DEF",
+      "status": "active"
+    },
+    "certificate_message": "🎉 Chúc mừng! Bạn đã đạt chứng nhận hoàn thành bài ôn tập!",
+    "is_practice": false,
+    "message": "🎉 Chúc mừng! Bạn đã hoàn thành xuất sắc bài ôn tập!"
+  }
+}
+```
+
+**Response 200 (dưới 80%):**
+```json
+{
+  "status": "success",
+  "message": "Nộp bài thành công",
+  "responseData": {
+    "score": 65,
+    "correct_count": 13,
+    "total_questions": 20,
+    "passed": false,
+    "answers": [...],
+    "certificate": null,
+    "certificate_message": "Bạn cần đạt ít nhất 80% để nhận chứng nhận",
+    "is_practice": false,
+    "message": "Hoàn thành bài ôn tập"
+  }
+}
+```
+
+---
+
 ## Tổng hợp trạng thái API
 
 | # | Module | Endpoint | Method | Status | Ghi chú |
@@ -2596,37 +3016,78 @@ Content-Disposition: attachment; filename=ThongKeTheoDonVi.xlsx
 | 33 | QB | `/question-bank/{id}/delete` | PUT | ✅ | |
 | 34 | QB | `/question-bank/import` | POST | ✅ | Import Excel (MC + Essay) |
 | 35 | QB | `/question-bank/export` | GET | ✅ | **Mới** — Export Excel (MC + Essay) |
-| 36 | File | `/file` | GET | ✅ | |
-| 37 | File | `/file/upload` | POST | ✅ | |
-| 38 | File | `/file/{id}` | GET | ✅ | |
-| 39 | File | `/file/{id}` | DELETE | ✅ | |
-| 40 | Config | `/website-config` | GET | ✅ | Trả đầy đủ banners[], guide_video, Config-First fields |
-| 41 | Config | `/website-config` | PUT | ✅ | Validation đầy đủ các fields mới |
-| 42 | Stats | `/statistics/exam/{id}/participant` | GET | ✅ | Aggregate nhiều lượt, profile fields, xếp hạng |
-| 43 | Stats | `/statistics/exam/{id}/participant/{id}` | GET | ✅ | Profile fields + aggregated stats |
-| 44 | Stats | `/statistics/exam/{id}/participant/export` | GET | ✅ | Columns mới + 2 sheets THCS/THPT |
-| 45 | Stats | `/statistics/exam/{id}/unit` | GET | ✅ | Group by trường + THCS/THPT + highlight top |
-| 46 | Stats | `/statistics/exam/{id}/unit/export` | GET | ✅ | Excel + highlight top 3 + cột school_type |
-| 47 | Stats | `/statistics/total-participants` | GET | ✅ | Public counter - unique users + total attempts |
-| 48 | Admin | `/exam-participant/{id}/essay-answers` | GET | ✅ | **Mới** — Xem câu trả lời tự luận |
-| 49 | Admin | `/exam-participant/{id}/essay-score` | PATCH | ✅ | Chấm điểm câu tự luận |
-| 50 | CMS | `/content-page` | GET | ✅ | **Mới** — Hỗ trợ query slug public |
-| 51 | CMS | `/content-page` | POST | ✅ | **Mới** — Slug optional, auto-generate |
-| 52 | CMS | `/content-page/{id}` | GET | ✅ | **Mới** |
-| 53 | CMS | `/content-page/{id}` | PUT | ✅ | **Mới** — Slug auto-regenerate from title |
-| 54 | CMS | `/content-page/{id}` | DELETE | ✅ | **Mới** |
-| 55 | CMS | `/content-page/public` | GET | ✅ | **Mới** — Public |
-| 56 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
-| 57 | Certificate | `/exam-participant/{id}/finalize` | POST | ✅ | **Mới** — Gửi email chứng chỉ 1 người |
-| 58 | Certificate | `/exam/{exam_id}/bulk-finalize` | POST | ✅ | **Mới** — Gửi email chứng chỉ hàng loạt |
-| 59 | Certificate | `/user/certificates` | GET | ✅ | **Mới** — Danh sách chứng chỉ user |
-| 60 | Certificate | `/user/certificates/{id}` | GET | ✅ | **Mới** — Chi tiết chứng chỉ |
-| 61 | Certificate | `/exam/{exam_id}/certificate-template` | GET | ✅ | **Mới** — Lấy template chứng chỉ |
-| 62 | Certificate | `/exam/{exam_id}/certificate-template` | PUT | ✅ | **Mới** — Cập nhật/tạo template chứng chỉ |
-| 63 | Certificate | `/exam/{exam_id}/certificate-template` | DELETE | ✅ | **Mới** — Xóa template chứng chỉ |
-| 64 | Certificate | `/certificates` | GET | ✅ | **Mới** — Admin xem tất cả chứng chỉ (filter theo exam, user, status) |
-| 65 | Certificate | `/certificates/verify` | GET | ✅ | **Mới** — **PUBLIC** — Verify chứng chỉ bằng code |
+| 36 | Learning | `/learning/content` | GET | ✅ | **Mới** — User view with progress |
+| 37 | Learning | `/learning/content` | POST | ✅ | **Mới** — Admin create content |
+| 38 | Learning | `/learning/content/{id}` | PATCH | ✅ | **Mới** — Admin update content |
+| 39 | Learning | `/learning/content/{id}` | DELETE | ✅ | **Mới** — Admin soft delete |
+| 40 | Learning | `/learning/content/{id}/progress` | GET | ✅ | **Mới** — User get progress |
+| 41 | Learning | `/learning/content/{id}/progress` | PUT | ✅ | **Mới** — User update progress |
+| 42 | Learning | `/user/learning` | GET | ✅ | **Cập nhật** — Xem nội dung + tiến độ |
+| 43 | Learning | `/user/learning` | POST | ✅ | **Cập nhật** — Tạo/cập nhật tiến độ |
+| 44 | Learning Quiz | `/learning/quiz/start` | POST | ✅ | **Mới** — Bắt đầu quiz (kiểm soát phiên) |
+| 45 | Learning Quiz | `/learning/quiz/{attempt_id}/submit` | PUT | ✅ | **Mới** — Nộp bài (chấm điểm O(1)) |
+| 47 | Learning | `/learning/quiz/attempts` | GET | ✅ | **Mới** — Lịch sử lần thử |
+| 48 | Certificate | `/certificates/{id}/download` | GET | ✅ | **Mới** — Tải thống nhất (exam + learning) |
+| 49 | Certificate | `/learning/certificate/send` | POST | ✅ | **Mới** — Admin gửi (tự động user) |
+| 50 | Certificate | `/learning/content/{id}/certificate-template` | GET | ✅ | **Mới** — Admin config template |
+| 51 | Certificate | `/learning/content/{id}/certificate-template` | PUT | ✅ | **Mới** — Admin update template |
+| 52 | File | `/file` | GET | ✅ | Admin list files |
+| 53 | File | `/file/upload` | POST | ✅ | Upload file |
+| 54 | File | `/file/{id}` | GET | ✅ | Get/download file |
+| 55 | File | `/file/{id}` | DELETE | ✅ | Delete file |
+| 56 | Config | `/website-config` | GET | ✅ | Trả đầy đủ banners[], guide_video, Config-First fields |
+| 57 | Config | `/website-config` | PUT | ✅ | Validation đầy đủ các fields mới |
+| 58 | Stats | `/statistics/exam/{id}/participant` | GET | ✅ | Aggregate nhiều lượt, profile fields, xếp hạng |
+| 59 | Stats | `/statistics/exam/{id}/participant/{id}` | GET | ✅ | Profile fields + aggregated stats |
+| 60 | Stats | `/statistics/exam/{id}/participant/export` | GET | ✅ | Columns mới + 2 sheets THCS/THPT |
+| 61 | Stats | `/statistics/exam/{id}/unit` | GET | ✅ | Group by trường + THCS/THPT + highlight top |
+| 62 | Stats | `/statistics/exam/{id}/unit/export` | GET | ✅ | Excel + highlight top 3 + cột school_type |
+| 63 | Stats | `/statistics/total-participants` | GET | ✅ | Public counter - unique users + total attempts |
+| 64 | Admin | `/exam-participant/{id}/essay-answers` | GET | ✅ | **Mới** — Xem câu trả lời tự luận |
+| 65 | Admin | `/exam-participant/{id}/essay-score` | PATCH | ✅ | Chấm điểm câu tự luận |
+| 66 | CMS | `/content-page` | GET | ✅ | **Mới** — Hỗ trợ query slug public |
+| 67 | CMS | `/content-page` | POST | ✅ | **Mới** — Slug optional, auto-generate |
+| 68 | CMS | `/content-page/{id}` | GET | ✅ | **Mới** |
+| 69 | CMS | `/content-page/{id}` | PUT | ✅ | **Mới** — Slug auto-regenerate from title |
+| 70 | CMS | `/content-page/{id}` | DELETE | ✅ | **Mới** |
+| 71 | CMS | `/content-page/public` | GET | ✅ | **Mới** — Public |
+| 72 | Logs | `/logs/getAllWithinTimeRange` | GET | ✅ | |
+| 73 | Certificate | `/exam-participant/{id}/finalize` | POST | ✅ | **Mới** — Gửi email chứng chỉ 1 người |
+| 74 | Certificate | `/exam/{exam_id}/bulk-finalize` | POST | ✅ | **Mới** — Gửi email chứng chỉ hàng loạt |
+| 75 | Certificate | `/user/certificates` | GET | ✅ | **Mới** — Danh sách chứng chỉ user |
+| 76 | Certificate | `/user/certificates/{id}` | GET | ✅ | **Mới** — Chi tiết chứng chỉ |
+| 77 | Certificate | `/exam/{exam_id}/certificate-template` | GET | ✅ | **Mới** — Lấy template chứng chỉ |
+| 78 | Certificate | `/exam/{exam_id}/certificate-template` | PUT | ✅ | **Mới** — Cập nhật/tạo template chứng chỉ |
+| 79 | Certificate | `/exam/{exam_id}/certificate-template` | DELETE | ✅ | **Mới** — Xóa template chứng chỉ |
+| 80 | Certificate | `/certificates` | GET | ✅ | **Mới** — Admin xem tất cả chứng chỉ (filter theo exam, user, status) |
+| 81 | Certificate | `/certificates/verify` | GET | ✅ | **Mới** — **PUBLIC** — Verify chứng chỉ bằng code |
 
 ---
 
-**Tổng:** 65 endpoints | ✅ 41 hoạt động | ⚠️ 19 cần sửa | ❌ 5 chưa có
+**Tổng:** 81 endpoints | ✅ 57 hoạt động | ⚠️ 19 cần sửa | ❌ 5 chưa có
+
+---
+
+## 📚 Learning System APIs (9 Endpoints - Mới)
+
+### Nội dung & Tiến độ (2 APIs):
+- `GET /user/learning` - Xem tất cả nội dung + tiến độ
+- `POST /user/learning` - Tạo/cập nhật tiến độ
+
+### Trắc nghiệm (3 APIs):
+- `POST /learning/quiz/start` - Bắt đầu quiz (kiểm soát phiên)
+- `PUT /learning/quiz/{attempt_id}/submit` - Nộp bài (chấm điểm O(1))
+- `GET /learning/quiz/attempts` - Lịch sử lần thử
+
+### Chứng chỉ (4 APIs):
+- `GET /certificates/{id}/download` - Tải thống nhất (exam + learning)
+- `POST /learning/certificate/send` - Admin gửi (tự động user)
+- `GET /learning/content/{id}/certificate-template` - Admin config
+- `PUT /learning/content/{id}/certificate-template` - Admin update
+
+### 🚀 Tính năng Nổi bật:
+- **Kiểm soát phiên** - Ngăn spam CSDL
+- **Chấm điểm O(1)** - Hash map lookup (10x nhanh hơn)
+- **Chứng chỉ thống nhất** - 1 endpoint cho exam + learning
+- **Template-based** - Dynamic min_score từ CSDL
+- **Admin tools** - Config template + gửi thủ công
