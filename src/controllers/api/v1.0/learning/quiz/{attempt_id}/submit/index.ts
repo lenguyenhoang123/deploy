@@ -124,10 +124,22 @@ export default (_express: Application) => {
 						return count + (answer.is_correct ? 1 : 0);
 					}, 0);
 
-					const totalQuestions = attempt.shuffled_questions.length;
+					const totalQuestions =
+						questionIds.length > 0
+							? questionIds.length
+							: Array.isArray(attempt.shuffled_questions)
+								? attempt.shuffled_questions.length
+								: 0;
 
-					// Check if passed using quiz passing_score
-					const passed = correctCount >= quiz.passing_score;
+					// Scale passing bar to this attempt's question count (quiz may store passing_score for full quiz, e.g. 16/20, while attempt has 5 questions)
+					const quizTotalConfigured =
+						quiz.total_score && quiz.total_score > 0 ? quiz.total_score : totalQuestions || 1;
+					const passBar = quiz.passing_score ?? 0;
+					let requiredCorrect = Math.ceil(
+						(passBar / quizTotalConfigured) * totalQuestions - Number.EPSILON,
+					);
+					requiredCorrect = Math.max(0, Math.min(totalQuestions, requiredCorrect));
+					const passed = correctCount >= requiredCorrect;
 
 					// Update attempt with absolute score
 					await attemptProvider.submitAttempt(
