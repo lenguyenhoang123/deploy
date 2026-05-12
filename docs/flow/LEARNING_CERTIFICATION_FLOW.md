@@ -198,6 +198,8 @@ POST /learning/certificate/send       ← Gửi quản trị viên (tự động
 GET /learning/content/{id}/certificate-template  ← Cấu hình quản trị viên
 PUT /learning/content/{id}/certificate-template  ← Cập nhật quản trị viên
 
+**Quy tắc `POST /learning/certificate/send` (đồng bộ code):** Mọi cách gọi đều áp **template chứng chỉ của content** (`conditions.min_score` là % đúng trên tổng số câu trong lần làm, và `require_all_correct` nếu bật). Không còn “gửi tay bỏ qua điểm”. Cụ thể: chỉ `content_id` → gửi hàng loạt cho user có attempt đã nộp và đủ điều kiện mẫu; chỉ `attempt_id` → gửi đúng một attempt (nếu đủ điều kiện); `user_id` kèm `content_id` hoặc `attempt_id` → gửi cho user đó (attempt phải khớp user nếu truyền `attempt_id`).
+
 🔐 Xác thực (Đã có):
 POST /auth/register
 POST /auth/login

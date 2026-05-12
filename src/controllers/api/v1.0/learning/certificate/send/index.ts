@@ -18,6 +18,26 @@ import { ObjectId } from "mongodb";
 import { v4 as uuidv4 } from "uuid";
 import { Types } from "mongoose";
 
+function attemptMeetsLearningCertificateTemplate(attempt: any, quiz: any, template: any): boolean {
+	if (!attempt || attempt.status === "in_progress") return false;
+
+	const totalQuestions = Array.isArray(attempt.shuffled_questions) ? attempt.shuffled_questions.length : 0;
+	const total =
+		totalQuestions > 0 ? totalQuestions : Math.max(1, Number(quiz?.total_score) || 1);
+	const score = Number(attempt.score ?? 0);
+
+	if (template?.conditions?.require_all_correct === true) {
+		return totalQuestions > 0 && score >= totalQuestions;
+	}
+
+	const minPct = Number(template?.conditions?.min_score ?? 0);
+	const pct = total > 0 ? (score / total) * 100 : 0;
+	if (minPct <= 0) {
+		return score > 0;
+	}
+	return pct >= minPct;
+}
+
 // Import shared certificate email function from exam
 async function sendCertificateEmail(
 	user: any,
@@ -242,7 +262,7 @@ export default (_express: Application) => {
 				 * /learning/certificate/send:
 				 *   post:
 				 *     tags: [Admin Learning Certificate]
-				 *     description: Manually send/resend learning certificate to user (admin only)
+				 *     description: Send/resend learning certificate (admin). Every mode checks the content certificate template (min_score %, require_all_correct). Bulk = content_id without user_id; single = user_id and/or attempt_id.
 				 *     security:
 				 *       - Bearer: []
 				 *     requestBody:
@@ -254,29 +274,60 @@ export default (_express: Application) => {
 				 *             properties:
 				 *               attempt_id:
 				 *                 type: string
-				 *                 description: Quiz attempt ID
+				 *                 description: Quiz attempt ID — alone sends that attempt (if template OK); with user_id must belong to that user
+				 *               content_id:
+				 *                 type: string
+				 *                 description: Learning content ID (required if attempt_id not provided)
 				 *               user_id:
 				 *                 type: string
-				 *                 description: User ID to send certificate to (optional, if not provided will send to all users)
+				 *                 description: User ID (optional). With content_id, sends only if that user's latest attempt meets template. If omitted with content_id only, bulk-send to all eligible users.
 				 *     responses:
 				 *       200:
 				 *         description: Success
 				 */
 				try {
-					const { attempt_id, user_id } = req.body;
+					const { attempt_id, user_id, content_id } = req.body;
 
-					if (!attempt_id) {
-						throw new Error("Attempt ID là bắt buộc");
+					if (!attempt_id && !content_id) {
+						throw new Error("Attempt ID hoặc Content ID là bắt buộc");
 					}
 
-					// Get attempt
-					const attempt = await attemptProvider.getById(attempt_id);
-					if (!attempt) {
-						throw new Error("Không tìm thấy bài ôn tập");
+					let attempt: any = null;
+					let quiz: any = null;
+
+					if (attempt_id) {
+						// Get attempt
+						attempt = await attemptProvider.getById(attempt_id);
+						if (!attempt) {
+							throw new Error("Không tìm thấy bài ôn tập");
+						}
+						// Get quiz from attempt
+						quiz = await quizProvider.getById(attempt.quiz_id.toString());
+					} else if (content_id) {
+						// Find quiz by content_id
+						const quizzes = await quizProvider.getAll({
+							where: { content_id: content_id }
+						});
+						if (!quizzes.rows || quizzes.rows.length === 0) {
+							throw new Error("Không tìm thấy quiz cho content này");
+						}
+						quiz = quizzes.rows[0];
+
+						// If user_id provided, find their latest attempt for this quiz
+						if (user_id) {
+							const userAttempts = await attemptProvider.getAll({
+								where: { user_id: user_id, quiz_id: quiz._id.toString() },
+								sortField: "created_at",
+								sortOrder: "desc",
+								pageSize: 1
+							});
+							if (!userAttempts.rows || userAttempts.rows.length === 0) {
+								throw new Error("Không tìm thấy attempt nào của user cho quiz này");
+							}
+							attempt = userAttempts.rows[0];
+						}
 					}
 
-					// Get quiz and content info
-					const quiz = await quizProvider.getById(attempt.quiz_id.toString());
 					if (!quiz || !quiz.content_id) {
 						throw new Error("Không tìm thấy thông tin quiz hoặc content");
 					}
@@ -294,31 +345,106 @@ export default (_express: Application) => {
 					let results = [];
 
 					if (user_id) {
-						// Send to specific user (admin override - no score check)
 						const targetUser = await userProvider.getById(user_id);
 						if (!targetUser) {
 							throw new Error("Không tìm thấy user");
 						}
 
+						const targetAttempt =
+							attempt ||
+							(await attemptProvider
+								.getAll({
+									where: { user_id: user_id, quiz_id: quiz._id.toString() },
+									sortField: "created_at",
+									sortOrder: "desc",
+									pageSize: 1,
+								})
+								.then((r) => r.rows?.[0]));
+
+						if (!targetAttempt) {
+							throw new Error("Không tìm thấy attempt của user");
+						}
+
+						if (attempt_id) {
+							const ownerId =
+								targetAttempt.user_id?._id?.toString?.() ??
+								targetAttempt.user_id?.toString?.() ??
+								String(targetAttempt.user_id);
+							if (ownerId !== user_id.toString()) {
+								throw new Error("Attempt không thuộc user này");
+							}
+						}
+
+						if (!attemptMeetsLearningCertificateTemplate(targetAttempt, quiz, template)) {
+							throw new Error(
+								"Bài làm chưa đạt điều kiện chứng chỉ theo mẫu (min_score / require_all_correct).",
+							);
+						}
+
 						const certificate = await createAndSendCertificate(
-							targetUser, attempt, quiz, content, template, certificateProvider, req
+							targetUser,
+							targetAttempt,
+							quiz,
+							content,
+							template,
+							certificateProvider,
+							req,
 						);
 
 						results.push({
 							user_id: targetUser._id.toString(),
 							user_email: targetUser.email,
 							certificate_id: certificate._id,
-							certificate_code: certificate.certificate_code
+							certificate_code: certificate.certificate_code,
 						});
-					} else {
-						// Send to all users who passed this quiz (based on passed field)
-						const allAttempts = await attemptProvider.getAll({
-              where: {
-                quiz_id: attempt.quiz_id.toString(),
-                passed: true
-              },
-              includes: [{ path: "user_id", select: "email first_name middle_name last_name profile" }]
-            });
+					} else if (attempt_id && attempt) {
+						const ownerId =
+							attempt.user_id?._id?.toString?.() ??
+							attempt.user_id?.toString?.() ??
+							String(attempt.user_id);
+						const targetUser = await userProvider.getById(ownerId);
+						if (!targetUser) {
+							throw new Error("Không tìm thấy user của attempt");
+						}
+
+						if (!attemptMeetsLearningCertificateTemplate(attempt, quiz, template)) {
+							throw new Error(
+								"Bài làm chưa đạt điều kiện chứng chỉ theo mẫu (min_score / require_all_correct).",
+							);
+						}
+
+						const certificate = await createAndSendCertificate(
+							targetUser,
+							attempt,
+							quiz,
+							content,
+							template,
+							certificateProvider,
+							req,
+						);
+
+						results.push({
+							user_id: targetUser._id.toString(),
+							user_email: targetUser.email,
+							certificate_id: certificate._id,
+							certificate_code: certificate.certificate_code,
+						});
+					} else if (content_id) {
+						const allAttemptsRaw = await attemptProvider.getAll({
+							where: {
+								quiz_id: quiz._id.toString(),
+								status: { $in: ["completed", "failed"] },
+							},
+							sortField: "created_at",
+							sortOrder: "desc",
+							includes: [{ path: "user_id", select: "email first_name middle_name last_name profile" }],
+						});
+
+						const allAttempts = {
+							rows: allAttemptsRaw.rows.filter((row: any) =>
+								attemptMeetsLearningCertificateTemplate(row, quiz, template),
+							),
+						};
 
             // Track which users already processed to avoid duplicates
             const processedUsers = new Set<string>();
@@ -421,7 +547,11 @@ export default (_express: Application) => {
                 });
               }
             }
-          }
+          } else {
+						throw new Error(
+							"Không thể gửi: dùng content_id (hàng loạt), hoặc attempt_id (một lần làm), hoặc user_id kèm content_id/attempt_id.",
+						);
+					}
 
         return res.sendOk({
           data: {

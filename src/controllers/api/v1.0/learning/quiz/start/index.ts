@@ -163,13 +163,15 @@ export default (_express: Application) => {
 						
 						// Create quiz with available questions
 						const quizQuestions = allQuestions.rows.slice(0, 20);
-						
+						const n = quizQuestions.length;
+						const defaultPassing = Math.max(1, Math.min(n, Math.ceil(n * 0.8)));
+
 						quiz = await quizProvider.createQuiz({
 							content_id: content_id as any,
 							title: "Quiz ôn tập",
 							description: "Bài trắc nghiệm ôn tập tự động tạo",
-							passing_score: 16, // 80% of 20 questions
-							total_score: quizQuestions.length, // 1 point per question
+							passing_score: defaultPassing,
+							total_score: n,
 							time_limit: 20,
 							questions: quizQuestions.map(q => q._id),
 							shuffle_questions: true,
