@@ -9,12 +9,12 @@
 	"Storage": "/usr/src/app/storage",
 	"Database": {
 		"DB_DIALECT": "mongodb",
-		"DB_DATABASE": "shtt_online_exam",
-		"DB_AUTHDB": "shtt_online_exam",
-		"DB_USER": "shttonlineuser",
-		"DB_PASS": "SOh3TbYhx",
-		"DB_HOST": "27.74.255.96",
-		"DB_PORT": 8000
+		"DB_DATABASE": "shtt-vpd",
+		"DB_AUTHDB": "shtt-vpd",
+		"DB_USER": "shttvpd_user",
+		"DB_PASS": "25810042",
+		"DB_HOST": "vietprodev.duckdns.org",
+		"DB_PORT": 27017
 	},
 	"LoggingService": {
 		"IsEnabled": true,
