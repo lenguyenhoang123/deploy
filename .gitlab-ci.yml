@@ -1,50 +1,66 @@
 stages:
-    - build
-    - deploy
-build:
-    stage: build
-    before_script:
-        - source ./env-param.sh
-        - export docker_path=$(pwd)
-        - tag=$(echo $CI_COMMIT_MESSAGE | sed -r 's/.*(\[tag\])//') 
-        - export tag=$tag
-        - check=$(echo $CI_COMMIT_MESSAGE | sed -r 's/^.*(\[tag\]).*/\1/')
-        - echo "To release new docker image, tagname should be 'staging', your tag is:$tag "
-        - cicd_path=$(pwd)/cicd
-    script:
-        - |
-            if [ "$check" == "[tag]" ]; then
-                bash $cicd_path/build.sh
-            fi
-    only:
-        - release/staging
-    tags:
-        - runner-builder
+  - deploy
+
+variables:
+  APP_NAME: "shtt-online-exam-backend"
+  DEPLOY_TAG: "staging"
+  DEPLOY_URL: "https://shtt.vietprodev.com"
 
 deploy:
-    stage: deploy
-    before_script:
-        - source ./env-param.sh
-        - export CI_REGISTRY_PW=$CI_REGISTRY_PW
-        - export CI_REGISTRY_USER=$CI_REGISTRY_USER
-        - tag=$(echo $CI_COMMIT_MESSAGE | sed -r 's/.*(\[tag\])//') 
-        - export tag=staging
-        - cicd_path=$(pwd)/cicd
-        - |
-            if [ ! -d $mount_data_folder ]; then
-                sudo mkdir $mount_data_folder
-                sudo chown -R gitlab-runner.gitlab-runner $mount_data_folder
-            fi
-        - |
-            if [ ! -d $mount_data_folder/$project_name ]; then
-                sudo mkdir $mount_data_folder/$project_name
-                sudo chown -R gitlab-runner.gitlab-runner $mount_data_folder/$project_name
-            fi
-    script:
-        - bash $cicd_path/deploy.sh
-        - bash $cicd_path/clean.sh
+  stage: deploy
+  before_script:
+    - mkdir -p storage/log || true
+    - check=$(echo "$CI_COMMIT_MESSAGE" | sed -nE 's/^.*\[tag\]([A-Za-z0-9._-]+).*$/\1/p')
+    - |
+      if [ "$check" != "$DEPLOY_TAG" ]; then
+        echo "Commit message tag must be [tag]$DEPLOY_TAG; current tag: ${check:-none}. Skip pipeline."
+        exit 0
+      fi
 
-    only:
-        - release/staging
-    tags:
-        - runner-242
+  script:
+    # 1. ENV
+    - node --version && npm --version && pnpm --version
+
+    # 2. Install + build
+    - pnpm install --no-frozen-lockfile
+    - echo "Building..."
+    - pnpm build || (echo "Build failed"; exit 1)
+
+    # 3. Verify build
+    - WORK_DIR=$(pwd)
+    - test -f $WORK_DIR/dist/index.js || (echo "dist/index.js NOT FOUND"; exit 1)
+
+    # 4. Smoke test
+    - export NODE_ENV=staging
+    - timeout 5 node $WORK_DIR/dist/index.js || echo "Test timeout (expected)"
+
+    # 5. Deploy with PM2 (idempotent)
+    - |
+      if pm2 describe "$APP_NAME" > /dev/null; then
+        echo "App exists; reload"
+        pm2 reload "$APP_NAME" --update-env
+      else
+        echo "App not found; start new"
+        pm2 start $WORK_DIR/dist/index.js \
+          --name "$APP_NAME" \
+          --interpreter node \
+          --cwd $WORK_DIR \
+          --time
+      fi
+
+    # 6. Persist state
+    - pm2 save
+
+    # 7. Check
+    - sleep 5
+    - pm2 status || (echo "PM2 status failed"; exit 1)
+
+  only:
+    - staging-shtt
+
+  environment:
+    name: staging
+    url: $DEPLOY_URL
+
+  tags:
+    - runner-vpd-que

@@ -32,8 +32,7 @@
 	},
 	"Domains": {
 		"Frontend": [
-			"https://shtt.erp.meu-solutions.com",
-			"http://shtt.erp.meu-solutions.com",
+			"https://shtt.vietprodev.com",
 			"http://192.168.0.242:3031",
 			"http://localhost:3000",
 			"http://localhost:3001",
@@ -41,7 +40,7 @@
 			"http://localhost:5173"
 		],
 		"Backend": [
-			"https://gateway.dev.meu-solutions.com/shtt",
+			"https://shtt.vietprodev.com",
 			"http://192.168.0.242:3031"
 		]
 	}

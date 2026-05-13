@@ -12,7 +12,7 @@ export default {
 		},
 		consumes: ["application/json", "application/x-www-form-urlencoded"],
 		servers: [
-			{ url: "https://gateway.dev.meu-solutions.com/shtt/api/v1.0" },
+			{ url: "https://shtt.vietprodev.com/api/v1.0" },
 			{ url: "http://localhost:3000/api/v1.0" },
 		],
 		components: {
