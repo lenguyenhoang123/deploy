@@ -16,6 +16,7 @@ RUN ["pnpm", "install", "--prod", "--frozen-lockfile"]
 FROM node:lts-alpine3.20 AS run
 WORKDIR /usr/src/app
 ENV TZ="Asia/Bangkok"
+ENV NODE_ENV=staging
 RUN ["apk", "update"]
 COPY --from=run-deps /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
